@@ -21,7 +21,7 @@
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@quasar/app-vite": "^1.9.0",
+    "@quasar/app-vite": "2.1.4",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.35",
     "sass": "^1.32.12"
