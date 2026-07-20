@@ -1,166 +1,287 @@
 <template>
-  <div style="padding: 20px">
-    <div class="combo-panel">
-      <h2 style="margin: 0 0 15px 0; text-align: center">🎁 套餐優惠</h2>
-      <p style="text-align: center; margin-bottom: 20px; color: #0000009f">
-        各品項加入購物車後將會自動計算最佳組合並折扣
-      </p>
-      <p class="promo-banner">
-        滿$1000即贈送徽章或鑰匙圈 1 個
-        <br>
-        限時優惠，只到12月5日
-      </p>
-      <div class="combo-cards">
-        <div
-          v-for="combo in comboDeals"
-          :key="combo.id"
-          class="combo-card"
-        >
-          <div style="font-weight: bold; margin-bottom: 5px">{{ combo.name }}</div>
-          <div style="font-size: 0.9rem; opacity: 0.9">
-            包含：{{ combo.items.map((no) => products.find((p) => p.no === no)?.category).join(' + ') }}
-            <div
-              v-if="combo.note"
-              style="margin-top: 5px; font-size: 0.85rem; color: #555"
-            >
-              ({{ combo.note }})
-            </div>
-          </div>
-          <div style="margin-top: 8px">
-            <span style="text-decoration: line-through; opacity: 0.7">${{ combo.originalPrice }}</span>
-            <span style="margin-left: 10px; font-weight: bold; font-size: 1.1rem">${{ combo.comboPrice }}</span>
-            <span style="margin-left: 10px; color: #ffc400ff">省${{ combo.showdiscount }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="storefront">
+    <section class="hero">
+      <p class="eyebrow eyebrow-en">Keep Your Memories Alive</p>
+      <h1 class="text-bold">把青春的片刻<br>留在身邊</h1>
+      <p class="hero-copy">為駝客設計的紀念品系列，讓那些在校園裡發生的故事，陪你走得更遠。</p>
+      <a href="#collection" class="primary-link">探索商品 <q-icon name="south_east" /></a>
+    </section>
 
-    <div class="product-grid">
-      <div
-        v-for="product in products"
-        :key="product.id"
-        class="product-card"
-      >
-        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 8px">{{ product.name }}</div>
-        <div style="color: #555; margin-bottom: 12px">
-          <div
-            v-if="product.orPrice && product.orPrice !== 50"
-            style="text-decoration: line-through; opacity: 0.7"
-          >
-            ${{ product.orPrice }}
-          </div>
-          <div style="text-align: center">${{ product.price }}</div>
-        </div>
-        <div class="product-image-wrap">
-          <img
-            :src="`/images/product-${product.textid}.png`"
-            :alt="product.name"
-          >
-        </div>
-        <button
-          type="button"
-          class="view-btn"
-          @click="$router.push(`/product/${product.textid}`)"
-        >
-          查看
-        </button>
+    <section class="benefits" aria-label="購物說明">
+      <span>符合組合優惠時自動折抵</span><i />
+      <span>不登入也能完成訂購</span><i />
+      <span>隨時查看訂單狀態</span>
+    </section>
+
+    <section class="offers">
+      <div class="section-heading">
+        <p class="eyebrow">精選組合</p>
+        <h2 class="text-bold">最適合的組合優惠</h2>
+        <p>結帳時，我們會自動為你套用最合適的組合優惠。</p>
       </div>
-    </div>
+      <div class="offer-grid">
+        <article v-for="combo in comboDeals" :key="combo.id" class="offer-card">
+          <p class="offer-label">{{ combo.name }}</p>
+          <h3 class="text-bold">現省 <span class="num">NT$ {{ combo.showdiscount }}</span></h3>
+          <p>{{ combo.items.map((no) => products.find((product) => product.no === no)?.category).filter(Boolean).join(' · ') }}</p>
+          <span class="offer-price">
+            <span class="num">NT$ {{ combo.comboPrice }}</span>
+            <del class="num">NT$ {{ combo.originalPrice }}</del>
+          </span>
+        </article>
+      </div>
+    </section>
+
+    <section id="collection" class="collection">
+      <div class="section-heading">
+        <p class="eyebrow">商品系列</p>
+        <h2 class="text-bold">挑一件屬於你的紀念</h2>
+      </div>
+      <div class="product-grid">
+        <router-link
+          v-for="product in products"
+          :key="product.id"
+          :to="`/product/${product.textid}`"
+          class="product-card"
+        >
+          <div class="product-image"><img :src="`/images/product-${product.textid}.png`" :alt="product.name" loading="lazy"></div>
+          <div class="product-meta"><div><p class="product-category">{{ product.category }}</p><h3>{{ product.name }}</h3></div><q-icon name="arrow_forward" /></div>
+          <p class="price">
+            <del v-if="product.orPrice && product.orPrice !== product.price" class="num">NT$ {{ product.orPrice }}</del>
+            <span class="num">NT$ {{ product.price }}</span>
+          </p>
+        </router-link>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { products, comboDeals } from 'src/data/catalog'
+import { comboDeals, products } from 'src/data/catalog'
 </script>
 
 <style scoped>
-.combo-panel {
-  margin-bottom: 30px;
-  padding: 25px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: black;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+@import 'src/css/app.scss';
+
+/*
+  排版統一原則（與 OrdersPage 共用同一套邏輯）：
+  1. 字體堆疊同時涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
+  2. 大標題的深負字距（-.065em、-.055em）是拉丁字排版技巧，套在中文上會讓字距過緊、
+     甚至重疊，因此中文標題的字距收斂到接近 0；英文 eyebrow（"Keep Your Memories Alive"）
+     維持適度正字距，比較符合拉丁大寫/小型大寫的排版慣例。
+  3. 中文行距統一拉寬（1.5 → 1.6~1.65），比英文常用值更寬鬆才好讀。
+  4. 金額、折扣數字都用 .num 包起來，套用 tabular-nums 與系統 UI 字體，讓「NT$」與數字
+     在中文句子裡不會忽大忽小、字寬跳動。
+*/
+
+.storefront {
+  padding-bottom: 96px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.65;
+  color: #1d1d1f;
 }
 
-.promo-banner {
-  text-align: center;
-  margin-bottom: 20px;
-  background: #ffe7e7ff;
-  border: 1px solid #ff0000ff;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
-  color: #a10d0dff;
-  padding: 15px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  min-width: 200px;
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-.combo-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
-}
-
-.combo-card {
-  background: rgba(255, 255, 255, 0.73);
-  padding: 15px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  min-width: 200px;
-}
-
-.product-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-  padding-bottom: 40px;
-}
-
-.product-card {
-  width: 220px;
-  padding: 16px;
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.hero {
+  min-height: 520px;
+  padding: 112px 24px 88px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #fff 0%, #f5f5f7 60%);
+  text-align: center;
 }
 
-.product-image-wrap {
-  width: 200px;
-  height: 200px;
-  margin-bottom: 24px;
+.eyebrow {
+  margin: 0 0 12px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.eyebrow-en {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Arial, sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+h1, h2, h3, p { margin-top: 0; }
+
+h1 {
+  max-width: 800px;
+  margin-bottom: 20px;
+  font-size: clamp(2.8rem, 7vw, 5.6rem);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  font-weight: 700;
+}
+
+.hero-copy {
+  max-width: 510px;
+  margin-bottom: 28px;
+  color: #6e6e73;
+  font-size: 1.15rem;
+  line-height: 1.65;
+}
+
+.primary-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-size: .95rem;
+  text-decoration: none;
+}
+
+.benefits {
+  max-width: 1040px;
+  margin: -25px auto 96px;
+  padding: 17px 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  overflow: hidden;
+  gap: 18px;
+  border: 1px solid #e5e5e7;
+  border-radius: 18px;
+  background: #fff;
+  color: #6e6e73;
+  font-size: .83rem;
 }
 
-.product-image-wrap img {
+.benefits i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #c7c7cc;
+}
+
+.offers, .collection {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section-heading { max-width: 520px; margin-bottom: 32px; }
+
+h2 {
+  margin-bottom: 10px;
+  font-size: clamp(1.9rem, 3.6vw, 3rem);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  font-weight: 700;
+}
+
+.section-heading > p:last-child {
+  color: #6e6e73;
+  line-height: 1.6;
+}
+
+.offer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 112px;
+}
+
+.offer-card {
+  min-height: 176px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.offer-label { margin-bottom: auto; color: #a1a1a6; font-size: .8rem; }
+
+.offer-card h3 {
+  margin-bottom: 7px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.offer-card p {
+  margin-bottom: 14px;
+  color: #d2d2d7;
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.offer-price { font-size: .88rem; display: inline-flex; align-items: baseline; gap: 6px; }
+.offer-price del { color: #a1a1a6; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px 16px;
+}
+
+.product-card { color: #1d1d1f; text-decoration: none; }
+
+.product-image {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #ececee;
+}
+
+.product-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform .35s ease;
 }
 
-.view-btn {
-  padding: 8px 16px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  cursor: pointer;
-  min-width: 70px;
+.product-card:hover img { transform: scale(1.03); }
+
+.product-meta {
+  padding: 15px 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-category { margin-bottom: 4px; color: #6e6e73; font-size: .75rem; }
+
+.product-meta h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.price {
+  margin: 6px 4px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #6e6e73;
+  font-size: .9rem;
+}
+
+.price del { color: #86868b; }
+
+@media (max-width: 700px) {
+  .hero { min-height: 460px; padding-top: 70px; }
+  .benefits { margin: -20px 16px 72px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .benefits i { display: none; }
+  .offers, .collection { padding: 0 16px; }
+  .offer-grid { grid-template-columns: 1fr; margin-bottom: 80px; }
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 24px 12px; }
+  .product-image { border-radius: 15px; }
 }
 </style>

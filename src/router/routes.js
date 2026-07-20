@@ -11,7 +11,8 @@ const routes = [
       { path: 'orders/:id', name: 'order-detail', component: () => import('pages/OrderDetailPage.vue') },
       { path: 'terms', name: 'terms', component: () => import('pages/TermsPage.vue') },
       { path: 'about', name: 'about', component: () => import('pages/AboutPage.vue') },
-      { path: 'comingsoon', name: 'comingsoon', component: () => import('pages/ComingSoonPage.vue') }
+      { path: 'comingsoon', name: 'comingsoon', component: () => import('pages/ComingSoonPage.vue') },
+      { path: 'account', name: 'account', component: () => import('pages/AccountPage.vue') }
     ]
   },
   {

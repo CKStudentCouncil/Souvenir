@@ -1,153 +1,66 @@
 <template>
   <div class="orders-page">
-    <h1>我的訂單</h1>
-    <button
-      type="button"
-      class="survey-btn"
-      @click="openSurvey"
-    >
-      使用者滿意度調查
-    </button>
+    <header class="page-header">
+      <p class="eyebrow">你的訂購紀錄</p>
+      <h1>我的訂單</h1>
+      <p>每一筆訂單的進度，都可以在這裡輕鬆查看。</p>
+    </header>
 
-    <p
-      v-if="loading"
-      class="muted"
-    >
-      載入中...
-    </p>
-    <p
-      v-else-if="orders.length === 0"
-      class="muted"
-    >
-      你還沒有任何訂單（完成結帳後會顯示於此裝置）
-    </p>
+    <div v-if="loading" class="empty-state">正在尋找你的訂單</div>
+    <div v-else-if="orders.length === 0" class="empty-state">
+      <q-icon name="shopping_bag" size="2.2rem" />
+      <h2>還沒有訂單</h2>
+      <p>準備好了的話，下一件屬於駝客的紀念品正在等你</p>
+      <router-link to="/" class="primary-button">探索商品</router-link>
+    </div>
 
-    <template v-else>
-      <p class="counter">第 {{ currentIndex + 1 }} 筆 / 共 {{ orders.length }} 筆訂單</p>
-      <div class="carousel-wrap">
-        <button
-          type="button"
-          class="nav-btn"
-          @click="prev"
-        >
-          ‹
-        </button>
-        <div
-          class="carousel"
-          @touchstart="touchStart = $event.touches[0].clientX"
-          @touchend="onTouchEnd"
-        >
-          <div
-            class="track"
-            :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
-          >
-            <div
-              v-for="order in orders"
-              :key="order.id"
-              class="slide"
-            >
-              <div class="order-card">
-                <div
-                  class="status-pill"
-                  :class="order.delivered ? 'done' : 'wait'"
-                >
-                  {{ order.delivered ? '✅ 已交貨' : '⏳ 未交貨' }}
-                </div>
-                <p class="order-id">訂單編號：#{{ order.id }}</p>
-                <p>總金額：NT$ {{ order.finalTotal }}</p>
-                <p>下單時間：{{ formatDate(order.createdAt) }}</p>
-                <div
-                  v-if="order.customerName"
-                  class="info-box"
-                >
-                  <p>姓名：{{ order.customerName }}</p>
-                  <p>Email：{{ order.customerEmail }}</p>
-                </div>
-                <ul class="items">
-                  <li
-                    v-for="item in order.items"
-                    :key="item.id + item.name"
-                  >
-                    {{ item.name }} x {{ item.quantity }}
-                  </li>
-                </ul>
-                <canvas
-                  :ref="(el) => setQrRef(order.id, el)"
-                  class="qr-canvas"
-                />
-                <div class="card-actions">
-                  <button
-                    type="button"
-                    class="btn-primary"
-                    @click="$router.push(`/orders/${order.id}`)"
-                  >
-                    查看詳細
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-danger"
-                    @click="confirmDelete(order.id)"
-                  >
-                    刪除訂單
-                  </button>
-                </div>
-              </div>
-            </div>
+    <div v-else class="order-list">
+      <article v-for="order in orders" :key="order.id" class="order-card">
+        <div class="card-top">
+          <div class="status" :class="order.delivered ? 'delivered' : 'pending'">
+            <q-icon :name="order.delivered ? 'check_circle' : 'schedule'" />
+            {{ order.delivered ? '已完成交付' : '準備中' }}
           </div>
+          <canvas
+            :ref="(el) => setQrRef(order.id, el)"
+            class="qr-thumb"
+            :aria-label="`訂單 ${shortId(order.id)} 的 QR code，掃描可查看明細`"
+          />
         </div>
-        <button
-          type="button"
-          class="nav-btn"
-          @click="next"
-        >
-          ›
-        </button>
-      </div>
-      <div class="dots">
-        <button
-          v-for="(_, i) in orders"
-          :key="i"
-          type="button"
-          :class="{ active: i === currentIndex }"
-          @click="currentIndex = i"
-        />
-      </div>
-    </template>
+
+        <div class="order-main">
+          <div>
+            <p class="order-date"><span class="num">{{ formatDate(order.createdAt) }}</span></p>
+            <h2>訂單 <span class="num">#{{ shortId(order.id) }}</span></h2>
+            <p class="item-summary">{{ itemSummary(order.items) }}</p>
+          </div>
+          <strong class="price"><span class="currency">NT$</span><span class="num">{{ order.finalTotal }}</span></strong>
+        </div>
+
+        <div class="order-actions">
+          <router-link :to="`/orders/${order.id}`">查看明細</router-link>
+          <button type="button" class="delete-button" @click="confirmDelete(order.id)">刪除訂單</button>
+        </div>
+      </article>
+    </div>
+
+    <button type="button" class="feedback-link" @click="openSurvey">分享使用心得</button>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
 import { useToastStore } from 'src/stores/toast'
-import {
-  fetchBuyerOrders,
-  deleteOrderById,
-  formatOrderDate
-} from 'src/services/orderService'
+import { deleteOrderById, fetchBuyerOrders, formatOrderDate } from 'src/services/orderService'
 
 const toast = useToastStore()
 const orders = ref([])
 const loading = ref(true)
-const currentIndex = ref(0)
-const touchStart = ref(0)
 const qrRefs = new Map()
 
 function setQrRef(id, el) {
   if (el) qrRefs.set(id, el)
-}
-
-async function loadOrders() {
-  loading.value = true
-  try {
-    orders.value = await fetchBuyerOrders()
-  } catch (e) {
-    console.error(e)
-    toast.show('載入訂單失敗')
-  }
-  loading.value = false
-  await nextTick()
-  renderQrs()
 }
 
 async function renderQrs() {
@@ -156,219 +69,251 @@ async function renderQrs() {
     if (!canvas) continue
     const url = `${window.location.origin}/orders/${order.id}`
     try {
-      await QRCode.toCanvas(canvas, url, { width: 120 })
-    } catch (e) {
-      console.error(e)
+      await QRCode.toCanvas(canvas, url, {
+        width: 112,
+        margin: 0,
+        color: { dark: '#1d1d1f', light: '#00000000' }
+      })
+    } catch (error) {
+      console.error(error)
     }
   }
 }
 
-watch(currentIndex, () => nextTick(renderQrs))
+async function loadOrders() {
+  loading.value = true
+  try {
+    orders.value = await fetchBuyerOrders()
+  } catch (error) {
+    console.error(error)
+    toast.show('目前無法載入訂單，請稍後再試。')
+  } finally {
+    loading.value = false
+  }
+  await nextTick()
+  renderQrs()
+}
 
 onMounted(loadOrders)
 
-function formatDate(ts) {
-  return formatOrderDate(ts)
+function formatDate(timestamp) { return formatOrderDate(timestamp) }
+function shortId(id) { return String(id).slice(-8).toUpperCase() }
+function itemSummary(items) {
+  const count = items.reduce((total, item) => total + item.quantity, 0)
+  const names = items.map((item) => item.name).slice(0, 2).join('、')
+  return `${count} 件商品 · ${names}${items.length > 2 ? '…' : ''}`
 }
-
-function prev() {
-  currentIndex.value = currentIndex.value === 0 ? orders.value.length - 1 : currentIndex.value - 1
-}
-
-function next() {
-  currentIndex.value =
-    currentIndex.value === orders.value.length - 1 ? 0 : currentIndex.value + 1
-}
-
-function onTouchEnd(e) {
-  const end = e.changedTouches[0].clientX
-  const dist = touchStart.value - end
-  if (dist > 50) next()
-  else if (dist < -50) prev()
-}
-
-function openSurvey() {
-  window.open('https://forms.gle/Grnk7FXfrXDQutE87', '_blank')
-}
+function openSurvey() { window.open('https://forms.gle/Grnk7FXfrXDQutE87', '_blank') }
 
 async function confirmDelete(orderId) {
-  if (!window.confirm('確定要刪除此訂單嗎？')) return
+  if (!window.confirm('確定要刪除這筆訂單嗎？刪除後無法復原。')) return
   try {
     await deleteOrderById(orderId)
-    orders.value = orders.value.filter((o) => o.id !== orderId)
-    if (currentIndex.value >= orders.value.length) {
-      currentIndex.value = Math.max(0, orders.value.length - 1)
-    }
-    toast.show('✅ 訂單已刪除')
-  } catch (e) {
-    toast.show('❌ 刪除失敗')
+    orders.value = orders.value.filter((order) => order.id !== orderId)
+    toast.show('訂單已刪除。')
+  } catch {
+    toast.show('目前無法刪除訂單，請稍後再試。')
   }
 }
 </script>
 
 <style scoped>
+/*
+  排版統一原則：
+  1. 字體堆疊同時涵蓋中英文，避免中文字用到英文字重導致的「重量不一致」問題。
+  2. 大標題的負字距（letter-spacing）是為拉丁字優化的視覺技巧，套用在中文字上會讓字距過緊、
+     甚至重疊，因此中文字距收斂到接近 0，另外把緊縮效果留給真正的英文/數字。
+  3. 中文行距通常需要比英文更寬鬆才易讀，因此本頁把 line-height 統一拉到 1.6~1.7。
+  4. 數字（金額、日期、訂單編號）用 .num / .currency 包起來，套用 tabular-nums 等寬數字與
+     系統 UI 字體，讓價格、日期在中文段落裡不會忽大忽小、忽粗忽細。
+*/
+
 .orders-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  max-width: 780px;
+  margin: auto;
+  padding: 72px 24px 96px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.65;
+  color: #1d1d1f;
+}
+
+.num, .currency {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.page-header { margin-bottom: 40px; }
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
 }
 
 h1 {
-  color: #333;
-  margin-bottom: 20px;
+  margin: 0 0 10px;
+  font-size: clamp(2.4rem, 5.6vw, 3.8rem);
+  line-height: 1.15;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 
-.survey-btn {
-  margin-bottom: 24px;
-  padding: 12px 28px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
+.page-header > p:last-child {
+  margin: 0;
+  color: #6e6e73;
+  line-height: 1.6;
 }
 
-.muted {
-  color: #555;
-}
-
-.counter {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-}
-
-.carousel-wrap {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 800px;
-  gap: 8px;
-}
-
-.nav-btn {
-  border: none;
-  background: white;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5rem;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.carousel {
-  flex: 1;
-  overflow: hidden;
-}
-
-.track {
-  display: flex;
-  transition: transform 0.3s ease;
-}
-
-.slide {
-  min-width: 100%;
-  padding: 0 4px;
-  box-sizing: border-box;
-}
+.order-list { display: grid; gap: 12px; }
 
 .order-card {
-  background: white;
+  padding: 20px 22px;
+  border: 1px solid #e5e5e7;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+
+.pending { background: #fff5d6; color: #7a5300; }
+.delivered { background: #e8f7ed; color: #19703a; }
+
+.qr-thumb {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  padding: 5px;
+  border: 1px solid #e5e5e7;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  padding: 24px;
+  background: #fff;
 }
 
-.status-pill {
-  display: inline-block;
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-weight: bold;
-  margin-bottom: 12px;
+.order-main {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-.status-pill.done {
-  background: #dcfce7;
-  color: #166534;
+.order-date {
+  margin: 0 0 5px;
+  color: #6e6e73;
+  font-size: .82rem;
 }
 
-.status-pill.wait {
-  background: #fef3c7;
-  color: #92400e;
+.order-main h2 {
+  margin: 0 0 7px;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.order-id {
-  background: #f8fafc;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  display: inline-block;
+.item-summary {
+  margin: 0;
+  color: #6e6e73;
+  font-size: .87rem;
+  line-height: 1.55;
 }
 
-.info-box {
-  background: #f0f9ff;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 12px 0;
+.price {
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.items {
-  margin: 12px 0;
+.price .currency {
+  margin-right: 2px;
+  font-size: .85em;
+  font-weight: 600;
+  color: #6e6e73;
 }
 
-.qr-canvas {
+.order-actions {
+  margin-top: 20px;
+  padding-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e5e5e7;
+}
+
+.order-actions a, .delete-button {
+  border: 0;
+  background: transparent;
+  color: #06c;
+  cursor: pointer;
+  font: 600 .88rem inherit;
+  text-decoration: none;
+  letter-spacing: .01em;
+}
+
+.delete-button { color: #a12622; }
+
+.feedback-link {
   display: block;
-  margin: 16px auto;
+  margin: 28px auto 0;
+  border: 0;
+  background: transparent;
+  color: #6e6e73;
+  cursor: pointer;
+  font: inherit;
+  font-size: .85rem;
+  text-decoration: underline;
 }
 
-.card-actions {
+.empty-state {
+  min-height: 300px;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  color: #6e6e73;
+  text-align: center;
+  line-height: 1.6;
 }
 
-.btn-primary {
-  padding: 10px 16px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
+.empty-state h2 {
+  margin: 14px 0 6px;
+  color: #1d1d1f;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.btn-danger {
-  padding: 10px 16px;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.dots {
-  display: flex;
-  gap: 8px;
+.primary-button {
   margin-top: 16px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-size: .9rem;
+  text-decoration: none;
 }
 
-.dots button {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: none;
-  background: #ccc;
-  cursor: pointer;
-  padding: 0;
-}
-
-.dots button.active {
-  background: #dd2476;
+@media (max-width: 560px) {
+  .orders-page { padding: 48px 16px 64px; }
+  .order-card { padding: 18px; }
+  .order-main { gap: 10px; }
+  .order-main strong { font-size: .9rem; }
+  .qr-thumb { width: 44px; height: 44px; }
 }
 </style>

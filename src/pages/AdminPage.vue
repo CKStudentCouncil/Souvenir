@@ -10,10 +10,10 @@
     v-else-if="!canAccessAdmin"
     class="state-screen"
   >
-    <h2>⚠️ 權限不足</h2>
+    <h2>權限不足</h2>
     <button
       type="button"
-      class="btn-primary"
+      class="btn"
       @click="$router.push('/')"
     >
       回到首頁
@@ -39,7 +39,7 @@
       >
       <div>
         <p class="name">Admin-{{ displayName }}</p>
-        <p class="email">{{ auth.user?.email || '—' }}</p>
+        <p class="email mono">{{ auth.user?.email || '—' }}</p>
       </div>
     </div>
 
@@ -65,14 +65,14 @@
         :class="{ active: activeTab === 'all' }"
         @click="setActiveTab('all')"
       >
-        全部訂單 ({{ currentOrders.length }})
+        全部訂單 (<span class="num">{{ currentOrders.length }}</span>)
       </button>
       <button
         type="button"
         :class="{ active: activeTab === 'delivered' }"
         @click="setActiveTab('delivered')"
       >
-        已交貨 ({{ deliveredTabCount }})
+        已交貨 (<span class="num">{{ deliveredTabCount }}</span>)
       </button>
     </div>
 
@@ -82,21 +82,21 @@
         <div class="stats-row">
           <div class="stat">
             <div>{{ activeTab === 'delivered' ? '已交貨數' : '訂單數' }}</div>
-            <div>{{ currentOrders.length }}</div>
+            <div class="num">{{ currentOrders.length }}</div>
           </div>
-          <div class="stat blue">
+          <div class="stat">
             <div>{{ activeTab === 'delivered' ? '已交貨營收' : '總營收' }}</div>
-            <div>NT$ {{ currentStats.totalRevenue }}</div>
+            <div class="num">NT$ {{ currentStats.totalRevenue }}</div>
           </div>
-          <div class="stat red">
+          <div class="stat">
             <div>折扣總額</div>
-            <div>NT$ {{ currentStats.totalDiscount }}</div>
+            <div class="num">NT$ {{ currentStats.totalDiscount }}</div>
           </div>
         </div>
       </div>
       <button
         type="button"
-        class="btn-primary"
+        class="btn"
         @click="exportToExcel(activeTab === 'delivered')"
       >
         匯出 Excel
@@ -105,7 +105,7 @@
 
     <div
       v-if="activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
-      class="panel delivery-personnel-panel"
+      class="panel"
     >
       <h2>交貨人員統計</h2>
       <div class="personnel-grid">
@@ -115,8 +115,8 @@
           class="personnel-card"
         >
           <p class="personnel-name">{{ personnel }}</p>
-          <p class="personnel-stat">訂單數：{{ stats.count }}</p>
-          <p class="personnel-stat">金額：NT$ {{ stats.totalAmount }}</p>
+          <p class="personnel-stat">訂單數：<span class="num">{{ stats.count }}</span></p>
+          <p class="personnel-stat total">金額：<span class="num">NT$ {{ stats.totalAmount }}</span></p>
         </div>
       </div>
     </div>
@@ -132,10 +132,10 @@
           :key="name"
         >
           <span>{{ name }}</span>
-          <span>總數量：{{ total }}</span>
+          <span class="num">總數量：{{ total }}</span>
         </li>
       </ul>
-      <p v-else>尚無統計資料</p>
+      <p v-else class="empty">尚無統計資料</p>
     </div>
 
     <div class="orders-section">
@@ -149,13 +149,15 @@
           class="delivery-bar"
           :class="order.delivered ? 'delivered' : 'pending'"
         >
-          <span>交貨狀態：{{ order.delivered ? '✅ 已交貨' : '⏳ 未交貨' }}</span>
+          <span class="status-dot" />
+          <span>交貨狀態：{{ order.delivered ? '已交貨' : '未交貨' }}</span>
           <div
             v-if="activeTab === 'all'"
             class="delivery-actions"
           >
             <button
               type="button"
+              class="btn-sm"
               :disabled="order.delivered"
               @click="updateDeliveryStatus(order.id, true)"
             >
@@ -163,6 +165,7 @@
             </button>
             <button
               type="button"
+              class="btn-sm muted"
               :disabled="!order.delivered"
               @click="updateDeliveryStatus(order.id, false)"
             >
@@ -170,9 +173,9 @@
             </button>
           </div>
         </div>
-        <p><strong>訂單ID:</strong> {{ order.id }}</p>
-        <p><strong>折扣後金額:</strong> NT$ {{ order.finalTotal }}</p>
-        <p><strong>購買時間:</strong> {{ formatDate(order.createdAt) }}</p>
+        <p><strong>訂單ID：</strong><span class="mono">{{ order.id }}</span></p>
+        <p><strong>折扣後金額：</strong><span class="num">NT$ {{ order.finalTotal }}</span></p>
+        <p><strong>購買時間：</strong><span class="num">{{ formatDate(order.createdAt) }}</span></p>
         <div
           v-if="order.customerName || order.customerEmail"
           class="customer-box"
@@ -180,8 +183,8 @@
           <strong>客戶資料：</strong>
           <ul>
             <li v-if="order.customerName">姓名：{{ order.customerName }}</li>
-            <li v-if="order.customerPhone">電話：{{ order.customerPhone }}</li>
-            <li v-if="order.customerEmail">Email：{{ order.customerEmail }}</li>
+            <li v-if="order.customerPhone">電話：<span class="mono">{{ order.customerPhone }}</span></li>
+            <li v-if="order.customerEmail">Email：<span class="mono">{{ order.customerEmail }}</span></li>
             <li v-if="order.school">學校：{{ order.school }}</li>
             <li v-if="order.classNumber">班級座號：{{ order.classNumber }}</li>
           </ul>
@@ -193,28 +196,28 @@
               v-for="item in order.items"
               :key="item.id + item.name"
             >
-              {{ item.name }} x {{ item.quantity }} (NT$ {{ item.price }})
+              {{ item.name }} <span class="num">x {{ item.quantity }}</span> (<span class="num">NT$ {{ item.price }}</span>)
             </li>
           </ul>
         </div>
         <div class="order-actions">
           <button
             type="button"
-            class="btn-primary"
+            class="btn"
             @click="viewOrderDetail(order.id)"
           >
             查看詳細
           </button>
           <button
             type="button"
-            class="btn-danger"
+            class="btn-outline danger"
             @click="confirmDelete(order.id)"
           >
             刪除訂單
           </button>
         </div>
       </div>
-      <p v-if="currentOrders.length === 0">尚無符合條件的訂單</p>
+      <p v-if="currentOrders.length === 0" class="empty">尚無符合條件的訂單</p>
     </div>
   </div>
 </template>
@@ -291,16 +294,47 @@ function viewOrderDetail(orderId) {
 
 function confirmDelete(orderId) {
   if (!window.confirm(`確定要刪除此訂單嗎？\nID: ${orderId}`)) return
-  deleteOrder(orderId).catch(() => toast.show('❌ 刪除失敗'))
+  deleteOrder(orderId).catch(() => toast.show('刪除失敗'))
 }
 </script>
 
 <style scoped>
+@import 'src/css/app.scss';
+
+/*
+  排版與視覺統一原則（與 StorefrontPage / SuccessPage / OrderDetailPage / AccountPage 共用同一套邏輯）：
+  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
+  2. 中文行距統一拉寬到 1.6。
+  3. 金額、數量用 .num 包起來套 tabular-nums；訂單 ID、Email、電話這類純英數字串
+     用 .mono 包起來換成等寬字體，方便使用者核對、複製。
+  4. 視覺語言統一改成黑白極簡：大卡片（order-card、panel）圓角統一 20px，
+     跟 StorefrontPage 的 offer-card / product-image 一致；小卡片（stat、personnel-card）
+     維持 10px。卡片邊框統一 #e5e5e7，取代原本的彩色陰影與漸層按鈕。
+  5. 按鈕統一膠囊造型（999px），主要動作黑底白字，次要動作白底細邊框。
+*/
+
 .admin-page {
   min-height: 100vh;
   padding: 40px 20px;
   max-width: 1000px;
   margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #1d1d1f;
+}
+
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.mono {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
+  letter-spacing: 0;
+  font-size: .95em;
+  word-break: break-all;
 }
 
 .state-screen {
@@ -318,7 +352,7 @@ function confirmDelete(orderId) {
 }
 
 .state-screen p {
-  color: #666;
+  color: #6e6e73;
   margin-bottom: 24px;
 }
 
@@ -327,8 +361,8 @@ function confirmDelete(orderId) {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e5e7;
+  border-radius: 18px;
   margin-bottom: 16px;
 }
 
@@ -337,25 +371,28 @@ function confirmDelete(orderId) {
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #ddd;
+  border: 1px solid #e5e5e7;
 }
 
 .name {
   margin: 0;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 1rem;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .email {
   margin: 0;
-  font-size: 0.85rem;
-  color: #666;
+  font-size: .85rem;
+  color: #6e6e73;
 }
 
 .admin-page h1 {
-  margin-bottom: 20px;
-  color: #333;
+  margin: 0 0 20px;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 
 .filter-block {
@@ -366,64 +403,65 @@ function confirmDelete(orderId) {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
 }
 
-.filter-block select,
-.filter-block input {
+.filter-block select {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid #e5e5e7;
   border-radius: 8px;
   font-size: 1rem;
+  font-family: inherit;
   box-sizing: border-box;
-  color: #333;
-  background: white;
+  color: #1d1d1f;
+  background: #fff;
 }
 
 .tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  background: #f1f5f9;
+  background: #f5f5f7;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 999px;
 }
 
 .tabs button {
   flex: 1;
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   background: transparent;
   cursor: pointer;
+  font-family: inherit;
   transition: all 0.2s;
 }
 
 .tabs button:not(.active) {
-  background: transparent;
-  color: #64748b;
+  color: #6e6e73;
   font-weight: 400;
 }
 
 .tabs button.active {
-  background: white;
-  color: #1f2937;
+  background: #1d1d1f;
+  color: #fff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .panel {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  padding: 20px;
+  background: #fff;
+  border: 1px solid #e5e5e7;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 20px;
 }
 
 .panel h2 {
   margin: 0 0 16px;
-  color: #333;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1d1d1f;
 }
 
 .export-panel {
@@ -438,12 +476,6 @@ function confirmDelete(orderId) {
   margin: 0;
 }
 
-.export-panel p {
-  margin: 6px 0 8px;
-  color: #666;
-  font-size: 0.95rem;
-}
-
 .stats-row {
   display: flex;
   gap: 12px;
@@ -452,48 +484,22 @@ function confirmDelete(orderId) {
 }
 
 .stat {
-  background: #f9fafb;
-  border: 1px solid #eee;
+  background: #fff;
+  border: 1px solid #e5e5e7;
   border-radius: 10px;
   padding: 10px 14px;
 }
 
 .stat > div:first-child {
-  color: #666;
-  font-size: 0.9rem;
+  color: #6e6e73;
+  font-size: .9rem;
 }
 
 .stat > div:last-child {
-  color: #111;
+  color: #1d1d1f;
   font-weight: 700;
   font-size: 1.1rem;
   margin-top: 4px;
-}
-
-.stat.blue {
-  background: #f0f9ff;
-  border-color: #e0f2fe;
-}
-
-.stat.blue > div:first-child {
-  color: #0369a1;
-}
-
-.stat.blue > div:last-child {
-  color: #0c4a6e;
-}
-
-.stat.red {
-  background: #fff1f2;
-  border-color: #ffe4e6;
-}
-
-.stat.red > div:first-child {
-  color: #be123c;
-}
-
-.stat.red > div:last-child {
-  color: #9f1239;
 }
 
 .product-stats {
@@ -511,31 +517,21 @@ function confirmDelete(orderId) {
   align-items: center;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  background: #f9f9f9;
+  border: 1px solid #e5e5e7;
+  background: #fff;
 }
 
 .product-stats span:first-child {
-  color: #333;
+  color: #1d1d1f;
   font-weight: 600;
 }
 
 .product-stats span:last-child {
-  color: #666;
+  color: #6e6e73;
 }
 
-.delivery-personnel-panel {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.delivery-personnel-panel h2 {
-  margin: 0 0 16px;
-  color: #333;
+.empty {
+  color: #6e6e73;
 }
 
 .personnel-grid {
@@ -545,27 +541,27 @@ function confirmDelete(orderId) {
 }
 
 .personnel-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fff;
+  border: 1px solid #e5e5e7;
   border-radius: 10px;
   padding: 12px;
 }
 
 .personnel-name {
   margin: 0 0 4px;
-  font-weight: bold;
-  color: #1f2937;
+  font-weight: 700;
+  color: #1d1d1f;
   font-size: 1rem;
 }
 
 .personnel-stat {
   margin: 4px 0;
-  font-size: 0.9rem;
-  color: #64748b;
+  font-size: .9rem;
+  color: #6e6e73;
 }
 
-.personnel-stat:last-child {
-  color: #059669;
+.personnel-stat.total {
+  color: #1d1d1f;
   font-weight: 600;
   margin-top: 6px;
 }
@@ -576,128 +572,120 @@ function confirmDelete(orderId) {
 
 .orders-section h2 {
   margin: 0 0 16px;
-  color: #333;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1d1d1f;
 }
 
 .order-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  padding: 20px;
+  background: #fff;
+  border: 1px solid #e5e5e7;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 20px;
-}
-
-.order-card p {
-  color: #333;
 }
 
 .delivery-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px;
+  gap: 8px 12px;
+  padding: 10px 12px;
   border-radius: 8px;
   margin-bottom: 12px;
-  border: 1px solid;
+  border: 1px solid #e5e5e7;
+  font-size: .9rem;
 }
 
-.delivery-bar span {
-  margin-left: 8px;
-  font-size: 0.85rem;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.delivery-bar.delivered {
-  background: #dcfce7;
-  border-color: #16a34a;
-  color: #166534;
+.delivery-bar.delivered .status-dot {
+  background: #19703a;
 }
 
-.delivery-bar.pending {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  color: #92400e;
+.delivery-bar.pending .status-dot {
+  background: #b45309;
 }
 
 .delivery-actions {
   display: flex;
   gap: 8px;
+  margin-left: auto;
 }
 
-.delivery-actions button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  font-weight: bold;
+.btn-sm {
+  padding: 6px 14px;
+  border: 1px solid #1d1d1f;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-weight: 600;
+  font-size: .8rem;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-family: inherit;
 }
 
-.delivery-actions button:first-child {
-  background: #16a34a;
+.btn-sm.muted {
+  background: #fff;
+  color: #1d1d1f;
 }
 
-.delivery-actions button:first-child:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
-
-.delivery-actions button:last-child {
-  background: #f59e0b;
-}
-
-.delivery-actions button:last-child:disabled {
-  background: #94a3b8;
+.btn-sm:disabled {
+  background: #fff;
+  border-color: #e5e5e7;
+  color: #b0b0b5;
   cursor: not-allowed;
 }
 
 .customer-box {
-  background: #f0f9ff;
-  border: 1px solid #e0f2fe;
-  border-radius: 8px;
-  padding: 10px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  padding: 14px;
   margin: 10px 0;
-  font-size: 0.9rem;
+  font-size: .9rem;
 }
 
 .customer-box strong {
-  color: #0369a1;
+  color: #1d1d1f;
 }
 
 .customer-box ul {
   list-style: none;
   padding-left: 0;
-  margin: 6px 0;
+  margin: 6px 0 0;
 }
 
 .customer-box ul li {
   margin: 4px 0;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .items-box {
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 10px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  padding: 14px;
   margin: 10px 0;
-  font-size: 0.9rem;
+  font-size: .9rem;
 }
 
 .items-box strong {
-  color: #333;
+  color: #1d1d1f;
 }
 
 .items-box ul {
   list-style: none;
   padding-left: 0;
-  margin: 6px 0;
+  margin: 6px 0 0;
 }
 
 .items-box ul li {
   margin: 4px 0;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .order-actions {
@@ -707,33 +695,31 @@ function confirmDelete(orderId) {
   margin-top: 12px;
 }
 
-.btn-primary {
-  padding: 12px 24px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
+.btn {
+  padding: 10px 20px;
   border: none;
-  border-radius: 10px;
-  font-weight: bold;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(221, 36, 118, 0.25);
+  font-family: inherit;
 }
 
-.btn-primary:hover {
-  opacity: 0.95;
-}
-
-.btn-danger {
+.btn-outline {
   padding: 10px 16px;
-  background: #d32f2f;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid #e5e5e7;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d1d1f;
   font-weight: 600;
   cursor: pointer;
+  font-family: inherit;
 }
 
-.btn-danger:hover {
-  background: #c41c3b;
+.btn-outline.danger {
+  border-color: #d32f2f;
+  color: #d32f2f;
 }
 </style>

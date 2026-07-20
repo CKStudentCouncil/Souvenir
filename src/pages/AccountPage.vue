@@ -3,7 +3,7 @@
     v-if="!canAccessAdmin"
     class="state"
   >
-    <h2>⚠️ 權限不足</h2>
+    <h2>權限不足</h2>
     <button
       type="button"
       class="btn"
@@ -36,8 +36,8 @@
     </div>
 
     <div class="stats">
-      <div class="stat-card"><strong>{{ users.length }}</strong><span>總使用者</span></div>
-      <div class="stat-card"><strong>{{ users.filter((u) => u.role === 'admin').length }}</strong><span>管理員</span></div>
+      <div class="stat-card"><strong class="num">{{ users.length }}</strong><span>總使用者</span></div>
+      <div class="stat-card"><strong class="num">{{ users.filter((u) => u.role === 'admin').length }}</strong><span>管理員</span></div>
     </div>
 
     <div class="filters panel">
@@ -68,7 +68,7 @@
             v-for="u in filteredUsers"
             :key="u.id"
           >
-            <td>{{ u.email }}</td>
+            <td class="mono">{{ u.email }}</td>
             <td>{{ u.name || u.displayName || '未設定' }}</td>
             <td>{{ u.role === 'admin' ? '管理員' : '一般用戶' }}</td>
             <td>
@@ -83,7 +83,7 @@
           </tr>
         </tbody>
       </table>
-      <p v-if="filteredUsers.length === 0">找不到符合條件的使用者</p>
+      <p v-if="filteredUsers.length === 0" class="empty">找不到符合條件的使用者</p>
     </div>
 
     <div
@@ -93,9 +93,9 @@
     >
       <div class="modal">
         <h2>使用者管理</h2>
-        <p><strong>Email:</strong> {{ selectedUser.email }}</p>
-        <p><strong>姓名:</strong> {{ selectedUser.name || selectedUser.displayName || '未設定' }}</p>
-        <p><strong>角色:</strong> {{ selectedUser.role === 'admin' ? '管理員' : '一般用戶' }}</p>
+        <p><strong>Email：</strong><span class="mono">{{ selectedUser.email }}</span></p>
+        <p><strong>姓名：</strong>{{ selectedUser.name || selectedUser.displayName || '未設定' }}</p>
+        <p><strong>角色：</strong>{{ selectedUser.role === 'admin' ? '管理員' : '一般用戶' }}</p>
         <button
           type="button"
           class="btn"
@@ -230,10 +230,37 @@ async function deleteUser(userId) {
 </script>
 
 <style scoped>
+/*
+  排版與視覺統一原則（與 SuccessPage / OrderDetailPage 等共用同一套邏輯）：
+  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
+  2. 中文行距統一到 1.6 左右。
+  3. 人數統計這類數字用 .num 包起來套 tabular-nums；Email、UID 這類純英數字串
+     用 .mono 包起來換成等寬字體，方便使用者核對、複製。
+  4. 視覺語言統一改成黑白極簡：卡片改用細邊框（#e5e5e7）取代彩色陰影，按鈕改為
+     膠囊造型、純黑實心／描邊兩種樣式，取代原本的漸層彩色按鈕，跟 SuccessPage、
+     OrderDetailPage 保持一致。
+*/
+
 .account-page {
   padding: 40px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.mono {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
+  letter-spacing: 0;
+  font-size: .95em;
+  word-break: break-all;
 }
 
 .state {
@@ -243,6 +270,9 @@ async function deleteUser(userId) {
   align-items: center;
   justify-content: center;
   gap: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #1d1d1f;
 }
 
 .header-row {
@@ -254,6 +284,14 @@ async function deleteUser(userId) {
   margin-bottom: 24px;
 }
 
+.header-row h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.3;
+  letter-spacing: -.01em;
+  font-weight: 700;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -262,23 +300,30 @@ async function deleteUser(userId) {
 }
 
 .stat-card {
-  background: white;
+  background: #fff;
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e5e7;
+  border-radius: 14px;
   text-align: center;
+  line-height: 1.6;
 }
 
 .stat-card strong {
   display: block;
   font-size: 2rem;
+  color: #1d1d1f;
+}
+
+.stat-card span {
+  color: #6e6e73;
+  font-size: .9rem;
 }
 
 .panel {
-  background: white;
+  background: #fff;
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e5e7;
+  border-radius: 14px;
   margin-bottom: 20px;
 }
 
@@ -288,18 +333,18 @@ async function deleteUser(userId) {
   flex-wrap: wrap;
 }
 
+.filters input,
+.filters select {
+  padding: 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 8px;
+  font-family: inherit;
+  color: #1d1d1f;
+}
+
 .filters input {
   flex: 1;
   min-width: 250px;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-}
-
-.filters select {
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
 }
 
 .table-wrap {
@@ -310,13 +355,26 @@ table {
   width: 100%;
   border-collapse: collapse;
   min-width: 600px;
+  line-height: 1.6;
 }
 
 th,
 td {
   padding: 14px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e5e5e7;
+}
+
+th {
+  color: #6e6e73;
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.empty {
+  padding: 16px 0 4px;
+  color: #6e6e73;
+  text-align: center;
 }
 
 .btn,
@@ -324,31 +382,45 @@ td {
 .btn-outline {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: 999px;
+  font-weight: 600;
   cursor: pointer;
+  font-family: inherit;
 }
 
 .btn,
 .btn-sm {
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.btn:disabled,
+.btn-sm:disabled {
+  background: #d2d2d7;
+  color: #8e8e93;
+  cursor: not-allowed;
 }
 
 .btn-sm {
   padding: 8px 16px;
-  font-size: 0.9rem;
+  font-size: .9rem;
 }
 
 .btn-outline {
-  background: white;
-  border: 2px solid #ddd;
+  background: #fff;
+  color: #1d1d1f;
+  border: 1px solid #e5e5e7;
 }
 
 .btn.danger {
   background: #d32f2f;
   width: 100%;
   margin-top: 8px;
+}
+
+.btn.danger:disabled {
+  background: #d2d2d7;
+  color: #8e8e93;
 }
 
 .modal-overlay {
@@ -363,14 +435,26 @@ td {
 }
 
 .modal {
-  background: white;
+  background: #fff;
   border-radius: 16px;
   padding: 32px;
   max-width: 500px;
   width: 100%;
+  line-height: 1.6;
 }
 
-.modal .btn {
+.modal h2 {
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.modal p {
+  margin: 8px 0;
+}
+
+.modal .btn,
+.modal .btn-outline {
   width: 100%;
   margin-top: 8px;
 }

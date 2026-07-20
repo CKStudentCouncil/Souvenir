@@ -1,1 +1,0 @@
-import{_ as n,c as s,d as l,e,m as t}from"./index-BFeMWzcZ.js";const a={},c={class:"coming-soon"};function r(d,o){return l(),s("div",c,[...o[0]||(o[0]=[e("br",null,null,-1),e("br",null,null,-1),e("br",null,null,-1),t(" Coming Soon ",-1)])])}const u=n(a,[["render",r],["__scopeId","data-v-6fdcf6da"]]);export{u as default};

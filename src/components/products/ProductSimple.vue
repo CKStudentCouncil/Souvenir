@@ -1,37 +1,16 @@
 <template>
   <div class="product-page">
-    <div class="product-card">
-      <h1 style="margin-bottom: 8px; color: #333">{{ config.product.name }}</h1>
-      <div class="price-block">
-        <div
-          v-if="!config.hideOrPrice"
-          style="text-decoration: line-through; opacity: 0.7"
-        >
-          NT$ {{ config.orPrice }}
-        </div>
-        <template v-if="!config.hideOrPrice">早鳥優惠價：</template>
-        NT$ {{ config.price }}
-      </div>
-      <div class="image-wrap">
-        <img
-          :src="`/images/product-${config.imageId}.png`"
-          :alt="config.product.name"
-        >
-      </div>
-      <button
-        type="button"
-        class="add-btn-lg"
-        @click="add"
-      >
-        加入購物車
-      </button>
-      <button
-        type="button"
-        class="home-btn-muted"
-        @click="$router.push('/')"
-      >
-        回到首頁
-      </button>
+    <router-link to="/" class="back-link">‹ 回到商品系列</router-link>
+    <div class="product-detail">
+      <div class="image-wrap"><img :src="`/images/product-${config.imageId}.png`" :alt="config.product.name"></div>
+      <section class="purchase-panel">
+        <p class="eyebrow">CKSC COLLECTION</p>
+        <h1>{{ config.product.name }}</h1>
+        <p class="price"><del v-if="!config.hideOrPrice">NT$ {{ config.orPrice }}</del> NT$ {{ config.price }}</p>
+        <p class="description">一份小小的紀念，裝進校園裡最值得記得的片刻。</p>
+        <button type="button" class="primary-button" @click="add">加入購物袋 <q-icon name="add_shopping_cart" /></button>
+        <p class="reassurance">符合組合優惠時，將在結帳時自動折抵。</p>
+      </section>
     </div>
   </div>
 </template>
@@ -40,82 +19,16 @@
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
-const props = defineProps({
-  config: { type: Object, required: true }
-})
-
+const props = defineProps({ config: { type: Object, required: true } })
 const cart = useCartStore()
 const toast = useToastStore()
 
 function add() {
   cart.addToCart(props.config.product)
-  toast.show(`${props.config.product.name} 已加入購物車`)
+  toast.show(`已將「${props.config.product.name}」加入購物袋。`)
 }
 </script>
 
 <style scoped>
-.product-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  justify-content: center;
-}
-
-.product-card {
-  width: 100%;
-  max-width: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.price-block {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #dd2476;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.image-wrap {
-  width: 100%;
-  max-width: 300px;
-  height: 300px;
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.add-btn-lg {
-  padding: 12px 24px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-bottom: 20px;
-  min-width: 140px;
-}
-
-.home-btn-muted {
-  padding: 12px 28px;
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
-}
+.product-page { max-width: 1120px; margin: auto; padding: 32px 24px 96px; }.back-link { display: inline-block; margin-bottom: 24px; color: #6e6e73; font-size: .9rem; text-decoration: none; }.product-detail { display: grid; grid-template-columns: 1.1fr .9fr; gap: 72px; align-items: center; }.image-wrap { aspect-ratio: 1; overflow: hidden; border-radius: 28px; background: #ececee; }.image-wrap img { width: 100%; height: 100%; object-fit: cover; }.purchase-panel { max-width: 410px; }.eyebrow { margin: 0 0 12px; color: #6e6e73; font-size: .72rem; font-weight: 700; letter-spacing: .12em; } h1 { margin: 0 0 14px; font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1; letter-spacing: -.06em; }.price { margin: 0 0 28px; font-size: 1.25rem; font-weight: 650; }.price del { margin-right: 8px; color: #86868b; font-weight: 400; }.description, .reassurance { color: #6e6e73; line-height: 1.55; }.description { margin-bottom: 32px; }.primary-button { width: 100%; padding: 15px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; background: #1d1d1f; color: #fff; cursor: pointer; font: 600 1rem inherit; }.reassurance { margin-top: 14px; font-size: .82rem; text-align: center; } @media (max-width: 700px) { .product-page { padding: 20px 16px 56px; }.product-detail { grid-template-columns: 1fr; gap: 32px; }.image-wrap { border-radius: 20px; } }
 </style>

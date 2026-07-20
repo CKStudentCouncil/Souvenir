@@ -1,287 +1,95 @@
 <template>
-  <div class="main-layout">
-    <header class="main-header">
-      <button
-        type="button"
-        class="icon-btn"
-        aria-label="選單"
-        @click="drawerOpen = true"
-      >
-        <q-icon name="menu" size="1.5rem" />
-      </button>
+  <div class="app-shell">
+    <header class="site-header">
+      <router-link to="/" class="brand" aria-label="建中紀念品首頁">
+        <span class="brand-mark">CK</span>
+        <span>CK Souvenir 2.0</span>
+      </router-link>
 
-      <span class="main-title">建中校慶紀念品訂購系統</span>
+      <nav class="primary-nav" aria-label="主要導覽">
+        <router-link to="/" exact-active-class="is-active">商品</router-link>
+        <router-link to="/orders" active-class="is-active">我的訂單</router-link>
+        <router-link to="/about" active-class="is-active">關於我們</router-link>
+      </nav>
 
-      <button
-        type="button"
-        class="icon-btn"
-        aria-label="購物車"
-        @click="$router.push('/cart')"
-      >
-        <q-icon name="shopping_bag" size="1.5rem" />
-      </button>
+      <div class="header-actions">
+        <router-link to="/cart" class="bag-link" aria-label="開啟購物袋">
+          <q-icon name="shopping_bag" size="1.2rem" />
+          <span class="bag-label">購物袋</span>
+          <span v-if="itemCount" class="bag-count">{{ itemCount }}</span>
+        </router-link>
+        <button
+          class="more-button"
+          type="button"
+          aria-label="更多選項"
+          @click="menuOpen = !menuOpen"
+        >
+          <q-icon name="more_horiz" size="1.35rem" />
+        </button>
+      </div>
+
+      <div v-if="menuOpen" class="menu-popover">
+        <router-link to="/terms" @click="menuOpen = false">使用條款與隱私權</router-link>
+        <router-link v-if="auth.isAdmin" to="/admin" @click="menuOpen = false">管理後台</router-link>
+        <router-link v-if="auth.isAdmin" to="/admin/account" @click="menuOpen = false">帳號管理</router-link>
+        <router-link v-else to="/admin/login" @click="menuOpen = false">團隊登入</router-link>
+        <button v-if="auth.isAdmin" type="button" @click="handleSignOut">登出</button>
+      </div>
     </header>
 
-    <aside
-      v-show="drawerOpen"
-      class="drawer"
-    >
-      <button
-        type="button"
-        class="drawer-close"
-        @click="drawerOpen = false"
-      >
-        &times;
-      </button>
-
-      <template v-if="auth.isAdmin">
-        <button
-          v-for="item in adminDrawerItems"
-          :key="item.path"
-          type="button"
-          class="drawer-btn"
-          @click="navigate(item.path)"
-        >
-          {{ item.label }}
-        </button>
-        <div class="drawer-user">
-          <img
-            :src="auth.user?.photoURL || 'https://via.placeholder.com/48?text=👤'"
-            alt="User Avatar"
-            class="drawer-avatar"
-          >
-          <div>
-            <p class="drawer-name">{{ auth.user?.displayName || '管理員' }}</p>
-            <p class="drawer-email">{{ auth.user?.email }}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          class="drawer-btn drawer-btn--dark"
-          @click="handleSignOut"
-        >
-          登出
-        </button>
-      </template>
-
-      <template v-else>
-        <button
-          v-for="item in guestDrawerItems"
-          :key="item.path"
-          type="button"
-          class="drawer-btn"
-          @click="navigate(item.path)"
-        >
-          {{ item.label }}
-        </button>
-        <button
-          type="button"
-          class="drawer-btn"
-          @click="navigate('/admin/login')"
-        >
-          管理員登入
-        </button>
-      </template>
-    </aside>
-
-    <div
-      v-if="drawerOpen"
-      class="drawer-overlay"
-      @click="drawerOpen = false"
-    />
-
-    <main class="main-content">
-      <router-view
-        v-if="!auth.loading"
-        :key="$route.fullPath"
-      />
-      <div
-        v-else
-        class="loading-screen"
-      >
-        <p>Loading...</p>
-      </div>
+    <main class="page-container">
+      <router-view v-if="!auth.loading" :key="$route.fullPath" />
+      <div v-else class="loading-screen" role="status">正在為你準備商品…</div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
+import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
 const router = useRouter()
 const auth = useAuthStore()
+const cart = useCartStore()
 const toast = useToastStore()
-const drawerOpen = ref(false)
+const menuOpen = ref(false)
 
-const guestDrawerItems = [
-  { path: '/', label: '首頁' },
-  { path: '/cart', label: '購物車' },
-  { path: '/orders', label: '我的訂單' },
-  { path: '/terms', label: '使用者條款' },
-  { path: '/about', label: '關於' }
-]
-
-const adminDrawerItems = [
-  { path: '/', label: '首頁' },
-  { path: '/cart', label: '購物車' },
-  { path: '/orders', label: '我的訂單' },
-  { path: '/admin', label: '後台管理' },
-  { path: '/admin/account', label: '帳號管理' },
-  { path: '/terms', label: '使用者條款' },
-  { path: '/about', label: '關於' }
-]
+const itemCount = computed(() =>
+  cart.cartItems.reduce((total, item) => total + item.quantity, 0)
+)
 
 onMounted(() => {
   if (auth.loading) auth.init()
 })
 
-function navigate(path) {
-  drawerOpen.value = false
-  router.push(path)
-}
-
 async function handleSignOut() {
   await auth.signOut()
-  toast.show('已登出')
-  drawerOpen.value = false
+  menuOpen.value = false
+  toast.show('你已安全登出。')
   router.push('/')
 }
 </script>
 
 <style scoped>
-.main-layout {
-  min-height: 100vh;
-  background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
-}
-
-.main-header {
-  padding: 10px 20px;
-  margin-bottom: 32px;
-  background: white;
-  color: black;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.icon-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  color: inherit;
-}
-
-.main-title {
-  font-size: 1rem;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
-
-.drawer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 260px;
-  height: 100%;
-  background: #fff;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  z-index: 1000;
-}
-
-.drawer-close {
-  align-self: flex-end;
-  margin-bottom: 20px;
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.drawer-btn {
-  padding: 10px 16px;
-  margin-bottom: 12px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-
-.drawer-btn--dark {
-  margin-top: 20px;
-  background: linear-gradient(90deg, #232526 0%, #414345 100%);
-  margin-bottom: 40px;
-}
-
-.drawer-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: auto;
-  padding: 12px;
-  border-radius: 12px;
-  background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.drawer-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #ddd;
-}
-
-.drawer-name {
-  margin: 0;
-  font-weight: bold;
-  font-size: 1rem;
-  color: #333;
-}
-
-.drawer-email {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.drawer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 900;
-}
-
-.main-content {
-  max-width: 900px;
-  margin: 16px auto 0;
-  padding: 0 12px 40px;
-}
-
-.loading-screen {
-  min-height: 50vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-screen p {
-  font-size: 1.2rem;
-  color: #333;
-}
+.app-shell { min-height: 100vh; background: #f5f5f7; color: #1d1d1f; }
+.site-header { position: sticky; top: 0; z-index: 50; height: 56px; padding: 0 max(24px, calc((100vw - 1180px) / 2)); display: flex; align-items: center; gap: 32px; background: rgba(255, 255, 255, .78); border-bottom: 1px solid rgba(0, 0, 0, .08); backdrop-filter: saturate(180%) blur(18px); }
+.brand { display: inline-flex; align-items: center; gap: 9px; color: inherit; font-weight: 650; letter-spacing: -.02em; text-decoration: none; white-space: nowrap; }
+.brand-mark { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: #1d1d1f; color: #fff; font-size: .68rem; font-weight: 750; letter-spacing: -.05em; }
+.primary-nav { display: flex; align-items: center; gap: 24px; margin-left: auto; }
+.primary-nav a, .menu-popover a { color: #6e6e73; font-size: .9rem; text-decoration: none; }
+.primary-nav a:hover, .primary-nav .is-active { color: #1d1d1f; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.bag-link, .more-button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 999px; background: transparent; color: #1d1d1f; cursor: pointer; font: inherit; text-decoration: none; }
+.bag-link { padding: 0 11px; border: 1px solid #e5e5e7; background: #fff; font-size: .86rem; }
+.bag-count { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: .7rem; }
+.more-button { width: 36px; }
+.menu-popover { position: absolute; top: 48px; right: max(24px, calc((100vw - 1180px) / 2)); min-width: 180px; padding: 8px; display: grid; border: 1px solid #e5e5e7; border-radius: 14px; background: rgba(255, 255, 255, .97); box-shadow: 0 12px 32px rgba(0, 0, 0, .12); }
+.menu-popover a, .menu-popover button { padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: #1d1d1f; cursor: pointer; font: inherit; text-align: left; }
+.menu-popover a:hover, .menu-popover button:hover { background: #f5f5f7; }
+.page-container { min-height: calc(100vh - 56px); }
+.loading-screen { min-height: 60vh; display: grid; place-items: center; color: #6e6e73; }
+@media (max-width: 640px) { .site-header { padding: 0 16px; gap: 12px; } .brand span:last-child, .primary-nav, .bag-label { display: none; } .menu-popover { right: 16px; } .brand { margin-right: auto; } }
 </style>

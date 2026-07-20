@@ -1,722 +1,350 @@
 <template>
   <div class="cart-page">
-    <div class="cart-card">
-      <h1>購物車</h1>
+    <header>
+      <p class="eyebrow">你的購物袋</p>
+      <h1>快完成了</h1>
+      <p>確認想帶走的商品，所有符合資格的優惠都會自動套用</p>
+    </header>
 
-      <div
-        v-if="auth.isAdmin"
-        class="admin-badge"
-      >
-        <img
-          :src="auth.user?.photoURL || 'https://via.placeholder.com/48?text=👤'"
-          alt=""
-          class="admin-avatar"
-        >
-        <p>Admin-{{ adminDisplayName }}</p>
-      </div>
+    <div v-if="!cart.cartItems.length" class="empty-state">
+      <q-icon name="shopping_bag" size="2.4rem" />
+      <h2>購物袋裡還沒有商品。</h2>
+      <p>挑一件喜歡的紀念品，讓故事繼續陪著你。</p>
+      <router-link to="/" class="primary-button">探索商品</router-link>
+    </div>
 
-      <div
-        v-if="auth.isAdmin && cart.cartItems.length > 0"
-        class="pr-package"
-      >
-        <div>
-          <div style="font-weight: bold">管理員專用</div>
-          <div style="font-size: 0.9rem; opacity: 0.9">公關品 - 免除所有金額</div>
-        </div>
-        <label>
-          <input
-            v-model="usePRPackage"
-            type="checkbox"
-          >
-          使用公關品
-        </label>
-      </div>
+    <div v-else class="cart-layout">
+      <section class="items">
+        <article v-for="item in cart.cartItems" :key="item.id" class="cart-item">
+          <div class="item-info"><h2>{{ item.name }}</h2><p>每件 <span class="num">NT$ {{ item.price }}</span></p></div>
+          <div class="quantity"><button type="button" aria-label="減少數量" @click="changeQty(item.id, -1)">−</button><span class="num">{{ item.quantity }}</span><button type="button" aria-label="增加數量" @click="changeQty(item.id, 1)">+</button></div>
+          <button type="button" class="remove" @click="cart.removeFromCart(item.id)">移除</button>
+        </article>
+      </section>
 
-      <p
-        v-if="cart.cartItems.length === 0"
-        class="empty"
-      >
-        購物車是空的
-      </p>
-
-      <template v-else>
-        <div class="cart-items">
-          <div
-            v-for="item in cart.cartItems"
-            :key="item.id"
-            class="cart-item"
-          >
-            <div>
-              <p class="item-name">{{ item.name }}</p>
-              <p class="item-price">NT$ {{ item.price }}</p>
-            </div>
-            <div class="qty-controls">
-              <button
-                type="button"
-                @click="changeQty(item.id, -1)"
-              >
-                -
-              </button>
-              <span>{{ item.quantity }}</span>
-              <button
-                type="button"
-                @click="changeQty(item.id, 1)"
-              >
-                +
-              </button>
-            </div>
-            <button
-              type="button"
-              class="remove-btn"
-              @click="cart.removeFromCart(item.id)"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <div
-          v-if="pricing.prPackageApplied"
-          class="pr-notice"
-        >
-          <div style="font-weight: bold; color: #667eea">公關品</div>
-          <span>僅限公關場合得使用，並應獲得主席之准許</span>
-        </div>
-
-        <div
-          v-else-if="pricing.appliedCombos.length"
-          class="combo-notice"
-        >
-          <div style="color: #d63384; font-weight: bold">🎉 套餐折扣</div>
-          <div
-            v-for="combo in pricing.appliedCombos"
-            :key="combo.id"
-            class="combo-line"
-          >
-            <span>{{ combo.name }} x {{ combo.applicableCount }}</span>
-            <span>- NT$ {{ combo.discount * combo.applicableCount }}</span>
-          </div>
-        </div>
-
-        <div
-          v-if="!pricing.prPackageApplied"
-          class="gift-notice"
-          :class="{ qualified: pricing.qualifiesForGift && pricing.hasAvailableGift }"
-        >
-          <div style="font-weight: bold">🎁 滿千好禮</div>
-          <div v-if="pricing.qualifiesForGift && pricing.hasAvailableGift">
-            🎊 恭喜！您已符合滿千贈禮資格！
-          </div>
-          <div v-else-if="pricing.reachedThreshold">
-            🎉 您已滿 NT$ 1000！
-          </div>
-          <div v-else>
-            活動規則：扣除贈品後仍需滿 NT$ 1000
-          </div>
-        </div>
-
+      <aside class="summary">
+        <h2>訂單摘要</h2>
+        <label v-if="auth.isAdmin" class="pr-option"><input v-model="usePRPackage" type="checkbox"> 以公關品方式建立訂單</label>
+        <div v-if="pricing.prPackageApplied" class="saving-note"><strong>已套用公關品訂單。</strong><span>本筆訂單金額已調整為 <span class="num">NT$ 0</span>。</span></div>
+        <template v-else>
+          <div v-if="pricing.appliedCombos.length" class="saving-note"><strong>好消息，組合優惠已自動套用。</strong><span v-for="combo in pricing.appliedCombos" :key="combo.id">{{ combo.name }} <span class="num">× {{ combo.applicableCount }}</span> · 折 <span class="num">NT$ {{ combo.discount * combo.applicableCount }}</span></span></div>
+          <div class="gift-note" :class="{ qualified: pricing.qualifiesForGift && pricing.hasAvailableGift }"><strong>{{ pricing.qualifiesForGift && pricing.hasAvailableGift ? '這份小禮由我們招待。' : '再多一點小驚喜。' }}</strong><span v-if="pricing.qualifiesForGift && pricing.hasAvailableGift">一項符合資格的贈品已自動折抵。</span><span v-else-if="pricing.hasAvailableGift">再選購 <span class="num">NT$ {{ pricing.amountNeededForGift }}</span>，即可享有你選的贈品。</span><span v-else>訂單滿 <span class="num">NT$ 1,000</span>，搭配符合資格的贈品即可享折抵。</span></div>
+        </template>
         <div class="totals">
-          <div
-            v-if="pricing.totalDiscount > 0 || pricing.prPackageApplied || pricing.giftDiscount > 0"
-          >
-            <div class="total-line muted">
-              <span>商品小計：</span>
-              <span>NT$ {{ pricing.originalTotal }}</span>
-            </div>
-            <div
-              v-if="pricing.totalDiscount > 0 && !pricing.prPackageApplied"
-              class="total-line green"
-            >
-              <span>套餐優惠：</span>
-              <span>- NT$ {{ pricing.totalDiscount }}</span>
-            </div>
-            <div
-              v-if="pricing.giftDiscount > 0"
-              class="total-line orange"
-            >
-              <span>滿千贈品：</span>
-              <span>- NT$ {{ pricing.giftDiscount }}</span>
-            </div>
-            <hr>
-          </div>
-          <div class="total-line final">
-            <strong>總金額：</strong>
-            <strong>NT$ {{ pricing.finalTotal }}</strong>
-          </div>
+          <div v-if="pricing.totalDiscount || pricing.giftDiscount || pricing.prPackageApplied" class="line muted"><span>商品小計</span><span class="num">NT$ {{ pricing.originalTotal }}</span></div>
+          <div v-if="pricing.totalDiscount && !pricing.prPackageApplied" class="line saving"><span>組合優惠</span><span class="num">−NT$ {{ pricing.totalDiscount }}</span></div>
+          <div v-if="pricing.giftDiscount" class="line saving"><span>贈品折抵</span><span class="num">−NT$ {{ pricing.giftDiscount }}</span></div>
+          <div v-if="pricing.prPackageApplied" class="line saving"><span>公關品折抵</span><span class="num">−NT$ {{ pricing.prPackageDiscount }}</span></div>
+          <div class="line total"><strong>總計</strong><strong class="num">NT$ {{ pricing.finalTotal }}</strong></div>
         </div>
 
-        <div
-          v-if="!showCheckout"
-          class="checkout-actions"
-        >
-          <button
-            type="button"
-            class="btn-primary"
-            @click="showCheckout = true"
-          >
-            填寫結帳資料
-          </button>
-        </div>
-
-        <form
-          v-else
-          class="checkout-form"
-          @submit.prevent="placeOrder"
-        >
-          <h2>結帳資料</h2>
-          <label>姓名 *</label>
-          <input
-            v-model="checkout.name"
-            required
-            type="text"
-          >
-          <label>Email *</label>
-          <input
-            v-model="checkout.email"
-            required
-            type="email"
-          >
-          <label>電話 *</label>
-          <input
-            v-model="checkout.phone"
-            required
-            type="tel"
-          >
-          <label>學校 *</label>
-          <select
-            v-model="checkout.school"
-            required
-          >
-            <option
-              disabled
-              value=""
-            >
-              請選擇學校
-            </option>
-            <option
-              v-for="s in schools"
-              :key="s"
-              :value="s"
-            >
-              {{ s }}
-            </option>
-          </select>
-          <label>班級座號</label>
-          <input
-            v-model="checkout.classNumber"
-            type="text"
-            placeholder="例：301-15"
-          >
-          <div class="remember-me-wrapper">
-            <label class="remember-me-label">
-              <input
-                v-model="rememberMe"
-                type="checkbox"
-              >
-              記住我的結帳資料
-            </label>
-          </div>
+        <button v-if="!showCheckout" type="button" class="primary-button" @click="showCheckout = true">確認並填寫資料</button>
+        <form v-else class="checkout-form" @submit.prevent="placeOrder">
+          <h3>再填幾項資料就完成了。</h3><p>我們會用這些資料與你確認訂單。</p>
+          <label>姓名<input v-model="checkout.name" required autocomplete="name"></label>
+          <label>Email<input v-model="checkout.email" required type="email" autocomplete="email" class="mono"></label>
+          <label>電話<input v-model="checkout.phone" required type="tel" autocomplete="tel" class="mono"></label>
+          <label>學校<select v-model="checkout.school" required><option disabled value="">請選擇學校</option><option v-for="school in schools" :key="school" :value="school">{{ school }}</option></select></label>
+          <label>班級（選填）<input v-model="checkout.classNumber" placeholder="例如：301-15"></label>
+          <label class="remember"><input v-model="rememberMe" type="checkbox">在這台裝置記住我的資料</label>
+          <label class="terms-agreement">
+  <input v-model="agreedToTerms" type="checkbox">
+  我已閱讀並同意
+  <router-link
+    to="/terms"
+    target="_blank"
+    class="terms-link"
+  >
+    使用者條款
+  </router-link>
+</label>
           <button
             type="submit"
-            class="btn-primary"
-            :disabled="submitting"
-          >
-            {{ submitLabel }}
-          </button>
-          <button
-            type="button"
-            class="btn-secondary"
-            @click="showCheckout = false"
-          >
-            返回購物車
-          </button>
+            class="primary-button"
+            :disabled="submitting || !agreedToTerms"
+            >{{ submitting ? '正在送出訂單' : '送出訂單' }}</button>
+            <button type="button" class="secondary-button" @click="showCheckout = false">回到訂單摘要</button>
         </form>
-      </template>
-
-      <button
-        type="button"
-        class="btn-home"
-        @click="$router.push('/')"
-      >
-        回到首頁
-      </button>
+      </aside>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from 'src/boot/firebase'
-import { useCartStore } from 'src/stores/cart'
-import { useAuthStore } from 'src/stores/auth'
-import { useToastStore } from 'src/stores/toast'
 import { schools } from 'src/data/catalog'
-import { calculatePricing } from 'src/utils/pricing'
+import { useAuthStore } from 'src/stores/auth'
+import { useCartStore } from 'src/stores/cart'
+import { useToastStore } from 'src/stores/toast'
 import { submitOrder, setLastSubmittedOrderId } from 'src/services/orderService'
+import { calculatePricing } from 'src/utils/pricing'
 
-const cart = useCartStore()
-const auth = useAuthStore()
-const toast = useToastStore()
-const router = useRouter()
+const cart = useCartStore(); const auth = useAuthStore(); const toast = useToastStore(); const router = useRouter()
+const showCheckout = ref(false); const submitting = ref(false); const rememberMe = ref(false); const usePRPackage = ref(false)
+const checkout = reactive({ name: '', email: '', phone: '', school: '', classNumber: '' })
+const pricing = computed(() => calculatePricing(cart.cartItems, { usePRPackage: usePRPackage.value, isAdmin: auth.isAdmin }))
+const agreedToTerms = ref(false)
 
-const usePRPackage = ref(false)
-const showCheckout = ref(false)
-const submitting = ref(false)
-const adminDisplayName = ref('')
-const rememberMe = ref(false)
+onMounted(() => { try { rememberMe.value = localStorage.getItem('rememberMeCheckout') === 'true'; if (rememberMe.value) Object.assign(checkout, JSON.parse(localStorage.getItem('checkoutData') || '{}')) } catch {} })
+watch(rememberMe, (value) => { localStorage.setItem('rememberMeCheckout', String(value)); if (!value) localStorage.removeItem('checkoutData') })
 
-const checkout = reactive({
-  name: '',
-  email: '',
-  phone: '',
-  school: '',
-  classNumber: ''
-})
-
-const pricing = computed(() =>
-  calculatePricing(cart.cartItems, {
-    usePRPackage: usePRPackage.value,
-    isAdmin: auth.isAdmin
-  })
-)
-
-const submitLabel = computed(() => {
-  if (pricing.value.prPackageApplied) return '送出公關品'
-  const saved = pricing.value.totalDiscount + pricing.value.giftDiscount
-  if (saved > 0) return `送出訂單 (已省 NT$ ${saved})`
-  return '送出訂單'
-})
-
-function loadSavedCheckoutData() {
-  try {
-    // Load checkbox state
-    const savedRememberMe = localStorage.getItem('rememberMeCheckout')
-    rememberMe.value = savedRememberMe === 'true'
-    
-    // Load form data only if rememberMe was previously enabled
-    if (rememberMe.value) {
-      const savedData = localStorage.getItem('checkoutData')
-      if (savedData) {
-        const data = JSON.parse(savedData)
-        checkout.name = data.name || ''
-        checkout.email = data.email || ''
-        checkout.phone = data.phone || ''
-        checkout.school = data.school || ''
-        checkout.classNumber = data.classNumber || ''
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load saved checkout data:', err)
-  }
-}
-
-function saveCheckoutData() {
-  try {
-    const dataToSave = {
-      name: checkout.name,
-      email: checkout.email,
-      phone: checkout.phone,
-      school: checkout.school,
-      classNumber: checkout.classNumber
-    }
-    localStorage.setItem('checkoutData', JSON.stringify(dataToSave))
-  } catch (err) {
-    console.error('Failed to save checkout data:', err)
-  }
-}
-
-function clearCheckoutData() {
-  try {
-    localStorage.removeItem('checkoutData')
-    checkout.name = ''
-    checkout.email = ''
-    checkout.phone = ''
-    checkout.school = ''
-    checkout.classNumber = ''
-  } catch (err) {
-    console.error('Failed to clear checkout data:', err)
-  }
-}
-
-onMounted(() => {
-  loadSavedCheckoutData()
-})
-
-watch(rememberMe, (newVal) => {
-  try {
-    localStorage.setItem('rememberMeCheckout', String(newVal))
-    if (!newVal) {
-      clearCheckoutData()
-    }
-  } catch (err) {
-    console.error('Failed to save rememberMe state:', err)
-  }
-})
-
-watch(
-  () => auth.user,
-  async (user) => {
-    if (!user?.uid) return
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid))
-      if (userDoc.exists()) {
-        adminDisplayName.value = userDoc.data().name || user.displayName || user.email
-      } else {
-        adminDisplayName.value = user.displayName || user.email
-      }
-    } catch {
-      adminDisplayName.value = user.displayName || user.email
-    }
-  },
-  { immediate: true }
-)
-
-function changeQty(id, delta) {
-  const item = cart.cartItems.find((i) => i.id === id)
-  if (item && item.quantity + delta <= 0) {
-    cart.removeFromCart(id)
-    toast.show('商品已從購物車移除')
-    return
-  }
-  cart.updateQuantity(id, delta)
-}
-
+function changeQty(id, delta) { const item = cart.cartItems.find((entry) => entry.id === id); if (item && item.quantity + delta <= 0) { cart.removeFromCart(id); toast.show('已從購物袋移除商品。'); return } cart.updateQuantity(id, delta) }
 async function placeOrder() {
-  if (cart.cartItems.length === 0) {
-    toast.show('購物車是空的！')
+  if (!agreedToTerms.value) {
+    toast.show('請先閱讀並同意使用者條款')
     return
   }
-
-  const p = pricing.value
-  if (p.totalGiftQuantity > 0 && !p.qualifiesForGift) {
-    toast.show(`購買金額未滿 NT$ 1000，無法領取贈品！(還差 NT$ ${p.amountNeededForGift})`)
-    return
-  }
-
-  if (!checkout.name.trim() || !checkout.email.trim() || !checkout.phone.trim() || !checkout.school) {
-    toast.show('請完整填寫結帳資料')
-    return
-  }
-
-  // Save to localStorage if "Remember Me" is checked
-  if (rememberMe.value) {
-    saveCheckoutData()
-  }
-
+  if (!checkout.name.trim() || !checkout.email.trim() || !checkout.phone.trim() || !checkout.school) { toast.show('請先填妥聯絡資料，再送出訂單。'); return }
+  if (rememberMe.value) localStorage.setItem('checkoutData', JSON.stringify(checkout))
   submitting.value = true
   try {
-    const orderPayload = {
-      userId: auth.user?.uid || null,
-      isGuestOrder: !auth.user,
-      items: JSON.parse(JSON.stringify(cart.cartItems)),
-      originalTotal: p.originalTotal,
-      finalTotal: p.finalTotal,
-      totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount,
-      appliedCombos: p.prPackageApplied
-        ? [{ name: '公關品' }]
-        : p.appliedCombos.map((combo) => ({
-            id: combo.id,
-            name: combo.name,
-            items: combo.items,
-            applicableCount: combo.applicableCount,
-            discountPerSet: combo.discount,
-            totalDiscount: combo.discount * combo.applicableCount
-          })),
-      prPackageUsed: p.prPackageApplied,
-      prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0,
-      isAdminOrder: auth.isAdmin,
-      qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied,
-      giftDiscount: p.giftDiscount,
-      hasAvailableGift: p.hasAvailableGift,
-      totalGiftQuantity: p.totalGiftQuantity,
-      giftUsedInCombo: p.giftUsedInCombo,
-      availableGiftCount: p.availableGiftCount,
-      customerName: checkout.name.trim(),
-      customerPhone: checkout.phone.trim(),
-      customerEmail: checkout.email.trim(),
-      school: checkout.school,
-      classNumber: checkout.classNumber.trim()
-    }
-
-    const result = await submitOrder(orderPayload)
-
-    if (result.status !== 201) {
-      throw new Error('訂單提交失敗')
-    }
-
-    setLastSubmittedOrderId(result.id)
-    cart.clearCart()
-    usePRPackage.value = false
-    showCheckout.value = false
-    toast.show('訂單已送出！')
-    router.push({ name: 'order-success', query: { id: result.id } })
-  } catch (err) {
-    console.error(err)
-    toast.show('送出訂單失敗：' + (err.message || '未知錯誤'))
-  } finally {
-    submitting.value = false
-  }
+    const p = pricing.value
+    const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, classNumber: checkout.classNumber.trim() })
+    if (result.status !== 201) throw new Error()
+    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
+  } catch { toast.show('訂單尚未送出，請再試一次；購物袋內容會為你保留。') } finally { submitting.value = false }
 }
 </script>
 
 <style scoped>
+/*
+  排版統一原則（與其他頁面共用同一套邏輯）：
+  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
+  2. h1 原本 -.065em 是拉丁大字重排版技巧，套在中文上會擠字，收斂到接近 0。
+  3. 中文段落／說明文字行距統一拉到 1.55~1.7，這頁原本偏緊（1.45）的說明文字會更好讀。
+  4. 所有 NT$ 金額、數量、倍數（× N）都用 .num 包起來，套 tabular-nums，
+     金額在中文句子裡混排時不會忽大忽小、對不齊。
+  5. Email / 電話這類純英數輸入框套用等寬字體（.mono），輸入時字元寬度一致、好核對。
+*/
+
 .cart-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  justify-content: center;
+  max-width: 1080px;
+  margin: auto;
+  padding: 72px 24px 96px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #1d1d1f;
 }
 
-.cart-card {
-  width: 100%;
-  max-width: 800px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-.cart-card h1 {
-  text-align: center;
-  color: #333;
-  margin: 0 0 24px;
+.mono {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace !important;
+  letter-spacing: 0;
 }
 
-.admin-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 16px;
+.eyebrow {
+  margin: 0 0 10px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
 }
 
-.admin-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #ddd;
+h1 {
+  margin: 0 0 10px;
+  font-size: clamp(2.2rem, 5.2vw, 3.6rem);
+  line-height: 1.25;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 
-.pr-package {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+.cart-page > header > p:last-child {
+  margin: 0 0 40px;
+  color: #6e6e73;
+  line-height: 1.6;
 }
 
-.pr-package label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  margin-left: auto;
+.cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 48px;
+  align-items: start;
 }
 
-.empty {
-  text-align: center;
-  color: #555;
-}
+.items { display: grid; gap: 10px; }
 
 .cart-item {
-  display: flex;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  margin-bottom: 12px;
+  gap: 20px;
+  border: 1px solid #e5e5e7;
+  border-radius: 16px;
+  background: #fff;
 }
 
-.item-name {
-  font-weight: bold;
-  margin: 0 0 4px;
+.item-info h2 { margin: 0 0 5px; font-size: 1rem; font-weight: 600; letter-spacing: 0; }
+.item-info p { margin: 0; color: #6e6e73; font-size: .86rem; }
+
+.quantity { display: flex; align-items: center; gap: 12px; }
+.quantity button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d2d2d7;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
 }
 
-.item-price {
-  color: #888;
-  margin: 0;
+.remove {
+  border: 0;
+  background: transparent;
+  color: #a12622;
+  cursor: pointer;
+  font: inherit;
+  font-size: .82rem;
 }
 
-.qty-controls {
+.summary {
+  position: sticky;
+  top: 76px;
+  padding: 24px;
+  border: 1px solid #e5e5e7;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.summary h2 { margin: 0 0 20px; font-size: 1.25rem; font-weight: 700; letter-spacing: 0; }
+
+.pr-option {
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #6e6e73;
+  font-size: .82rem;
 }
 
-.qty-controls button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  font-weight: bold;
+.saving-note, .gift-note {
+  margin-bottom: 12px;
+  padding: 13px;
+  display: grid;
+  gap: 5px;
+  border-radius: 12px;
+  font-size: .82rem;
+  line-height: 1.55;
+}
+
+.saving-note { background: #f3f8ff; color: #134a85; }
+.gift-note { background: #f5f5f7; color: #515154; }
+.gift-note.qualified { background: #eef9f0; color: #246a38; }
+
+.totals { margin: 20px 0; }
+.line { margin: 9px 0; display: flex; justify-content: space-between; font-size: .9rem; }
+.muted { color: #86868b; }
+.saving { color: #248a43; }
+
+.total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e7;
+  color: #1d1d1f;
+  font-size: 1.05rem;
+}
+
+.primary-button, .secondary-button {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
   cursor: pointer;
+  font: 600 .95rem inherit;
+  letter-spacing: .01em;
 }
 
-.remove-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255, 107, 107, 1);
-  color: white;
-  cursor: pointer;
-}
-
-.pr-notice,
-.combo-notice,
-.gift-notice {
-  margin-top: 20px;
-  padding: 16px;
-  border-radius: 10px;
-}
-
-.pr-notice {
-  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-  border: 2px solid #667eea;
-}
-
-.combo-notice {
-  background: #fff0f6;
-  border: 1px solid #f9c2d3;
-}
-
-.combo-line {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-
-.gift-notice {
-  background: #fff8e1;
-  border: 1px solid #ffd54f;
-}
-
-.gift-notice.qualified {
-  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-  color: white;
-  border: 2px solid #f57c00;
-}
-
-.totals {
-  margin-top: 24px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  border: 1px solid #e9ecef;
-}
-
-.total-line {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.total-line.muted {
-  color: #6c757d;
-  text-decoration: line-through;
-}
-
-.total-line.green {
-  color: #28a745;
-}
-
-.total-line.orange {
-  color: #ff9800;
-}
-
-.total-line.final strong:last-child {
-  color: #ff512f;
-  font-size: 1.3rem;
-}
+.secondary-button { margin-top: 9px; background: #f5f5f7; color: #1d1d1f; }
 
 .checkout-form {
   margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding-top: 22px;
+  border-top: 1px solid #e5e5e7;
 }
 
-.checkout-form h2 {
-  margin: 0 0 8px;
-  color: #333;
-}
+.checkout-form h3 { margin: 0 0 5px; font-size: 1.12rem; font-weight: 700; letter-spacing: 0; }
+.checkout-form > p { margin: 0 0 16px; color: #6e6e73; font-size: .85rem; line-height: 1.6; }
 
 .checkout-form label {
+  margin: 12px 0;
+  display: grid;
+  gap: 6px;
+  font-size: .82rem;
   font-weight: 600;
-  color: #444;
-  font-size: 0.9rem;
 }
 
-.checkout-form input,
-.checkout-form select {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  margin-bottom: 8px;
-}
-
-.btn-primary {
-  margin-top: 12px;
-  padding: 15px 20px;
+.checkout-form input, .checkout-form select {
   width: 100%;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  font-weight: bold;
-  font-size: 1.1rem;
-  cursor: pointer;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 9px;
+  background: #fff;
+  font: 400 .92rem inherit;
 }
 
-.btn-secondary {
-  margin-top: 8px;
-  padding: 12px;
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  background: #f5f5f5;
-  color: #333;
-  font-weight: bold;
-  cursor: pointer;
-}
+.checkout-form .remember { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.checkout-form .remember input { width: auto; }
 
-.btn-home {
-  margin-top: 15px;
-  width: 100%;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.remember-me-wrapper {
-  margin-top: 12px;
-  margin-bottom: 12px;
-}
-
-.remember-me-label {
+.empty-state {
+  min-height: 320px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: normal;
-  color: #444;
+  justify-content: center;
+  color: #6e6e73;
+  text-align: center;
+  line-height: 1.6;
 }
 
-.remember-me-label input[type="checkbox"] {
-  cursor: pointer;
-  width: auto;
+.empty-state h2 { margin: 14px 0 6px; color: #1d1d1f; font-weight: 600; }
+.primary-button { display: inline-block; text-align: center; text-decoration: none; }
+
+@media (max-width: 760px) {
+  .cart-page { padding: 48px 16px 64px; }
+  .cart-layout { grid-template-columns: 1fr; gap: 28px; }
+  .summary { position: static; }
+  .cart-item { grid-template-columns: 1fr auto; }
+  .remove { grid-column: 1 / -1; text-align: left; }
+  .empty-state { min-height: 280px; }
+}
+
+.terms-agreement {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+
+  font-size: .82rem;
+  font-weight: 400;
+
+  white-space: nowrap;
+}
+
+.terms-agreement input {
+  width: auto !important;
   margin: 0;
+  flex-shrink: 0;
+}
+
+.terms-link {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.terms-link:hover {
+  text-decoration: underline;
+}
+
+.primary-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 </style>

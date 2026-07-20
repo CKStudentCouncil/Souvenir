@@ -129,9 +129,9 @@ export function useAdminOrders({ showToast, displayName }) {
         order.id === orderId ? { ...order, ...patch } : order
       )
       deliveredOrders.value = orders.value.filter((o) => o.delivered)
-      showToast(delivered ? '✅ 已標記為已交貨' : '📋 已標記為未交貨')
+      showToast(delivered ? '已標記為已交貨' : '已標記為未交貨')
     } catch (err) {
-      showToast('❌ 更新失敗：' + err.message)
+      showToast('更新失敗：' + err.message)
     }
   }
 
@@ -139,7 +139,7 @@ export function useAdminOrders({ showToast, displayName }) {
     await deleteOrderById(orderId)
     orders.value = orders.value.filter((o) => o.id !== orderId)
     deliveredOrders.value = deliveredOrders.value.filter((o) => o.id !== orderId)
-    showToast('✅ 訂單已刪除')
+    showToast('訂單已刪除')
   }
 
   function exportToExcel(onlyDelivered = false) {
@@ -250,7 +250,7 @@ export function useAdminOrders({ showToast, displayName }) {
     const filename = `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${new Date().toISOString().slice(0, 10)}.xlsx`
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
     saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), filename)
-    showToast('✅ Excel 已匯出')
+    showToast('Excel 已匯出')
   }
 
   function formatDate(ts) {

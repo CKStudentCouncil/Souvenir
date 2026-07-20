@@ -1,48 +1,18 @@
 <template>
   <div class="product-page">
-    <div class="product-card">
-      <h1 style="margin-bottom: 8px; color: #333">{{ config.title }}</h1>
-      <div class="price-block">NT$ {{ config.price }}</div>
-      <table class="variant-table">
-        <thead>
-          <tr>
-            <th>樣式</th>
-            <th>購買</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="product in config.variants"
-            :key="product.id"
-          >
-            <td>
-              <div class="variant-image">
-                <img
-                  :src="`/images/product-${product.id}.png`"
-                  :alt="product.name"
-                >
-              </div>
-              <div style="margin-top: 8px">{{ product.name }}</div>
-            </td>
-            <td>
-              <button
-                type="button"
-                class="add-btn"
-                @click="add(product)"
-              >
-                加入購物車
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <button
-        type="button"
-        class="home-btn"
-        @click="$router.push('/')"
-      >
-        回到首頁
-      </button>
+    <router-link to="/" class="back-link">‹ 回到商品系列</router-link>
+    <section class="intro">
+      <p class="eyebrow">CKSC COLLECTION</p>
+      <h1>{{ config.title }}</h1>
+      <p class="price">NT$ {{ config.price }}</p>
+      <p>選擇最想帶在身邊的款式。</p>
+    </section>
+    <div class="variant-grid">
+      <article v-for="product in config.variants" :key="product.id" class="variant-card">
+        <div class="variant-image"><img :src="`/images/product-${product.id}.png`" :alt="product.name"></div>
+        <h2>{{ product.name }}</h2>
+        <button type="button" @click="add(product)">加入購物袋</button>
+      </article>
     </div>
   </div>
 </template>
@@ -51,101 +21,16 @@
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
-defineProps({
-  config: { type: Object, required: true }
-})
-
+defineProps({ config: { type: Object, required: true } })
 const cart = useCartStore()
 const toast = useToastStore()
 
 function add(product) {
   cart.addToCart(product)
-  toast.show(`${product.name} 已加入購物車`)
+  toast.show(`已將「${product.name}」加入購物袋。`)
 }
 </script>
 
 <style scoped>
-.product-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  justify-content: center;
-}
-
-.product-card {
-  width: 100%;
-  max-width: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.price-block {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #dd2476;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.variant-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.variant-table thead tr {
-  background: linear-gradient(90deg, #ff512f, #dd2476);
-  color: white;
-}
-
-.variant-table th,
-.variant-table td {
-  padding: 12px;
-  text-align: center;
-}
-
-.variant-image {
-  width: 100%;
-  max-width: 200px;
-  height: 200px;
-  margin: 0 auto;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.variant-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.add-btn {
-  padding: 8px 16px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  min-width: 80px;
-}
-
-.home-btn {
-  padding: 12px 28px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
+.product-page { max-width: 1120px; margin: auto; padding: 32px 24px 96px; }.back-link { display: inline-block; margin-bottom: 48px; color: #6e6e73; font-size: .9rem; text-decoration: none; }.intro { max-width: 550px; margin-bottom: 40px; }.eyebrow { margin: 0 0 12px; color: #6e6e73; font-size: .72rem; font-weight: 700; letter-spacing: .12em; } h1 { margin: 0 0 12px; font-size: clamp(2.8rem, 6vw, 5rem); line-height: .96; letter-spacing: -.065em; }.price { font-size: 1.2rem; font-weight: 650; }.intro > p:last-child { color: #6e6e73; }.variant-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }.variant-card { padding: 16px; border: 1px solid #e5e5e7; border-radius: 20px; background: #fff; }.variant-image { aspect-ratio: 1; overflow: hidden; border-radius: 14px; background: #f5f5f7; }.variant-image img { width: 100%; height: 100%; object-fit: cover; }.variant-card h2 { margin: 15px 0 12px; font-size: 1rem; letter-spacing: -.02em; }.variant-card button { width: 100%; padding: 12px; border: 0; border-radius: 999px; background: #1d1d1f; color: #fff; cursor: pointer; font: 600 .9rem inherit; } @media (max-width: 600px) { .product-page { padding: 20px 16px 56px; }.back-link { margin-bottom: 28px; }.variant-grid { grid-template-columns: 1fr; } }
 </style>

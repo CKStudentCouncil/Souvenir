@@ -15,7 +15,7 @@
     v-else
     class="not-found"
   >
-    <h2>❌ 找不到商品</h2>
+    <h2>找不到商品</h2>
     <button
       type="button"
       class="home-btn"

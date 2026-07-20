@@ -1,186 +1,45 @@
 <template>
   <div class="product-page">
-    <div class="product-card">
-      <h1 style="margin-bottom: 16px; color: #333">{{ config.title }}</h1>
-      <div class="price-block">
-        <div style="text-decoration: line-through; opacity: 0.7">NT$ {{ config.orPrice }}</div>
-        早鳥優惠價：NT$ {{ config.price }}
-      </div>
-      <div class="image-wrap">
-        <img
-          :src="`/images/product-${config.imageId}.png`"
-          :alt="config.title"
-        >
-      </div>
-      <table class="size-table">
-        <caption>尺碼表 (cm)</caption>
-        <thead>
-          <tr>
-            <th>尺寸</th>
-            <th>衣長</th>
-            <th>袖長</th>
-            <th>胸寬</th>
-            <th>肩寬</th>
-            <th>購買</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(item, idx) in config.sizeData"
-            :key="item.size"
-            :class="{ 'row-alt': idx % 2 === 0 }"
-          >
-            <td class="size-cell">{{ item.size }}</td>
-            <td>{{ item.length }}</td>
-            <td>{{ item.sleeve }}</td>
-            <td>{{ item.chest }}</td>
-            <td>{{ item.shoulder }}</td>
-            <td>
-              <button
-                type="button"
-                class="add-btn"
-                @click="add(findVariant(item.productId))"
-              >
-                加入購物車
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <button
-        type="button"
-        class="home-btn"
-        @click="$router.push('/')"
-      >
-        回到首頁
-      </button>
+    <router-link to="/" class="back-link">‹ 回到商品系列</router-link>
+    <div class="product-detail">
+      <div class="image-wrap"><img :src="`/images/product-${config.imageId}.png`" :alt="config.title"></div>
+      <section class="purchase-panel">
+        <p class="eyebrow">CKSC COLLECTION</p>
+        <h1>{{ config.title }}</h1>
+        <p class="price"><del>NT$ {{ config.orPrice }}</del> NT$ {{ config.price }}</p>
+        <p class="choose-label">選擇尺寸</p>
+        <div class="size-options">
+          <button v-for="item in config.sizeData" :key="item.size" type="button" :class="{ selected: selected === item.productId }" @click="selected = item.productId">{{ item.size }}</button>
+        </div>
+        <button type="button" class="guide-link" @click="showGuide = !showGuide">{{ showGuide ? '收起尺寸表' : '查看尺寸表' }}</button>
+        <div v-if="showGuide" class="size-guide">
+          <div v-for="item in config.sizeData" :key="item.size"><strong>{{ item.size }}</strong><span> 衣長 {{ item.length }} cm · 胸寬 {{ item.chest }} cm</span></div>
+        </div>
+        <button type="button" class="primary-button" :disabled="!selected" @click="add">{{ selected ? '加入購物袋' : '請先選擇尺寸' }} <q-icon name="add_shopping_cart" /></button>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
-const props = defineProps({
-  config: { type: Object, required: true }
-})
-
+const props = defineProps({ config: { type: Object, required: true } })
 const cart = useCartStore()
 const toast = useToastStore()
+const selected = ref('')
+const showGuide = ref(false)
 
-function findVariant(productId) {
-  return props.config.variants.find((p) => p.id === productId)
-}
-
-function add(product) {
+function add() {
+  const product = props.config.variants.find((item) => item.id === selected.value)
   if (!product) return
   cart.addToCart(product)
-  toast.show(`${product.name} 已加入購物車`)
+  toast.show(`已將「${product.name}」加入購物袋。`)
 }
 </script>
 
 <style scoped>
-.product-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  display: flex;
-  justify-content: center;
-}
-
-.product-card {
-  width: 100%;
-  max-width: 700px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.price-block {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #dd2476;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.image-wrap {
-  width: 100%;
-  max-width: 300px;
-  height: 300px;
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.size-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.size-table caption {
-  caption-side: top;
-  margin-bottom: 16px;
-  font-weight: bold;
-  font-size: 1.1rem;
-  color: #444;
-}
-
-.size-table thead tr {
-  background: linear-gradient(90deg, #ff512f, #dd2476);
-  color: white;
-}
-
-.size-table th,
-.size-table td {
-  padding: 12px;
-  text-align: center;
-}
-
-.row-alt {
-  background: #fafafa;
-}
-
-.size-cell {
-  font-weight: bold;
-  color: #333;
-}
-
-.add-btn {
-  padding: 8px 16px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  cursor: pointer;
-  min-width: 80px;
-}
-
-.home-btn {
-  padding: 12px 28px;
-  background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  font-size: 1rem;
-  cursor: pointer;
-}
+.product-page { max-width: 1120px; margin: auto; padding: 32px 24px 96px; }.back-link { display: inline-block; margin-bottom: 24px; color: #6e6e73; font-size: .9rem; text-decoration: none; }.product-detail { display: grid; grid-template-columns: 1.1fr .9fr; gap: 72px; align-items: center; }.image-wrap { aspect-ratio: 1; overflow: hidden; border-radius: 28px; background: #ececee; }.image-wrap img { width: 100%; height: 100%; object-fit: cover; }.purchase-panel { max-width: 430px; }.eyebrow { margin: 0 0 12px; color: #6e6e73; font-size: .72rem; font-weight: 700; letter-spacing: .12em; } h1 { margin: 0 0 14px; font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1; letter-spacing: -.06em; }.price { margin: 0 0 28px; font-size: 1.25rem; font-weight: 650; }.price del { margin-right: 8px; color: #86868b; font-weight: 400; }.choose-label { margin-bottom: 10px; font-weight: 650; }.size-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }.size-options button { min-width: 54px; padding: 11px; border: 1px solid #d2d2d7; border-radius: 10px; background: #fff; color: #1d1d1f; cursor: pointer; font: inherit; }.size-options button.selected { border-color: #1d1d1f; background: #1d1d1f; color: #fff; }.guide-link { padding: 0; border: 0; background: transparent; color: #06c; cursor: pointer; font: inherit; font-size: .88rem; }.size-guide { margin: 14px 0; padding: 14px; border-radius: 12px; background: #f5f5f7; color: #6e6e73; font-size: .82rem; line-height: 1.8; }.size-guide strong { color: #1d1d1f; }.primary-button { width: 100%; margin-top: 26px; padding: 15px 20px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; background: #1d1d1f; color: #fff; cursor: pointer; font: 600 1rem inherit; }.primary-button:disabled { background: #d2d2d7; cursor: not-allowed; } @media (max-width: 700px) { .product-page { padding: 20px 16px 56px; }.product-detail { grid-template-columns: 1fr; gap: 32px; }.image-wrap { border-radius: 20px; } }
 </style>
