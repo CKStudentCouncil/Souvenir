@@ -4,7 +4,7 @@
       <p class="eyebrow">User Terms</p>
       <h1 class="text-bold">臺北市立建國高級中學班聯會校慶紀念品訂購系統使用者條款</h1>
       <p class="intro">歡迎您使用臺北市立建國高級中學班聯會校慶紀念品訂購系統（以下簡稱「本系統」）。為保障使用者權益並維護系統運作秩序，請您在使用本系統前，詳閱以下使用者條款。當您使用本系統，即表示您已閱讀、瞭解並同意遵守本條款之所有內容。</p>
-      <div class="text-bold">
+      <div class="terms-body">
         <section><h2 class="text-bold">一、個人資料保護</h2>
           <ul>
             <li>本系統可能蒐集、處理、利用您於使用過程中提供之個人資料（如姓名、電子郵件帳號、班級、座號、學號、電話、IP 位址等），僅用於系統管理、使用者識別與功能提供，不會用於其他未經授權之用途。</li>
@@ -40,12 +40,110 @@
           </ul>
         </section>
       </div>
-      <p class="updated">最後更新：2025 年 10 月 10 日</p>
+      <p class="updated">最後更新：<span class="num">2025 年 10 月 10 日</span></p>
       <router-link to="/" class="primary-button">回到首頁</router-link>
     </article>
   </div>
 </template>
 
 <style scoped>
-.static-page { max-width: 760px; min-height: calc(100vh - 56px); margin: auto; padding: 72px 24px 96px; }.content-card { padding: clamp(28px, 6vw, 56px); border: 1px solid #e5e5e7; border-radius: 28px; background: #fff; }.eyebrow { margin: 0 0 14px; color: #6e6e73; font-size: .72rem; font-weight: 700; letter-spacing: .12em; } h1 { margin: 0 0 18px; font-size: clamp(2.5rem, 6vw, 4.6rem); line-height: 1; letter-spacing: -.06em; }.intro { margin-bottom: 36px; color: #6e6e73; line-height: 1.7; }.content-card section { margin: 0; padding: 22px 0; border-top: 1px solid #e5e5e7; }.content-card h2 { margin: 0 0 8px; font-size: 1.2rem; letter-spacing: -.025em; }.content-card section p { margin: 0; color: #515154; line-height: 1.8; }.updated { margin: 30px 0 18px; color: #86868b; font-size: .82rem; }.primary-button { display: inline-block; padding: 12px 18px; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: .9rem; font-weight: 600; text-decoration: none; } @media (max-width: 600px) { .static-page { padding: 48px 16px 64px; }.content-card { border-radius: 20px; } }
+/*
+  排版統一原則（與其他頁面共用同一套邏輯）：
+  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
+  2. h1 原本 -.06em 是拉丁大字重排版技巧，套在中文長標題上會擠字，收斂到接近 0，
+     字級也調降一階，避免長標題在窄螢幕爆版。
+  3. 修正原本失效的內文樣式：CSS 選到的是 section p，但實際內容是 li，
+     所以條款項目一直沒吃到顏色／行距設定；現在改成正確選取 li，並補上 ul 的清單樣式。
+  4. 拿掉包住整段條款的 text-bold（原本會讓所有條款項目被強制加粗），
+     粗體只留給 h1/h2 標題使用。
+  5. 更新日期用 .num 包起來，數字對齊、跟其他頁面的日期處理方式一致。
+*/
+
+.static-page {
+  max-width: 760px;
+  min-height: calc(100vh - 56px);
+  margin: auto;
+  padding: 72px 24px 96px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.content-card {
+  padding: clamp(28px, 6vw, 56px);
+  border: 1px solid #e5e5e7;
+  border-radius: 28px;
+  background: #fff;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+h1 {
+  margin: 0 0 18px;
+  font-size: clamp(1.6rem, 4.2vw, 2.4rem);
+  line-height: 1.4;
+  letter-spacing: -.01em;
+}
+
+.intro {
+  margin-bottom: 36px;
+  color: #6e6e73;
+  line-height: 1.75;
+}
+
+.terms-body section {
+  margin: 0;
+  padding: 22px 0;
+  border-top: 1px solid #e5e5e7;
+}
+
+.terms-body h2 {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  letter-spacing: -.01em;
+  font-weight: 700;
+}
+
+.terms-body ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 10px;
+}
+
+.terms-body li {
+  color: #515154;
+  line-height: 1.8;
+  font-weight: 400;
+}
+
+.updated { margin: 30px 0 18px; color: #86868b; font-size: .82rem; }
+
+.primary-button {
+  display: inline-block;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .static-page { padding: 48px 16px 64px; }
+  .content-card { border-radius: 20px; }
+}
 </style>

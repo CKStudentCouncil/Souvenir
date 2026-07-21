@@ -2,12 +2,12 @@
   <div class="app-shell">
     <header class="site-header">
       <router-link to="/" class="brand" aria-label="建中紀念品首頁">
-        <span class="brand-mark">CK</span>
+        <img src="/cksclogo.png" alt="CK Souvenir Logo" class="brand-mark" />
         <span>CK Souvenir 2.0</span>
       </router-link>
 
       <nav class="primary-nav" aria-label="主要導覽">
-        <router-link to="/" exact-active-class="is-active">商品</router-link>
+        <router-link to="/" exact-active-class="is-active">首頁</router-link>
         <router-link to="/orders" active-class="is-active">我的訂單</router-link>
         <router-link to="/about" active-class="is-active">關於我們</router-link>
       </nav>
@@ -29,7 +29,7 @@
       </div>
 
       <div v-if="menuOpen" class="menu-popover">
-        <router-link to="/terms" @click="menuOpen = false">使用條款與隱私權</router-link>
+        <router-link to="/terms" @click="menuOpen = false">使用者條款</router-link>
         <router-link v-if="auth.isAdmin" to="/admin" @click="menuOpen = false">管理後台</router-link>
         <router-link v-if="auth.isAdmin" to="/admin/account" @click="menuOpen = false">帳號管理</router-link>
         <router-link v-else to="/admin/login" @click="menuOpen = false">團隊登入</router-link>
@@ -77,7 +77,7 @@ async function handleSignOut() {
 .app-shell { min-height: 100vh; background: #f5f5f7; color: #1d1d1f; }
 .site-header { position: sticky; top: 0; z-index: 50; height: 56px; padding: 0 max(24px, calc((100vw - 1180px) / 2)); display: flex; align-items: center; gap: 32px; background: rgba(255, 255, 255, .78); border-bottom: 1px solid rgba(0, 0, 0, .08); backdrop-filter: saturate(180%) blur(18px); }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: inherit; font-weight: 650; letter-spacing: -.02em; text-decoration: none; white-space: nowrap; }
-.brand-mark { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: #1d1d1f; color: #fff; font-size: .68rem; font-weight: 750; letter-spacing: -.05em; }
+.brand-mark { width: 25px; height: 25px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
 .primary-nav { display: flex; align-items: center; gap: 24px; margin-left: auto; }
 .primary-nav a, .menu-popover a { color: #6e6e73; font-size: .9rem; text-decoration: none; }
 .primary-nav a:hover, .primary-nav .is-active { color: #1d1d1f; }

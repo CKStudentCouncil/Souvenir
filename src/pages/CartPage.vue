@@ -48,22 +48,23 @@
           <label>班級（選填）<input v-model="checkout.classNumber" placeholder="例如：301-15"></label>
           <label class="remember"><input v-model="rememberMe" type="checkbox">在這台裝置記住我的資料</label>
           <label class="terms-agreement">
-  <input v-model="agreedToTerms" type="checkbox">
-  我已閱讀並同意
-  <router-link
-    to="/terms"
-    target="_blank"
-    class="terms-link"
-  >
-    使用者條款
-  </router-link>
-</label>
+            <input v-model="agreedToTerms" type="checkbox">
+            我已閱讀並同意
+            <router-link
+              to="/terms"
+              target="_blank"
+              rel="noopener"
+              class="terms-link"
+            >
+              使用者條款
+            </router-link>
+          </label>
           <button
             type="submit"
             class="primary-button"
             :disabled="submitting || !agreedToTerms"
-            >{{ submitting ? '正在送出訂單' : '送出訂單' }}</button>
-            <button type="button" class="secondary-button" @click="showCheckout = false">回到訂單摘要</button>
+          >{{ submitting ? '正在送出訂單' : '送出訂單' }}</button>
+          <button type="button" class="secondary-button" @click="showCheckout = false">回到訂單摘要</button>
         </form>
       </aside>
     </div>
@@ -102,22 +103,12 @@ async function placeOrder() {
     const p = pricing.value
     const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, classNumber: checkout.classNumber.trim() })
     if (result.status !== 201) throw new Error()
-    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
+    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; agreedToTerms.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
   } catch { toast.show('訂單尚未送出，請再試一次；購物袋內容會為你保留。') } finally { submitting.value = false }
 }
 </script>
 
 <style scoped>
-/*
-  排版統一原則（與其他頁面共用同一套邏輯）：
-  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. h1 原本 -.065em 是拉丁大字重排版技巧，套在中文上會擠字，收斂到接近 0。
-  3. 中文段落／說明文字行距統一拉到 1.55~1.7，這頁原本偏緊（1.45）的說明文字會更好讀。
-  4. 所有 NT$ 金額、數量、倍數（× N）都用 .num 包起來，套 tabular-nums，
-     金額在中文句子裡混排時不會忽大忽小、對不齊。
-  5. Email / 電話這類純英數輸入框套用等寬字體（.mono），輸入時字元寬度一致、好核對。
-*/
-
 .cart-page {
   max-width: 1080px;
   margin: auto;
@@ -320,12 +311,11 @@ h1 {
 .terms-agreement {
   display: flex !important;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-
   font-size: .82rem;
   font-weight: 400;
-
-  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .terms-agreement input {
