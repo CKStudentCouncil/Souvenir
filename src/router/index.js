@@ -29,14 +29,45 @@ export default defineRouter(function () {
       await authStore.init()
     }
 
-    if (to.meta.requiresAdmin) {
+    if (to.meta.requiresManager) {
       const mockAdminOk = USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH
+
       if (!mockAdminOk) {
         if (!authStore.isLoggedIn) {
-          return { name: 'admin-login', query: { redirect: to.fullPath } }
+          return { 
+            name: 'admin-login',
+            query: { redirect: to.fullPath }
+          }
         }
-        if (!authStore.isAdmin) {
+
+        if (!authStore.isManager) {
           return { name: 'home' }
+        }
+      }
+    }
+
+
+    if (to.meta.requiresAdmin) {
+      const mockAdminOk =
+        USE_MOCK_ORDERS &&
+        MOCK_ALLOW_ADMIN_WITHOUT_AUTH
+
+      if (!mockAdminOk) {
+
+        if (!authStore.isLoggedIn) {
+          return {
+            name: 'admin-login',
+            query: {
+              redirect: to.fullPath
+            }
+          }
+        }
+
+        // manager / admin / super_admin 都可以進入
+        if (!authStore.isManager) {
+          return {
+            name: 'home'
+          }
         }
       }
     }

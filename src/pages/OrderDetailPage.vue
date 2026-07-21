@@ -125,7 +125,10 @@ const isAdminRoute = computed(
 const isAdminView = computed(
   () =>
     isAdminRoute.value &&
-    (auth.isAdmin || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH))
+    (
+      auth.isManager ||
+      (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
+    )
 )
 
 onMounted(async () => {
