@@ -1,6 +1,6 @@
 # CKSC Online Souvenir
 
-A web shop for Chien Kuo High School commemorative merchandise, built with Quasar, Vue 3, and Firebase.
+A web shop for Chien Kuo High School Student Council commemorative souvenirs, built with Quasar, Vue 3, and Firebase.
 
 ## Features
 
