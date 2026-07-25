@@ -70,15 +70,15 @@ If you deploy Cloud Functions, make sure:
 Deploy the app:
 
 ```bash
-npm run build
-npx -y firebase-tools@latest deploy
+quasar build
+firebase deploy
 ```
 
 If you want to deploy only one part:
 
 ```bash
-npx -y firebase-tools@latest deploy --only hosting
-npx -y firebase-tools@latest deploy --only functions
+firebase deploy --only hosting
+firebase deploy --only functions
 ```
 
 ## Notes
