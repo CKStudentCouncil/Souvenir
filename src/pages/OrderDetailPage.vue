@@ -75,8 +75,12 @@
           <p>{{ order.school }}</p>
         </div>
         <div>
-          <span>班級座號</span>
-          <p>{{ order.classNumber }}</p>
+          <span>班級</span>
+          <p>{{ order.class }}</p>
+        </div>
+        <div>
+          <span>座號</span>
+          <p>{{ order.number }}</p>
         </div>
       </div>
     </section>

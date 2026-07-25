@@ -45,7 +45,8 @@
           <label>Email<input v-model="checkout.email" required type="email" autocomplete="email" class="mono"></label>
           <label>電話<input v-model="checkout.phone" required type="tel" autocomplete="tel" class="mono"></label>
           <label>學校<select v-model="checkout.school" required><option disabled value="">請選擇學校</option><option v-for="school in schools" :key="school" :value="school">{{ school }}</option></select></label>
-          <label>班級（選填）<input v-model="checkout.classNumber" placeholder="例如：301-15"></label>
+          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士'">班級<input required v-model="checkout.class" placeholder="例：329/三數"></label>
+          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士'">座號<input required v-model="checkout.number" placeholder="例：01"></label>
           <label class="remember"><input v-model="rememberMe" type="checkbox">在這台裝置記住我的資料</label>
           <label class="terms-agreement">
             <input v-model="agreedToTerms" type="checkbox">
@@ -83,7 +84,7 @@ import { calculatePricing } from 'src/utils/pricing'
 
 const cart = useCartStore(); const auth = useAuthStore(); const toast = useToastStore(); const router = useRouter()
 const showCheckout = ref(false); const submitting = ref(false); const rememberMe = ref(false); const usePRPackage = ref(false)
-const checkout = reactive({ name: '', email: '', phone: '', school: '', classNumber: '' })
+const checkout = reactive({ name: '', email: '', phone: '', school: '', class: '', number: '' })
 const pricing = computed(() => calculatePricing(cart.cartItems, { usePRPackage: usePRPackage.value, isAdmin: auth.isAdmin }))
 const agreedToTerms = ref(false)
 
@@ -101,7 +102,8 @@ async function placeOrder() {
   submitting.value = true
   try {
     const p = pricing.value
-    const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, classNumber: checkout.classNumber.trim() })
+    const isSpecialSchool = checkout.school === '建中家長會' || checkout.school === '其他學校或社會人士'
+    const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, class: isSpecialSchool ? '' : checkout.class.trim(), number: isSpecialSchool ? '' : checkout.number.trim() })
     if (result.status !== 201) throw new Error()
     setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; agreedToTerms.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
   } catch { toast.show('訂單尚未送出，請再試一次；購物袋內容會為你保留。') } finally { submitting.value = false }

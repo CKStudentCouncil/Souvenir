@@ -31,13 +31,21 @@ export function formatOrderDate(value) {
   return d ? d.toLocaleString() : ''
 }
 
+function normalizeOrderPayload(payload) {
+  const { ...rest } = payload
+
+  return rest
+}
+
 /**
  * Simulates POST /orders → 201 Created (no network).
  */
 export async function submitOrder(orderPayload) {
+  const normalizedPayload = normalizeOrderPayload(orderPayload)
+
   if (!USE_MOCK_ORDERS) {
     const docRef = await addDoc(collection(db, 'orders'), {
-      ...orderPayload,
+      ...normalizedPayload,
       createdAt: serverTimestamp()
     })
     addGuestOrderId(docRef.id)
@@ -49,7 +57,7 @@ export async function submitOrder(orderPayload) {
   const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   const createdAt = new Date().toISOString()
   const order = {
-    ...orderPayload,
+    ...normalizedPayload,
     id,
     createdAt,
     delivered: false,
@@ -86,7 +94,8 @@ export async function fetchAllOrders() {
             customerPhone: o.customerPhone || u.phone || '',
             customerEmail: o.customerEmail || u.email || '',
             school: o.school || u.school || '',
-            classNumber: o.classNumber || u.classNumber || ''
+            class: o.class || u.class || '',
+            number: o.number || u.number || ''
           }
         } catch {
           return o

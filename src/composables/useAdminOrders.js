@@ -148,6 +148,15 @@ export function useAdminOrders({ showToast, displayName }) {
     const exportStats = calculateStatistics(exportOrders)
     const summaryData = []
 
+    // School and Class Summary
+    const schoolClassCount = {}
+    exportOrders.forEach((order) => {
+      if (order.school && order.class) {
+        const key = `${order.school} - ${order.class}`
+        schoolClassCount[key] = (schoolClassCount[key] || 0) + 1
+      }
+    })
+
     Object.entries(exportStats.productCounts).forEach(([name, total]) => {
       summaryData.push({
         項目名稱: name,
@@ -227,13 +236,33 @@ export function useAdminOrders({ showToast, displayName }) {
           電話: itemIndex === 0 ? order.customerPhone || '' : '',
           Email: itemIndex === 0 ? order.customerEmail || '' : '',
           學校: itemIndex === 0 ? order.school || '' : '',
-          班級座號: itemIndex === 0 ? order.classNumber || '' : '',
+          班級: itemIndex === 0 ? order.class || '' : '',
+          座號: itemIndex === 0 ? order.number || '' : '',
           商品名稱: item.name,
           數量: item.quantity,
           單價: item.price,
           小計: (Number(item.price) || 0) * (Number(item.quantity) || 0)
         })
         currentRow++
+      })
+    })
+
+    // Build school-class-item matrix
+    const schoolData = {}
+    const allItems = new Set()
+
+    exportOrders.forEach((order) => {
+      if (!order.school) return
+      if (!schoolData[order.school]) {
+        schoolData[order.school] = {}
+      }
+      const classKey = order.class || '(無班級)'
+      if (!schoolData[order.school][classKey]) {
+        schoolData[order.school][classKey] = {}
+      }
+      order.items.forEach((item) => {
+        allItems.add(item.name)
+        schoolData[order.school][classKey][item.name] = (schoolData[order.school][classKey][item.name] || 0) + item.quantity
       })
     })
 
@@ -246,6 +275,37 @@ export function useAdminOrders({ showToast, displayName }) {
     const sheetPrefix = onlyDelivered ? '已交貨' : '全部'
     XLSX.utils.book_append_sheet(workbook, productSheet, `${sheetPrefix}商品統計`)
     XLSX.utils.book_append_sheet(workbook, ordersSheet, `${sheetPrefix}訂單明細`)
+
+    // Add per-school sheets
+    const sortedItems = Array.from(allItems).sort()
+    if (sortedItems.length > 0) {
+      Object.entries(schoolData).forEach(([schoolName, classData]) => {
+        const schoolSheetData = []
+        const sortedClasses = Object.keys(classData).sort()
+
+        // Calculate totals
+        const totals = { 班級: '合計' }
+        sortedItems.forEach((item) => {
+          totals[item] = 0
+          sortedClasses.forEach((classKey) => {
+            totals[item] += classData[classKey][item] || 0
+          })
+        })
+        schoolSheetData.push(totals)
+
+        sortedClasses.forEach((classKey) => {
+          const row = { 班級: classKey }
+          sortedItems.forEach((item) => {
+            row[item] = classData[classKey][item] || 0
+          })
+          schoolSheetData.push(row)
+        })
+
+        const schoolSheet = XLSX.utils.json_to_sheet(schoolSheetData)
+        const sanitizedSchoolName = schoolName.replace(/[\/\\?*:[\]]/g, '').slice(0, 31)
+        XLSX.utils.book_append_sheet(workbook, schoolSheet, sanitizedSchoolName)
+      })
+    }
 
     const filename = `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${new Date().toISOString().slice(0, 10)}.xlsx`
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })

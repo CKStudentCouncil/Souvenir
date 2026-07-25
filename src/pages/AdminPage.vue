@@ -176,6 +176,7 @@
         <p><strong>訂單ID：</strong><span class="mono">{{ order.id }}</span></p>
         <p><strong>折扣後金額：</strong><span class="num">NT$ {{ order.finalTotal }}</span></p>
         <p><strong>購買時間：</strong><span class="num">{{ formatDate(order.createdAt) }}</span></p>
+        <p><strong>最後更新者：</strong>{{ order.deliveryUpdatedBy || '—' }}</p>
         <div
           v-if="order.customerName || order.customerEmail"
           class="customer-box"
@@ -186,7 +187,8 @@
             <li v-if="order.customerPhone">電話：<span class="mono">{{ order.customerPhone }}</span></li>
             <li v-if="order.customerEmail">Email：<span class="mono">{{ order.customerEmail }}</span></li>
             <li v-if="order.school">學校：{{ order.school }}</li>
-            <li v-if="order.classNumber">班級座號：{{ order.classNumber }}</li>
+            <li v-if="order.class">班級：{{ order.class }}</li>
+            <li v-if="order.number">座號：{{ order.number }}</li>
           </ul>
         </div>
         <div class="items-box">
