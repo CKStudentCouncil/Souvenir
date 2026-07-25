@@ -163,7 +163,7 @@ async function setDelivered(delivered) {
   if (!isAdminView.value || !order.value) return
   try {
     const patch = await updateOrderDelivery(order.value.id, delivered, {
-      deliveryUpdatedByName: '管理員'
+      deliveryUpdatedByName: auth.user?.name || '管理員',
     })
     order.value = { ...order.value, ...patch, delivered }
     toast.show(delivered ? '已標記為已交貨' : '已標記為未交貨')
