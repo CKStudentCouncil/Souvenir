@@ -3,14 +3,19 @@
     <div class="success-card">
       <div class="success-icon"><q-icon name="check" /></div>
       <p class="eyebrow">訂單已成立</p>
-      <h1 class="text-bold">謝謝你</h1>
-      <p class="lead">我們已收到你的訂單，接下來會依照以下資訊為你準備</p>
+      <h1 class="text-bold">Thank you</h1>
+      <p class="lead">
+        我們已收到你的訂單，接下來會依照以下資訊為你準備
+        <br />
+        目前僅提供現場付款，還請注意建中班聯或友校班聯會、代聯會或學生會相關公告
+      </p>
       <div v-if="orderId" class="order-id">訂單編號<strong class="mono">#{{ orderId }}</strong></div>
       <div v-if="order" class="order-summary">
         <span>{{ order.customerName }}</span>
         <span class="mono">{{ order.customerEmail }}</span>
         <strong class="num">NT$ {{ order.finalTotal }}</strong>
       </div>
+      <a href="https://forms.gle/Sfr6F5RLPsc12stt6" target="_blank" class="feedback-button">填寫意見反饋</a>
       <router-link to="/orders" class="primary-button">查看我的訂單</router-link>
       <router-link to="/" class="secondary-link">繼續探索</router-link>
     </div>
@@ -125,6 +130,22 @@ h1 {
   color: #fff;
   font-weight: 600;
   text-decoration: none;
+}
+
+.feedback-button {
+  display: block;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #e5e5e7;
+}
+
+.feedback-button:hover {
+  background: #e8e8ed;
 }
 
 .secondary-link {
