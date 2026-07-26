@@ -14,7 +14,7 @@ export default configure(() => ({
       node: 'node20'
     },
     vueRouterMode: 'history',
-    publicPath: '/=',
+    publicPath: '/',
     distDir: 'dist/spa'
   },
   devServer: {
