@@ -41,7 +41,7 @@
           </ul>
         </section>
       </div>
-      <p class="updated">最後更新：<span class="num">2025 年 10 月 10 日</span></p>
+      <p class="updated">最後更新：<span class="num">2026 年 07 月 26 日</span></p>
       <router-link to="/" class="primary-button">回到首頁</router-link>
     </article>
   </div>
