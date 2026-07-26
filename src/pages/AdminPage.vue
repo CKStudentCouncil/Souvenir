@@ -68,6 +68,122 @@
       </button>
     </div>
 
+    <div class="panel notify-panel">
+      <div class="notify-header">
+        <h2>發送{{ notifyTypeLabel }}</h2>
+        <button type="button" class="btn" @click="openNotifyModal">
+          編輯並發送
+        </button>
+      </div>
+      <p class="notify-hint">
+        將寄送給目前所有留有 Email 的訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人），使用 BCC 密件副本，顧客彼此不會看到對方 Email。
+      </p>
+    </div>
+
+    <div
+      v-if="showNotifyModal"
+      class="modal-overlay"
+      @click.self="closeNotifyModal"
+    >
+      <div class="modal notify-modal">
+        <h2>編輯{{ notifyTypeLabel }}</h2>
+
+        <div class="type-select">
+          <span class="field-label">通知類型</span>
+          <div class="type-options">
+            <button
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.type === 'payment' }"
+              @click="notifyForm.type = 'payment'"
+            >
+              繳費
+            </button>
+            <button
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.type === 'pickup' }"
+              @click="notifyForm.type = 'pickup'"
+            >
+              領貨
+            </button>
+            <button
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.type === 'both' }"
+              @click="notifyForm.type = 'both'"
+            >
+              繳費暨領貨
+            </button>
+          </div>
+        </div>
+
+        <label v-if="notifyForm.type !== 'pickup'" class="field">
+          <span>繳費時間</span>
+          <input
+            v-model="notifyForm.paymentTime"
+            type="text"
+            placeholder="例如：8/15（五）12:00–13:00"
+          >
+        </label>
+
+        <label v-if="notifyForm.type !== 'payment'" class="field">
+          <span>領貨時間</span>
+          <input
+            v-model="notifyForm.pickupTime"
+            type="text"
+            placeholder="例如：8/20（三）12:00–13:00"
+          >
+        </label>
+
+        <label class="field">
+          <span>{{ notifyForm.type === 'both' ? '地點（繳費與領貨共用）' : '地點' }}</span>
+          <input
+            v-model="notifyForm.location"
+            type="text"
+            placeholder="例如：建中夢紅樓一樓"
+          >
+        </label>
+
+        <label class="field">
+          <span>補充說明（選填）</span>
+          <textarea
+            v-model="notifyForm.message"
+            rows="4"
+            placeholder="例如：請出示 QR Code 給工作人員，以完成繳費或領貨。"
+          />
+        </label>
+
+        <div class="notify-preview">
+          <p class="preview-label">預覽內容</p>
+          <p v-if="notifyForm.type !== 'pickup'">繳費時間：<strong>{{ notifyForm.paymentTime || '（尚未填寫）' }}</strong></p>
+          <p v-if="notifyForm.type !== 'payment'">領貨時間：<strong>{{ notifyForm.pickupTime || '（尚未填寫）' }}</strong></p>
+          <p>地點：<strong>{{ notifyForm.location || '（尚未填寫）' }}</strong></p>
+          <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
+          <p class="preview-count">將發送給 <span class="num">{{ notifyRecipientCount }}</span> 位訂購者</p>
+        </div>
+
+        <div class="notify-actions">
+          <button
+            type="button"
+            class="btn"
+            :disabled="!canSendNotify || sendingNotify"
+            @click="confirmSendNotify"
+          >
+            {{ sendingNotify ? '發送中...' : '確認發送' }}
+          </button>
+          <button
+            type="button"
+            class="btn-outline"
+            :disabled="sendingNotify"
+            @click="closeNotifyModal"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="panel export-panel">
       <div>
         <h2>{{ activeTab === 'delivered' ? '已交貨統計與匯出' : '匯出與總覽' }}</h2>
@@ -220,6 +336,7 @@
 import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { doc, getDoc } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { db } from 'src/boot/firebase'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
@@ -234,6 +351,15 @@ const canAccessAdmin = computed(
 const toast = useToastStore()
 const displayName = ref('管理員')
 const checkingAdmin = ref(true)
+const showNotifyModal = ref(false)
+const sendingNotify = ref(false)
+const notifyForm = ref({
+  type: 'payment',
+  paymentTime: '',
+  pickupTime: '',
+  location: '',
+  message: '請出示 QR Code 給工作人員，以完成繳費或領貨。'
+})
 
 const {
   schools,
@@ -258,6 +384,17 @@ const {
 })
 
 const deliveryStats = computed(() => calculateDeliveryStats(currentOrders.value))
+
+// Best-effort preview count based on orders currently loaded on this page.
+// The backend function always emails every order with a saved address, so
+// the actual send count (shown in the success toast) is authoritative.
+const notifyRecipientCount = computed(() => {
+  const emails = new Set()
+  currentOrders.value.forEach((order) => {
+    if (order.customerEmail) emails.add(order.customerEmail)
+  })
+  return emails.size
+})
 
 async function loadAdminProfile() {
   if (auth.user) {
@@ -290,437 +427,67 @@ function confirmDelete(orderId) {
   if (!window.confirm(`確定要刪除此訂單嗎？\nID: ${orderId}`)) return
   deleteOrder(orderId).catch(() => toast.show('刪除失敗'))
 }
+
+const notifyTypeLabel = computed(() => {
+  if (notifyForm.value.type === 'payment') return '繳費通知'
+  if (notifyForm.value.type === 'pickup') return '領貨通知'
+  return '繳費暨領貨通知'
+})
+
+const canSendNotify = computed(() => {
+  const f = notifyForm.value
+  if (!f.location.trim()) return false
+  if (f.type === 'payment') return !!f.paymentTime.trim()
+  if (f.type === 'pickup') return !!f.pickupTime.trim()
+  return !!f.paymentTime.trim() && !!f.pickupTime.trim()
+})
+
+function openNotifyModal() {
+  showNotifyModal.value = true
+}
+
+function closeNotifyModal() {
+  if (sendingNotify.value) return
+  showNotifyModal.value = false
+}
+
+async function confirmSendNotify() {
+  if (!canSendNotify.value) {
+    toast.show('請填寫必要的時間與地點')
+    return
+  }
+  if (
+    !window.confirm(
+      `確定要寄送${notifyTypeLabel.value}給 ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`
+    )
+  ) {
+    return
+  }
+
+  sendingNotify.value = true
+  try {
+    const functionsInstance = getFunctions(undefined, 'asia-east1')
+    const sendOrderNotification = httpsCallable(functionsInstance, 'sendOrderNotification')
+    const result = await sendOrderNotification({
+      type: notifyForm.value.type,
+      paymentTime: notifyForm.value.paymentTime.trim(),
+      pickupTime: notifyForm.value.pickupTime.trim(),
+      location: notifyForm.value.location.trim(),
+      message: notifyForm.value.message.trim()
+    })
+    toast.show(`已成功寄送給 ${result.data.sentCount} 位訂購者`)
+    showNotifyModal.value = false
+    notifyForm.value = { type: 'payment', paymentTime: '', pickupTime: '', location: '', message: '' }
+  } catch (error) {
+    console.error('Send notification error:', error)
+    toast.show('發送失敗，請稍後再試')
+  } finally {
+    sendingNotify.value = false
+  }
+}
 </script>
 
 <style scoped>
 @import 'src/css/app.scss';
-.admin-page {
-  min-height: 100vh;
-  padding: 40px 20px;
-  max-width: 1000px;
-  margin: 0 auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
-    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.6;
-  color: #1d1d1f;
-}
-
-.num {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
-.mono {
-  font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
-  letter-spacing: 0;
-  font-size: .95em;
-  word-break: break-all;
-}
-
-.state-screen {
-  min-height: 50vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.state-screen h2 {
-  color: #d32f2f;
-  margin: 16px 0;
-}
-
-.state-screen p {
-  color: #6e6e73;
-  margin-bottom: 24px;
-}
-
-.admin-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e5e5e7;
-  border-radius: 18px;
-  margin-bottom: 16px;
-}
-
-.avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #e5e5e7;
-}
-
-.name {
-  margin: 0;
-  font-weight: 700;
-  font-size: 1rem;
-  color: #1d1d1f;
-}
-
-.email {
-  margin: 0;
-  font-size: .85rem;
-  color: #6e6e73;
-}
-
-.admin-page h1 {
-  margin: 0 0 20px;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  line-height: 1.2;
-  letter-spacing: -.01em;
-  font-weight: 700;
-}
-
-.filter-block {
-  margin-bottom: 16px;
-}
-
-.filter-block label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #1d1d1f;
-}
-
-.filter-block select {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #e5e5e7;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: inherit;
-  box-sizing: border-box;
-  color: #1d1d1f;
-  background: #fff;
-}
-
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  background: #f5f5f7;
-  padding: 4px;
-  border-radius: 999px;
-}
-
-.tabs button {
-  flex: 1;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-
-.tabs button:not(.active) {
-  color: #6e6e73;
-  font-weight: 400;
-}
-
-.tabs button.active {
-  background: #1d1d1f;
-  color: #fff;
-  font-weight: 600;
-}
-
-.panel {
-  background: #fff;
-  border: 1px solid #e5e5e7;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.panel h2 {
-  margin: 0 0 16px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1d1d1f;
-}
-
-.export-panel {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.export-panel h2 {
-  margin: 0;
-}
-
-.stats-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.stat {
-  background: #fff;
-  border: 1px solid #e5e5e7;
-  border-radius: 10px;
-  padding: 10px 14px;
-}
-
-.stat > div:first-child {
-  color: #6e6e73;
-  font-size: .9rem;
-}
-
-.stat > div:last-child {
-  color: #1d1d1f;
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-top: 4px;
-}
-
-.product-stats {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.product-stats li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #e5e5e7;
-  background: #fff;
-}
-
-.product-stats span:first-child {
-  color: #1d1d1f;
-  font-weight: 600;
-}
-
-.product-stats span:last-child {
-  color: #6e6e73;
-}
-
-.empty {
-  color: #6e6e73;
-}
-
-.personnel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.personnel-card {
-  background: #fff;
-  border: 1px solid #e5e5e7;
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.personnel-name {
-  margin: 0 0 4px;
-  font-weight: 700;
-  color: #1d1d1f;
-  font-size: 1rem;
-}
-
-.personnel-stat {
-  margin: 4px 0;
-  font-size: .9rem;
-  color: #6e6e73;
-}
-
-.personnel-stat.total {
-  color: #1d1d1f;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-.orders-section {
-  margin-top: 20px;
-}
-
-.orders-section h2 {
-  margin: 0 0 16px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1d1d1f;
-}
-
-.order-card {
-  background: #fff;
-  border: 1px solid #e5e5e7;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.delivery-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  border: 1px solid #e5e5e7;
-  font-size: .9rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.delivery-bar.delivered .status-dot {
-  background: #19703a;
-}
-
-.delivery-bar.pending .status-dot {
-  background: #b45309;
-}
-
-.delivery-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.btn-sm {
-  padding: 6px 14px;
-  border: 1px solid #1d1d1f;
-  border-radius: 999px;
-  background: #1d1d1f;
-  color: #fff;
-  font-weight: 600;
-  font-size: .8rem;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-sm.muted {
-  background: #fff;
-  color: #1d1d1f;
-}
-
-.btn-sm:disabled {
-  background: #fff;
-  border-color: #e5e5e7;
-  color: #b0b0b5;
-  cursor: not-allowed;
-}
-
-.customer-box {
-  background: #f5f5f7;
-  border-radius: 12px;
-  padding: 14px;
-  margin: 10px 0;
-  font-size: .9rem;
-}
-
-.customer-box strong {
-  color: #1d1d1f;
-}
-
-.customer-box ul {
-  list-style: none;
-  padding-left: 0;
-  margin: 6px 0 0;
-}
-
-.customer-box ul li {
-  margin: 4px 0;
-  color: #1d1d1f;
-}
-
-.items-box {
-  background: #f5f5f7;
-  border-radius: 12px;
-  padding: 14px;
-  margin: 10px 0;
-  font-size: .9rem;
-}
-
-.items-box strong {
-  color: #1d1d1f;
-}
-
-.items-box ul {
-  list-style: none;
-  padding-left: 0;
-  margin: 6px 0 0;
-}
-
-.items-box ul li {
-  margin: 4px 0;
-  color: #1d1d1f;
-}
-
-.order-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 999px;
-  background: #1d1d1f;
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-outline {
-  padding: 10px 16px;
-  border: 1px solid #e5e5e7;
-  border-radius: 999px;
-  background: #fff;
-  color: #1d1d1f;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-outline.danger {
-  border-color: #d32f2f;
-  color: #d32f2f;
-}
-
-.page-heading {
-  margin-bottom: 20px;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  color: #6e6e73;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-}
-
-.admin-page h1 {
-  margin: 0;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  line-height: 1.2;
-  letter-spacing: -.01em;
-  font-weight: 700;
-}
+@import 'src/css/adminpage.scss';
 </style>

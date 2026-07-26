@@ -109,7 +109,8 @@ export function generateEmailHTML(orderId, order) {
                   <table width="100%">
                     <tr>
                       <td align="center" style="padding: 20px; border: 1px dashed #c7c7cc; border-radius: 12px;">
-                        <p style="margin: 0 0 4px; font-size: 14px; font-weight: 700;">取貨憑證\n請出示此 QR Code 給現場工作人員</p>
+                        <p style="margin: 0 0 4px; font-size: 14px; font-weight: 700;">取貨憑證</p>
+                        <p style="margin: 0 0 4px; font-size: 14px; font-weight: 700;">請出示此 QR Code 給現場工作人員</p>
                         <p style="margin: 0 0 16px; font-size: 12px; color: #6e6e73;">請於取貨時出示此 QR Code</p>
                         <img src="cid:qrcode" width="140" height="140" background-color="#ffffff" alt="訂單 QR Code" style="display: block; margin: 0 auto; border-radius: 8px;" />
                       </td>
