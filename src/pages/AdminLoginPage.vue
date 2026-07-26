@@ -108,20 +108,6 @@ function openExternal() {
   window.open('https://souvenir.cksc.tw', '_blank')
 }
 
-// ---- 帳號綁定 / 建立 ----
-// There is no more self-serve "user" role. Every account has to be
-// provisioned first from AccountManagementPage, which writes a *pending*
-// users/{randomId} doc: { email, name, role, uid: null, pending: true }.
-//
-// When someone signs in with Google:
-//   1. If users/{uid} already exists, they're already linked — just
-//      refresh their profile fields and return their existing role.
-//   2. Otherwise, look for a pending doc whose `email` matches this Google
-//      account. If found, promote it: create users/{uid} with that role,
-//      mark it linked, and delete the pending placeholder.
-//   3. If no pending invite exists for this email, the account is not
-//      provisioned — return null and deny access. We deliberately do NOT
-//      fall back to creating a default role here.
 async function linkUserAccount(user) {
   const userRef = doc(db, 'users', user.uid)
   const existingSnap = await getDoc(userRef)
@@ -187,8 +173,6 @@ async function afterLogin(user) {
   }
 
   toast.show('登入成功！')
-  // manager (友校幹部) only needs order-scan access, not the admin
-  // dashboard — adjust '/scan' to whatever the actual scan route is named.
   const fallback = role === 'manager' ? '/scan' : '/admin'
   const redirect = route.query.redirect || fallback
   router.replace(String(redirect))
@@ -249,18 +233,6 @@ async function handleGoogleAuth() {
 </script>
 
 <style scoped>
-/*
-  排版與視覺統一原則（與 StorefrontPage / OrderDetailPage / OrdersPage 共用同一套邏輯）：
-  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. 大標題字距收斂到接近 0（拉丁字的深負字距套在中文上會重疊），中文行距拉寬到 1.6 左右。
-  3. 用 eyebrow + 大標題 的頁首結構，與商店首頁、訂單頁維持同一套視覺語言，
-     而不是讓登入頁自成一格。
-  4. 卡片維持細邊框（#e5e5e7）＋大圓角（20px），不用陰影堆疊出重量感。
-  5. 提示區塊改用低飽和暖色 + 簡短標題，取代驚嘆號＋粗體的警告感；
-     按鈕統一膠囊造型；連結色統一用 #06c。
-  6. Google 登入按鈕維持品牌規範樣式（白底、細邊框、彩色 G 圖示）。
-*/
-
 .auth-page {
   min-height: 100vh;
   padding: 96px 24px 96px;

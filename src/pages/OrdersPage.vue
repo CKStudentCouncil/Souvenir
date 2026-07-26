@@ -118,16 +118,6 @@ async function confirmDelete(orderId) {
 </script>
 
 <style scoped>
-/*
-  排版統一原則：
-  1. 字體堆疊同時涵蓋中英文，避免中文字用到英文字重導致的「重量不一致」問題。
-  2. 大標題的負字距（letter-spacing）是為拉丁字優化的視覺技巧，套用在中文字上會讓字距過緊、
-     甚至重疊，因此中文字距收斂到接近 0，另外把緊縮效果留給真正的英文/數字。
-  3. 中文行距通常需要比英文更寬鬆才易讀，因此本頁把 line-height 統一拉到 1.6~1.7。
-  4. 數字（金額、日期、訂單編號）用 .num / .currency 包起來，套用 tabular-nums 等寬數字與
-     系統 UI 字體，讓價格、日期在中文段落裡不會忽大忽小、忽粗忽細。
-*/
-
 .orders-page {
   max-width: 780px;
   margin: auto;

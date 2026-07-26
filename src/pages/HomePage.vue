@@ -7,13 +7,7 @@
       <a href="#collection" class="primary-link">探索商品 <q-icon name="south_east" /></a>
     </section>
 
-    <section class="benefits" aria-label="購物說明">
-      <span>符合組合優惠時自動折抵</span><i />
-      <span>不登入也能完成訂購</span><i />
-      <span>隨時查看訂單狀態</span>
-    </section>
-
-    <section class="offers">
+    <section class="offers" style="margin-top: -40px;">
       <div class="section-heading">
         <p class="eyebrow">精選組合</p>
         <h2 class="text-bold">最適合的組合優惠</h2>
@@ -62,18 +56,6 @@ import { comboDeals, products } from 'src/data/catalog'
 
 <style scoped>
 @import 'src/css/app.scss';
-
-/*
-  排版統一原則（與 OrdersPage 共用同一套邏輯）：
-  1. 字體堆疊同時涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. 大標題的深負字距（-.065em、-.055em）是拉丁字排版技巧，套在中文上會讓字距過緊、
-     甚至重疊，因此中文標題的字距收斂到接近 0；英文 eyebrow（"Keep Your Memories Alive"）
-     維持適度正字距，比較符合拉丁大寫/小型大寫的排版慣例。
-  3. 中文行距統一拉寬（1.5 → 1.6~1.65），比英文常用值更寬鬆才好讀。
-  4. 金額、折扣數字都用 .num 包起來，套用 tabular-nums 與系統 UI 字體，讓「NT$」與數字
-     在中文句子裡不會忽大忽小、字寬跳動。
-*/
-
 .storefront {
   padding-bottom: 96px;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
@@ -283,5 +265,20 @@ h2 {
   .offer-grid { grid-template-columns: 1fr; margin-bottom: 80px; }
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 24px 12px; }
   .product-image { border-radius: 15px; }
+}
+
+.announcement {
+  max-width: 1040px;
+  margin: -25px auto 96px;
+  padding: 13px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e5e7;
+  border-radius: 999px;
+  background: #fff;
+  color: #6e6e73;
+  font-size: .83rem;
+  letter-spacing: .02em;
 }
 </style>

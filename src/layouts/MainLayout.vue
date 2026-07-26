@@ -2,7 +2,7 @@
   <div class="app-shell">
     <header class="site-header">
       <router-link to="/" class="brand" aria-label="建中紀念品首頁">
-        <img src="/cksclogo.png" alt="CK Souvenir Logo" class="brand-mark" />
+        <img src="../../public/cksclogo.png" alt="CK Souvenir Logo" class="brand-mark" />
         <span>CK Souvenir 2.0</span>
       </router-link>
 
@@ -42,7 +42,7 @@
           to="/admin"
           @click="menuOpen = false"
         >
-          管理後台
+          訂單管理
         </router-link>
 
         <router-link
@@ -75,6 +75,23 @@
       <router-view v-if="!auth.loading" :key="$route.fullPath" />
       <div v-else class="loading-screen" role="status">正在為你準備商品…</div>
     </main>
+
+    <footer class="site-footer">
+      <div class="footer-links">
+        <router-link to="/">首頁</router-link>
+        <router-link to="/orders">我的訂單</router-link>
+        <router-link to="/about">關於我們</router-link>
+        <router-link to="/terms">使用者條款</router-link>
+        <a href="mailto:ckhssc@gl.ck.tp.edu.tw">聯絡我們</a>
+        <a href="https://www.instagram.com/cksc.80th/" target="_blank" rel="noopener">Instagram</a>
+      </div>
+      <div class="footer-bottom">
+        <span>© {{ currentYear }} CK Souvenir. All rights reserved.</span>
+        <span class="footer-sep">CKSC</span>
+        <span class="footer-sep">Taiwan</span>
+        <span class="footer-sep">Developed by Chris Sun and Jim Tang</span>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -91,6 +108,7 @@ const cart = useCartStore()
 const toast = useToastStore()
 
 const menuOpen = ref(false)
+const currentYear = computed(() => new Date().getFullYear())
 
 const itemCount = computed(() =>
   cart.cartItems.reduce((total, item) => total + item.quantity, 0)
@@ -135,7 +153,7 @@ async function handleSignOut() {
 </script>
 
 <style scoped>
-.app-shell { min-height: 100vh; background: #f5f5f7; color: #1d1d1f; }
+.app-shell { min-height: 100vh; background: #f5f5f7; color: #1d1d1f; display: flex; flex-direction: column; }
 .site-header { position: sticky; top: 0; z-index: 50; height: 56px; padding: 0 max(24px, calc((100vw - 1180px) / 2)); display: flex; align-items: center; gap: 32px; background: rgba(255, 255, 255, .78); border-bottom: 1px solid rgba(0, 0, 0, .08); backdrop-filter: saturate(180%) blur(18px); }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: inherit; font-weight: 650; letter-spacing: -.02em; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
 .brand-mark { width: 25px; height: 25px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
@@ -150,17 +168,57 @@ async function handleSignOut() {
 .menu-popover { position: absolute; top: 48px; right: max(24px, calc((100vw - 1180px) / 2)); min-width: 180px; padding: 8px; display: grid; border: 1px solid #e5e5e7; border-radius: 14px; background: rgba(255, 255, 255, .97); box-shadow: 0 12px 32px rgba(0, 0, 0, .12); }
 .menu-popover a, .menu-popover button { padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: #1d1d1f; cursor: pointer; font: inherit; text-align: left; }
 .menu-popover a:hover, .menu-popover button:hover { background: #f5f5f7; }
-.page-container { min-height: calc(100vh - 56px); }
+.page-container { min-height: calc(100vh - 56px); flex: 1; }
 .loading-screen { min-height: 60vh; display: grid; place-items: center; color: #6e6e73; }
+
+.site-footer {
+  padding: 20px max(24px, calc((100vw - 1180px) / 2));
+  background: #f5f5f7;
+  border-top: 1px solid #e5e5e7;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.footer-links {
+  padding-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  border-bottom: 1px solid #d2d2d7;
+}
+
+.footer-links a {
+  color: #6e6e73;
+  font-size: .82rem;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: #1d1d1f;
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  padding-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: #86868b;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+
+.footer-sep {
+  padding-left: 12px;
+  border-left: 1px solid #d2d2d7;
+}
 
 @media (max-width: 640px) {
   .site-header { padding: 0 14px; gap: 10px; }
   .brand span:last-child, .bag-label { display: none; }
   .brand { margin-right: 2px; }
 
-  /* 保留主導覽在手機上，不再整組隱藏；改成縮小字級、允許橫向捲動，
-     這樣「首頁／我的訂單／關於我們」在窄螢幕上還是直接看得到、點得到，
-     不需要多點一次「更多選項」才找得到。 */
   .primary-nav {
     gap: 14px;
     margin-left: 0;
@@ -173,5 +231,8 @@ async function handleSignOut() {
   .primary-nav a { font-size: .82rem; white-space: nowrap; }
 
   .menu-popover { right: 14px; }
+
+  .site-footer { padding: 20px 16px; }
+  .footer-sep { padding-left: 0; border-left: none; }
 }
 </style>

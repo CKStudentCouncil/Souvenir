@@ -175,15 +175,6 @@ async function setDelivered(delivered) {
 
 <style scoped>
 @import 'src/css/app.scss';
-
-/*
-  排版統一原則（與 StorefrontPage 共用同一套邏輯）：
-  1. 字體堆疊同時涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. 中文標題字距收斂到接近 0，避免拉丁字排版的深負字距套在中文上重疊。
-  3. 中文行距統一拉寬（1.6~1.65）比英文常用值更寬鬆才好讀。
-  4. 金額數字都用 .num 包起來，套用 tabular-nums，避免「NT$」與數字在句子裡忽大忽小。
-*/
-
 .state,
 .detail-page {
   box-sizing: border-box;

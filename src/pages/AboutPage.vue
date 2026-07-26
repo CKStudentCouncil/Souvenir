@@ -3,9 +3,10 @@
     <article class="content-card">
       <p class="eyebrow">關於CK Souvenir2.0</p>
       <h1>把校園記憶，變成能帶走的日常</h1>
-      <p>此系統係由建國中學班聯會八十屆上主席暨班級代表大會八十屆下議長暨七十九屆下副議長孫逢邦與班聯會八十屆上行政部門資訊股股長暨八十屆下資訊股執行唐盛鈞共同製作，為校內社群整理一個簡單、安心的紀念品訂購方式。</p>
-      <p>我們希望每一件商品，不只是印著校名的物品，而是能讓你想起人、課堂、球場，或某個很平凡卻很重要的午後。</p>
+      <p>此系統由建中班聯會 80 屆團隊製作，為建中整理一個簡單、安心的紀念品訂購方式。</p>
+      <p>我們希望每一件校慶紀念品，不只是印著建中的物品，而是能讓你想起人、課堂、球場，或某個很平凡卻很重要的瞬間。</p>
       <p>然此系統仍於開發階段，尚有不足之處，希望各界能提供意見與建議，以利改進。</p>
+      <p>如有友校有意願使用此系統，歡迎與開發者聯繫。</p>
 
       <section class="contact-section">
         <h2>需要協助嗎？</h2>
@@ -13,13 +14,41 @@
         <ul>
           <li>開發者孫逢邦：<span class="mono">chris20090731@gmail.com</span></li>
           <li>開發者唐盛鈞：<span class="mono">ck11300329@gl.ck.tp.edu.tw</span></li>
-          <li>建中班聯會：<span class="mono">ckhssc@gl.ck.tp.edu.tw</span></li>
+          <li>建國中學班聯會：<span class="mono">ckhssc@gl.ck.tp.edu.tw</span></li>
+          <li>建中班聯資訊股：<span class="mono">ckscitdivision@gmail.com</span></li>
         </ul>
+      </section>
+
+      <section class="team-section">
+        <h2>開發團隊</h2>
+        <div class="team-member">
+          <p class="member-name">孫逢邦 Chris Sun</p>
+          <ul>
+            <li>建中班聯會 79-2 班代大會副議長</li>
+            <li>建中班聯會 80-1 班聯會主席</li>
+            <li>建中班聯會 80-2 班代大會議長</li>
+          </ul>
+        </div>
+        <div class="team-member">
+          <p class="member-name">唐盛鈞 Jim Tang</p>
+          <ul>
+            <li>建中班聯會 80-1 資訊股股長</li>
+            <li>建中班聯會 80-2 資訊股執行</li>
+          </ul>
+        </div>
       </section>
 
       <div class="actions">
         <button type="button" class="primary-button" @click="openSurvey">分享使用心得</button>
-        <router-link to="/" class="secondary-button">回到商品</router-link>
+        <a href="https://www.instagram.com/cksc.80th/" target="_blank" rel="noopener" class="ghost-button">
+          <svg class="ig-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/>
+          </svg>
+          Follow Us on Instagram
+        </a>
+        <router-link to="/" class="secondary-button">回到首頁</router-link>
       </div>
     </article>
   </div>
@@ -77,6 +106,46 @@ h1 {
   word-break: break-all;
 }
 
+.team-section {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid #e5e5e7;
+  display: grid;
+  gap: 20px;
+}
+
+.team-section h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.team-member {
+  display: grid;
+  gap: 6px;
+}
+
+.member-name {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: .95rem;
+  font-weight: 600;
+}
+
+.team-member ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 3px;
+}
+
+.team-member li {
+  color: #6e6e73;
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
 .contact-section {
   margin-top: 36px;
   padding-top: 28px;
@@ -108,22 +177,45 @@ h1 {
   gap: 10px;
 }
 
-.primary-button, .secondary-button {
+.primary-button, .secondary-button, .ghost-button {
   padding: 12px 18px;
   border: 0;
   border-radius: 999px;
-  background: #1d1d1f;
-  color: #fff;
   cursor: pointer;
   font: 600 .9rem inherit;
   text-decoration: none;
   letter-spacing: .01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.primary-button {
+  background: #1d1d1f;
+  color: #fff;
 }
 
 .secondary-button {
   border: 1px solid #d2d2d7;
   background: #fff;
   color: #1d1d1f;
+}
+
+.ghost-button {
+  border: 1px solid #d2d2d7;
+  background: #fff;
+  color: #1d1d1f;
+}
+
+.ghost-button:hover {
+  color: #1d1d1f;
+  background: #f5f5f7;
+}
+
+.ig-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 600px) {

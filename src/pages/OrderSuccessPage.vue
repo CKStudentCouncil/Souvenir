@@ -11,12 +11,24 @@
       </p>
       <div v-if="orderId" class="order-id">訂單編號<strong class="mono">#{{ orderId }}</strong></div>
       <div v-if="order" class="order-summary">
-        <span>{{ order.customerName }}</span>
-        <span class="mono">{{ order.customerEmail }}</span>
-        <strong class="num">NT$ {{ order.finalTotal }}</strong>
+        <div class="summary-row">
+          <span class="summary-label">姓名</span>
+          <span>{{ order.customerName }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Email</span>
+          <span class="mono">{{ order.customerEmail }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">應付金額</span>
+          <strong class="num">NT$ {{ order.finalTotal }}</strong>
+        </div>
       </div>
-      <a href="https://forms.gle/Sfr6F5RLPsc12stt6" target="_blank" class="feedback-button">填寫意見反饋</a>
+      <p v-if="order" class="email-note">
+        訂單確認信將寄送到上方信箱，幾分鐘內沒收到的話，記得檢查一下垃圾郵件匣。
+      </p>
       <router-link to="/orders" class="primary-button">查看我的訂單</router-link>
+      <a href="https://forms.gle/Sfr6F5RLPsc12stt6" target="_blank" rel="noopener" class="feedback-button">填寫意見反饋</a>
       <router-link to="/" class="secondary-link">繼續探索</router-link>
     </div>
   </div>
@@ -83,29 +95,28 @@ onMounted(async () => {
   color: #6e6e73;
   font-size: .72rem;
   font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: .06em;
 }
 
 h1 {
   margin: 0 0 12px;
-  font-size: 4rem;
-  line-height: 1;
-  letter-spacing: -.07em;
+  font-size: clamp(2.6rem, 8vw, 4rem);
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 
 .lead {
   max-width: 360px;
   margin: 0 auto 28px;
   color: #6e6e73;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 .order-id,
 .order-summary {
   margin-bottom: 12px;
   padding: 16px;
-  display: grid;
-  gap: 4px;
   border: 1px solid #e5e5e7;
   border-radius: 14px;
   background: #fff;
@@ -114,16 +125,55 @@ h1 {
   line-height: 1.6;
 }
 
-.order-id strong,
-.order-summary strong {
+.order-id {
+  display: grid;
+  gap: 4px;
+}
+
+.order-id strong {
   margin-top: 4px;
   color: #1d1d1f;
   font-size: 1rem;
 }
 
+.order-summary {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-label {
+  flex-shrink: 0;
+  color: #86868b;
+  font-size: .78rem;
+}
+
+.summary-row span:not(.summary-label),
+.summary-row strong {
+  color: #1d1d1f;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.summary-row strong { font-size: 1rem; }
+
+.email-note {
+  margin: 0 0 20px;
+  color: #86868b;
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
 .primary-button {
   display: block;
-  margin-top: 24px;
+  margin-top: 4px;
   padding: 14px;
   border-radius: 999px;
   background: #1d1d1f;

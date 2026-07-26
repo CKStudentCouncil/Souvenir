@@ -1,17 +1,3 @@
-/**
- * Email template for order confirmation with QR code
- *
- * Available variables to use in template:
- * - orderId: Order ID
- * - order.customerName: Customer name
- * - order.school: School name
- * - order.class: Class (if available)
- * - order.number: Student number (if available)
- * - order.finalTotal: Total amount
- * - order.createdAt: Order creation timestamp
- * - order.items: Array of items [{name, quantity, price}, ...]
- */
-
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
   return String(value)

@@ -37,9 +37,6 @@ function normalizeOrderPayload(payload) {
   return rest
 }
 
-/**
- * Simulates POST /orders → 201 Created (no network).
- */
 export async function submitOrder(orderPayload) {
   const normalizedPayload = normalizeOrderPayload(orderPayload)
 

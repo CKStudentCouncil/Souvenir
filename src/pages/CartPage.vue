@@ -41,7 +41,7 @@
         <button v-if="!showCheckout" type="button" class="primary-button" @click="showCheckout = true">確認並填寫資料</button>
         <form v-else class="checkout-form" @submit.prevent="placeOrder">
           <h3>再填幾項資料就完成了。</h3><p>我們會用這些資料與你確認訂單。</p>
-          <label>姓名<input v-model="checkout.name" required autocomplete="name"></label>
+          <label>姓名<input v-model="checkout.name" required autocomplete="name" placeholder="請填寫中文本名"></label>
           <label>Email<input v-model="checkout.email" required type="email" autocomplete="email" class="mono"></label>
           <label>電話<input v-model="checkout.phone" required type="tel" autocomplete="tel" class="mono"></label>
           <label>學校<select v-model="checkout.school" required><option disabled value="">請選擇學校</option><option v-for="school in schools" :key="school" :value="school">{{ school }}</option></select></label>

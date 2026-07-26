@@ -418,17 +418,6 @@ async function deleteUser(userId) {
   }
 }
 
-// ---- 新增使用者 ----
-// We no longer create Firebase Auth accounts (email/password) from this
-// page. Login is Google Sign-In only, and a client app cannot mint a Google
-// identity on someone else's behalf. Instead, "creating" a user here just
-// writes a *pending* Firestore record: { email, name, role, uid: null,
-// pending: true }. The actual Firebase Authentication account gets linked
-// automatically the first time that person signs in with Google — the
-// auth store's sign-in handler should look up a pending `users` doc whose
-// `email` matches the signed-in Google account, copy its role/name onto a
-// new `users/{uid}` doc, and remove the pending placeholder. See the
-// accompanying notes for the auth-store-side of this flow.
 function openCreateModal() {
   newUser.value = { email: '', name: '', role: 'manager' }
   createError.value = ''
@@ -480,14 +469,6 @@ async function createUser() {
   }
 }
 
-// ---- 刪除所有使用者 ----
-// This only removes the Firestore `users` documents (the data this page
-// displays). It does NOT delete the underlying Firebase Authentication
-// accounts — the client SDK has no permission to delete arbitrary users.
-// Doing that too requires a privileged backend, e.g. a Cloud Function using
-// the Firebase Admin SDK, called from here via httpsCallable, otherwise
-// you'll end up with Auth accounts that still exist (and can still log in)
-// even though their app data is gone.
 function openDeleteAllModal() {
   deleteAllConfirmText.value = ''
   showDeleteAllModal.value = true
@@ -519,17 +500,6 @@ async function deleteAllUsers() {
 </script>
 
 <style scoped>
-/*
-  排版與視覺統一原則（與 SuccessPage / OrderDetailPage 等共用同一套邏輯）：
-  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. 中文行距統一到 1.6 左右。
-  3. 人數統計這類數字用 .num 包起來套 tabular-nums；Email、UID 這類純英數字串
-     用 .mono 包起來換成等寬字體，方便使用者核對、複製。
-  4. 視覺語言統一改成黑白極簡：卡片改用細邊框（#e5e5e7）取代彩色陰影，按鈕改為
-     膠囊造型、純黑實心／描邊兩種樣式，取代原本的漸層彩色按鈕，跟 SuccessPage、
-     OrderDetailPage 保持一致。
-*/
-
 .account-page {
   padding: 40px 20px;
   max-width: 1200px;

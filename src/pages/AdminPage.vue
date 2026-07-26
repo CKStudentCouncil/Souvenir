@@ -31,19 +31,11 @@
     v-else
     class="admin-page"
   >
-    <div class="admin-user">
-      <img
-        :src="auth.user?.photoURL || 'https://via.placeholder.com/48?text=👤'"
-        alt=""
-        class="avatar"
-      >
-      <div>
-        <p class="name">Admin-{{ displayName }}</p>
-        <p class="email mono">{{ auth.user?.email || '—' }}</p>
-      </div>
-    </div>
 
-    <h1>後台管理 - 訂單統計</h1>
+    <div class="page-heading">
+      <p class="eyebrow">後台管理</p>
+      <h1>訂單統計</h1>
+    </div>
 
     <div class="filter-block">
       <label>篩選學校：</label>
@@ -302,19 +294,6 @@ function confirmDelete(orderId) {
 
 <style scoped>
 @import 'src/css/app.scss';
-
-/*
-  排版與視覺統一原則（與 StorefrontPage / SuccessPage / OrderDetailPage / AccountPage 共用同一套邏輯）：
-  1. 字體堆疊涵蓋中英文，避免中文落回系統預設字體造成字重不一致。
-  2. 中文行距統一拉寬到 1.6。
-  3. 金額、數量用 .num 包起來套 tabular-nums；訂單 ID、Email、電話這類純英數字串
-     用 .mono 包起來換成等寬字體，方便使用者核對、複製。
-  4. 視覺語言統一改成黑白極簡：大卡片（order-card、panel）圓角統一 20px，
-     跟 StorefrontPage 的 offer-card / product-image 一致；小卡片（stat、personnel-card）
-     維持 10px。卡片邊框統一 #e5e5e7，取代原本的彩色陰影與漸層按鈕。
-  5. 按鈕統一膠囊造型（999px），主要動作黑底白字，次要動作白底細邊框。
-*/
-
 .admin-page {
   min-height: 100vh;
   padding: 40px 20px;
@@ -723,5 +702,25 @@ function confirmDelete(orderId) {
 .btn-outline.danger {
   border-color: #d32f2f;
   color: #d32f2f;
+}
+
+.page-heading {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.admin-page h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 </style>
