@@ -1,35 +1,57 @@
 # CKSC Online Souvenir
 
-A web shop for Chien Kuo High School Student Council commemorative souvenirs, built with Quasar, Vue 3, and Firebase.
+A modern online souvenir ordering platform for the Chien Kuo High School Student Council, built with **Quasar**, **Vue 3**, and **Firebase**.
+
+---
 
 ## Features
 
-- Browse products without logging in
-- Add items to a local cart and place orders online
-- Separate student class and number fields
-- Skip class/number for non-student schools
-- Admin login and order management
-- Search and filter orders in the admin panel
-- Export order data to Excel
-- Send order confirmation emails with QR codes
-- Include a post-order feedback form link
+* Browse products without signing in
+* Shopping cart with local storage
+* Online order submission
+* Student class and seat number validation
+* Support for both CKHS and external schools
+* Google Authentication
+* Admin dashboard for order management
+* Search, filter, and update orders
+* Export orders to Excel
+* Automatic order confirmation emails
+* QR code support for order lookup
+* Customer feedback form after ordering
+
+---
 
 ## Tech Stack
 
-- Vue 3
-- Quasar Framework
-- Vue Router
-- Pinia
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Cloud Functions
-- XLSX / FileSaver
+### Frontend
+
+* Vue 3
+* Quasar Framework
+* Vue Router
+* Pinia
+
+### Backend
+
+* Firebase Authentication
+* Cloud Firestore
+* Cloud Functions
+
+### Utilities
+
+* XLSX
+* FileSaver.js
+
+---
 
 ## Project Structure
 
-- `src/` - Frontend app
-- `functions/` - Firebase Cloud Functions for email notifications
-- `firebase.json` - Firebase Hosting and Functions config
+```text
+src/            Frontend application
+functions/      Firebase Cloud Functions
+public/         Static assets
+```
+
+---
 
 ## Local Development
 
@@ -39,50 +61,75 @@ Install dependencies:
 npm install
 ```
 
-Run the dev server:
+Start the development server:
 
 ```bash
-npm run dev
+quasar dev
 ```
 
-## Production Build
+---
 
-Build the app:
+## Build
 
-```bash
-npm run build
-```
-
-The production output is generated in `dist/spa`.
-
-## Firebase Setup
-
-This project uses Firebase Hosting, Firestore, Authentication, and Cloud Functions.
-
-If you deploy Cloud Functions, make sure:
-
-- Your Firebase project is active
-- Cloud Functions and Secret Manager are enabled
-- Gmail credentials are configured for email delivery
-
-## Deployment
-
-Deploy the app:
+Generate the production build:
 
 ```bash
 quasar build
-firebase deploy
 ```
 
-If you want to deploy only one part:
+The production files will be generated in:
 
-```bash
-firebase deploy --only hosting
-firebase deploy --only functions
+```text
+dist/spa
 ```
 
-## Notes
+---
 
-- Admin pages are under `/admin`
-- Order details are shown in `/orders`
-- The email QR code points to the admin order detail route
+## Firebase Services
+
+This project uses Firebase for backend services:
+
+* Authentication
+* Cloud Firestore
+* Cloud Functions
+
+> Firebase Hosting is **not** used for production deployment.
+
+Before running the project, configure your Firebase project and provide the required environment variables.
+
+---
+
+## Deployment
+
+The website is deployed using **GitHub Pages** with **GitHub Actions**.
+
+Every push to the `main` branch automatically:
+
+1. Builds the Quasar application
+2. Uploads the generated files
+3. Publishes the latest version to GitHub Pages
+
+No manual deployment is required.
+
+---
+
+## Repository
+
+```text
+https://github.com/CKStudentCouncil/Souvenir
+```
+
+---
+
+## Project Pages
+
+* Store: `/`
+* Shopping Cart: `/cart`
+* Orders: `/orders`
+* Admin Dashboard: `/admin`
+
+---
+
+## License
+
+This project is maintained by the **Chien Kuo High School Student Council**.
