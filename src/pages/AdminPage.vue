@@ -76,7 +76,7 @@
         </button>
       </div>
       <p class="notify-hint">
-        將寄送給目前所有留有 Email 的訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人），使用 BCC 密件副本，顧客彼此不會看到對方 Email。
+        將寄送繳費通知給所有訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人）
       </p>
     </div>
 
