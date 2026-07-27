@@ -51,6 +51,16 @@
       </select>
     </div>
 
+    <div class="filter-block">
+      <label>搜尋訂購者：</label>
+      <input
+        v-model="customerSearchInput"
+        type="text"
+        placeholder="輸入姓名、Email 或電話號碼"
+        @input="debouncedCustomerSearch"
+      >
+    </div>
+
     <div class="tabs">
       <button
         type="button"
@@ -279,12 +289,43 @@
             >
               標記未交貨
             </button>
-          </div>
+          </div>          
+        </div>
+        <div
+          class="delivery-bar"
+          :class="order.paid ? 'paid' : 'pending'"
+        >
+          <span class="status-dot" />
+          <span>付款狀態：{{ order.paid ? '已付款' : '未付款' }}</span>
+          <div
+            v-if="activeTab === 'all'"
+            class="delivery-actions"
+          >
+            <button
+              type="button"
+              class="btn-sm"
+              :disabled="order.paid"
+              @click="updatePaymentStatus(order.id, true)"
+            >
+              標記已付款
+            </button>
+            <button
+              type="button"
+              class="btn-sm muted"
+              :disabled="!order.paid"
+              @click="updatePaymentStatus(order.id, false)"
+            >
+              標記未付款
+            </button>
+          </div>      
         </div>
         <p><strong>訂單ID：</strong><span class="mono">{{ order.id }}</span></p>
         <p><strong>折扣後金額：</strong><span class="num">NT$ {{ order.finalTotal }}</span></p>
         <p><strong>購買時間：</strong><span class="num">{{ formatDate(order.createdAt) }}</span></p>
-        <p><strong>最後更新者：</strong>{{ order.deliveryUpdatedBy || '—' }}</p>
+        <p><strong>最後付款更新者：</strong>{{ order.paymentUpdatedByName || '—' }}</p>
+        <p><strong>最後付款更新時間：</strong>{{ order.paymentUpdatedAt ? formatDate(order.paymentUpdatedAt) : '—' }}</p>
+        <p><strong>最後交貨更新者：</strong>{{ order.deliveryUpdatedByName || '—' }}</p>
+        <p><strong>最後交貨更新時間：</strong>{{ order.deliveryUpdatedAt ? formatDate(order.deliveryUpdatedAt) : '—' }}</p>
         <div
           v-if="order.customerName || order.customerEmail"
           class="customer-box"
@@ -374,6 +415,7 @@ const {
   setActiveTab,
   fetchOrders,
   updateDeliveryStatus,
+  updatePaymentStatus,
   deleteOrder,
   exportToExcel,
   calculateDeliveryStats,
@@ -385,9 +427,6 @@ const {
 
 const deliveryStats = computed(() => calculateDeliveryStats(currentOrders.value))
 
-// Best-effort preview count based on orders currently loaded on this page.
-// The backend function always emails every order with a saved address, so
-// the actual send count (shown in the success toast) is authoritative.
 const notifyRecipientCount = computed(() => {
   const emails = new Set()
   currentOrders.value.forEach((order) => {

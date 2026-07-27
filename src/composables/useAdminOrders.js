@@ -7,6 +7,7 @@ import { useAuthStore } from 'src/stores/auth'
 import {
   fetchAllOrders,
   updateOrderDelivery,
+  updateOrderPayment,
   deleteOrderById,
   formatOrderDate,
   parseOrderDate
@@ -135,6 +136,23 @@ export function useAdminOrders({ showToast, displayName }) {
     }
   }
 
+  async function updatePaymentStatus(orderId, paid) {
+    try {
+      const patch = await updateOrderPayment(orderId, paid, {
+        paymentUpdatedBy: displayName.value,
+        paymentUpdatedByName: displayName.value || authStore.user?.email || '管理員'
+      })
+
+      orders.value = orders.value.map((order) =>
+        order.id === orderId ? { ...order, ...patch } : order
+      )
+      deliveredOrders.value = orders.value.filter((o) => o.delivered)
+      showToast(paid ? '已標記為已付款' : '已標記為未付款')
+    } catch (err) {
+      showToast('更新失敗：' + err.message)
+    }
+  }
+
   async function deleteOrder(orderId) {
     await deleteOrderById(orderId)
     orders.value = orders.value.filter((o) => o.id !== orderId)
@@ -230,7 +248,9 @@ export function useAdminOrders({ showToast, displayName }) {
           折扣金額: itemIndex === 0 ? order.totalDiscount : '',
           訂單總金額: itemIndex === 0 ? order.finalTotal : '',
           交貨狀態: itemIndex === 0 ? (order.delivered ? '已交貨' : '未交貨') : '',
+          付款狀態: itemIndex === 0 ? (order.paid ? '已付款' : '未付款') : '',
           交貨更新時間: itemIndex === 0 ? deliveryTime : '',
+          付款更新時間: itemIndex === 0 ? formatOrderDate(order.paymentUpdatedAt) : '',
           更新者: itemIndex === 0 ? order.deliveryUpdatedByName || '' : '',
           客戶姓名: itemIndex === 0 ? order.customerName || '' : '',
           電話: itemIndex === 0 ? order.customerPhone || '' : '',
@@ -331,6 +351,7 @@ export function useAdminOrders({ showToast, displayName }) {
     setActiveTab,
     fetchOrders,
     updateDeliveryStatus,
+    updatePaymentStatus,
     deleteOrder,
     exportToExcel,
     calculateDeliveryStats,

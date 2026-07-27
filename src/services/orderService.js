@@ -59,7 +59,10 @@ export async function submitOrder(orderPayload) {
     createdAt,
     delivered: false,
     deliveryUpdatedAt: null,
-    deliveryUpdatedByName: null
+    deliveryUpdatedByName: null,
+    paid: false,
+    paymentUpdatedAt: null,
+    paymentUpdatedByName: null
   }
 
   const orders = loadMockOrders()
@@ -170,6 +173,33 @@ export async function updateOrderDelivery(orderId, delivered, meta = {}) {
     deliveryUpdatedAt: new Date().toISOString(),
     deliveryUpdatedBy: meta.deliveryUpdatedBy,
     deliveryUpdatedByName: meta.deliveryUpdatedByName
+  }
+  orders[idx] = { ...orders[idx], ...patch }
+  saveMockOrders(orders)
+  return patch
+}
+
+export async function updateOrderPayment(orderId, paid, meta = {}) {
+  if (!USE_MOCK_ORDERS) {
+    const orderRef = doc(db, 'orders', orderId)
+    const updateData = {
+      paid,
+      paymentUpdatedAt: serverTimestamp(),
+      ...meta
+    }
+    await updateDoc(orderRef, updateData)
+    return updateData
+  }
+
+  const orders = loadMockOrders()
+  const idx = orders.findIndex((o) => o.id === orderId)
+  if (idx === -1) throw new Error('訂單不存在')
+
+  const patch = {
+    paid,
+    paymentUpdatedAt: new Date().toISOString(),
+    paymentUpdatedBy: meta.paymentUpdatedBy,
+    paymentUpdatedByName: meta.paymentUpdatedByName
   }
   orders[idx] = { ...orders[idx], ...patch }
   saveMockOrders(orders)

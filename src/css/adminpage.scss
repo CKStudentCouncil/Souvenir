@@ -610,3 +610,24 @@
     width: 100%;
   }
 }
+.filter-block select,
+.filter-block input[type='text'] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e5e7;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  color: #1d1d1f;
+  background: #fff;
+}
+
+.filter-block input[type='text']:focus {
+  outline: none;
+  border-color: #1d1d1f;
+}
+
+.filter-block input[type='text']::placeholder {
+  color: #b0b0b5;
+}
