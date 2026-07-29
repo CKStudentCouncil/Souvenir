@@ -86,10 +86,8 @@
         <a href="https://www.instagram.com/cksc.80th/" target="_blank" rel="noopener">Instagram</a>
       </div>
       <div class="footer-bottom">
-        <!--
         <span>© {{ currentYear }} CK Souvenir. All rights reserved.</span>
         <span class="footer-sep">CKSC</span>
-      -->
         <span>CK Student Council</span>
         <span class="footer-sep">Taiwan</span>
         <span class="footer-sep">Developed by Chris Sun and Jim Tang</span>
