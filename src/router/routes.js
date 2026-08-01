@@ -51,7 +51,6 @@ const routes = [
     ]
   },
 
-  // 管理後台
   {
       path: '/admin',
       component: () => import('layouts/MainLayout.vue'),

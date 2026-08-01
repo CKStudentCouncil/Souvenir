@@ -56,7 +56,7 @@ export default defineRouter(function () {
       return { name: 'admin' }
     }
 
-    const starttime = new Date('2025-11-05T12:00:00+08:00')
+    const starttime = new Date('2026-11-05T12:00:00+08:00')
     const isAfterStartTime = new Date() >= starttime
     const shopRoutes = ['home', 'product', 'cart', 'order-success', 'orders', 'order-detail']
 
