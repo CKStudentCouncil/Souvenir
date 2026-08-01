@@ -495,5 +495,5 @@ async function deleteAllUsers() {
 </script>
 
 <style scoped>
-
+@import 'src/css/accountpage.scss';
 </style>
