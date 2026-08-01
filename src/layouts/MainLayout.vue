@@ -77,20 +77,50 @@
     </main>
 
     <footer class="site-footer">
-      <div class="footer-links">
-        <router-link to="/">首頁</router-link>
-        <router-link to="/orders">我的訂單</router-link>
-        <router-link to="/about">關於我們</router-link>
-        <router-link to="/terms">使用者條款</router-link>
-        <a href="mailto:ckhssc@gl.ck.tp.edu.tw">聯絡我們</a>
-        <a href="https://www.instagram.com/cksc.80th/" target="_blank" rel="noopener">Instagram</a>
-      </div>
+      <div class="footer-grid">
+        <div class="footer-col">
+          <p class="footer-heading">Navigation</p>
+          <nav class="footer-links">
+            <router-link to="/">首頁</router-link>
+            <router-link to="/orders">我的訂單</router-link>
+            <router-link to="/about">關於我們</router-link>
+            <router-link to="/terms">使用者條款</router-link>
+          </nav>
+        </div>
+  
+        <div class="footer-col">
+          <p class="footer-heading">Links</p>
+          <nav class="footer-links">
+            <a href="https://cksc.tw" target="_blank">建中班聯會</a>
+            <a href="https://cktfgpromo.cskc.tw" target="_blank">建北特約官網</a>
+              <div class="footer-social">
+              <a
+                href="https://www.instagram.com/cksc.80th/"
+                target="_blank"
+                rel="noopener"
+                aria-label="Instagram"
+                class="social-icon"
+              >
+                <svg class="ig-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/>
+              </svg>
+              </a>
+            </div>
+          </nav>
+        </div>
+  
+        <div class="footer-col footer-brand">
+          <div class="footer-logo">
+            <span>CK Souvenir</span>
+          </div>
+          <p class="footer-meta">Taipei Municipal Chien Kuo High School Student Council</p>
+          <p class="footer-meta">Developed by Chris Sun and Jim Tang</p>
+        </div>
+      </div> 
       <div class="footer-bottom">
-        <span>© {{ currentYear }} CK Souvenir. All rights reserved.</span>
-        <span class="footer-sep">CKSC</span>
-        <span>CK Student Council</span>
-        <span class="footer-sep">Taiwan</span>
-        <span class="footer-sep">Developed by Chris Sun and Jim Tang</span>
+        <span>© <span class="num">{{ currentYear }}</span> CK Souvenir. All rights reserved.</span>
       </div>
     </footer>
   </div>
@@ -172,25 +202,47 @@ async function handleSignOut() {
 .page-container { min-height: calc(100vh - 56px); flex: 1; }
 .loading-screen { min-height: 60vh; display: grid; place-items: center; color: #6e6e73; }
 
+
 .site-footer {
-  padding: 20px max(24px, calc((100vw - 1180px) / 2));
+  padding: 40px 24px 24px;
   background: #f5f5f7;
   border-top: 1px solid #e5e5e7;
+  color: #1d1d1f;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
     'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
 }
 
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.footer-grid {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.footer-heading {
+  margin: 0 0 14px;
+  color: #1d1d1f;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
 .footer-links {
-  padding-bottom: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  border-bottom: 1px solid #d2d2d7;
+  display: grid;
+  gap: 9px;
 }
 
 .footer-links a {
   color: #6e6e73;
-  font-size: .82rem;
+  font-size: .85rem;
   text-decoration: none;
 }
 
@@ -199,20 +251,70 @@ async function handleSignOut() {
   text-decoration: underline;
 }
 
-.footer-bottom {
-  padding-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
+.footer-brand {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.footer-logo {
+  display: inline-flex;
   align-items: center;
-  gap: 8px 12px;
-  color: #86868b;
-  font-size: .75rem;
+  gap: 8px;
+  color: #1d1d1f;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+.footer-logo img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.footer-meta {
+  margin: 0;
+  color: #6e6e73;
+  font-size: .8rem;
   line-height: 1.6;
 }
 
-.footer-sep {
-  padding-left: 12px;
-  border-left: 1px solid #d2d2d7;
+.footer-social {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+}
+
+.social-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #1d1d1f;
+  font-size: .92rem;
+  text-decoration: none;
+}
+
+.social-icon:hover {
+  background: #e0e0e3;
+}
+
+.footer-bottom {
+  max-width: 1180px;
+  margin: 28px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid #d2d2d7;
+  color: #86868b;
+  font-size: .75rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .site-footer { padding: 32px 20px 20px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 28px; text-align: left; }
 }
 
 @media (max-width: 640px) {
@@ -232,8 +334,5 @@ async function handleSignOut() {
   .primary-nav a { font-size: .82rem; white-space: nowrap; }
 
   .menu-popover { right: 14px; }
-
-  .site-footer { padding: 20px 16px; }
-  .footer-sep { padding-left: 0; border-left: none; }
 }
 </style>
