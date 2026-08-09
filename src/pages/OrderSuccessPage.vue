@@ -28,7 +28,7 @@
         訂單確認信將寄送到上方信箱，幾分鐘內沒收到的話，記得檢查一下垃圾郵件匣。
       </p>
       <router-link to="/orders" class="primary-button">查看我的訂單</router-link>
-      <a href="https://forms.gle/Sfr6F5RLPsc12stt6" target="_blank" rel="noopener" class="feedback-button">填寫意見反饋</a>
+      <a href="https://souvenir.cksc.tw/survey" target="_blank" rel="noopener" class="feedback-button">填寫意見反饋</a>
       <router-link to="/" class="secondary-link">繼續探索</router-link>
     </div>
   </div>
