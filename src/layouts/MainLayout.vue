@@ -104,6 +104,7 @@
             <router-link to="/">首頁</router-link>
             <router-link to="/orders">我的訂單</router-link>
             <router-link to="/about">關於我們</router-link>
+            <router-link to="/survey">使用者問卷</router-link>
             <router-link to="/terms">使用者條款</router-link>
           </nav>
         </div>
