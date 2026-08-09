@@ -88,6 +88,20 @@ export function generateOrderNotificationHTML({ type, paymentTime, pickupTime, l
               </tr>
 
               <tr>
+                <td style="padding: 28px; border-top: 1px solid #f0f0f0;">
+                  <p style="margin: 0 0 12px; font-size: 14px; font-weight: 700;">需要您的回饋</p>
+                  <p style="margin: 0 0 12px; font-size: 13px; color: #6e6e73; line-height: 1.6;">為了讓我們持續改進服務，誠摯邀請您填寫意見反饋表單</p>
+                  <table width="100%">
+                    <tr>
+                      <td align="center">
+                        <a href="https://souvenir.cksc.tw/survey" style="display: inline-block; padding: 10px 24px; background: #1d1d1f; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 700;">填寫意見反饋</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <tr>
                 <td style="padding: 20px 28px; border-top: 1px solid #f0f0f0; background: #fafafa;">
                   <p style="margin: 0; font-size: 12px; color: #8e8e93; line-height: 1.6;">如有任何問題，歡迎寄信至 ckhssc@gl.ck.tp.edu.tw 聯繫我們，並請勿回復本自動寄送之郵件。</p>
                 </td>

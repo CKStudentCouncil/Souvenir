@@ -126,7 +126,7 @@ export function generateEmailHTML(orderId, order) {
                   <table width="100%">
                     <tr>
                       <td align="center">
-                        <a href="https://forms.gle/Sfr6F5RLPsc12stt6" style="display: inline-block; padding: 10px 24px; background: #1d1d1f; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 700;">填寫意見反饋</a>
+                        <a href="https://souvenir.cksc.tw/survey" style="display: inline-block; padding: 10px 24px; background: #1d1d1f; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 700;">填寫意見反饋</a>
                       </td>
                     </tr>
                   </table>

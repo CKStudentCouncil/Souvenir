@@ -56,7 +56,7 @@
 
 <script setup>
 function openSurvey() {
-  window.open('https://forms.gle/Grnk7FXfrXDQutE87', '_blank')
+  window.open('/survey', '_blank')
 }
 </script>
 

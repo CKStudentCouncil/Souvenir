@@ -37,6 +37,10 @@
           使用者條款
         </router-link>
 
+        <router-link to="/survey" @click="menuOpen = false">
+          使用者問卷
+        </router-link>
+
         <router-link
           v-if="auth.isManager && !auth.isAdmin"
           to="/admin"
@@ -59,6 +63,14 @@
           @click="menuOpen = false"
         >
           帳號管理
+        </router-link>
+
+        <router-link
+          v-if="auth.isManager"
+          to="/admin/survey"
+          @click="menuOpen = false"
+        >
+          問卷管理
         </router-link>
 
         <router-link

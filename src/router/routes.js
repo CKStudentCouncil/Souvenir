@@ -9,6 +9,11 @@ const routes = [
         component: () => import('pages/HomePage.vue')
       },
       {
+        path: 'survey',
+        name: 'survey',
+        component: () => import('pages/SurveyPage.vue')
+      },
+      {
         path: 'product/:id',
         name: 'product',
         component: () => import('pages/ProductPage.vue')
@@ -84,6 +89,15 @@ const routes = [
         component: () => import('pages/AccountPage.vue'),
         meta: {
           requiresSuperAdmin: true
+        }
+      },
+      {
+        path: 'survey',
+        name: 'admin-survey',
+        component: () => import('pages/SurveyAdminPage.vue'),
+        meta: {
+          requiresManager: true,
+          isAdminSection: true
         }
       }
 
