@@ -1,10 +1,6 @@
 <template>
-  <div v-if="!canAccessAdmin" class="state">
-    <h2>權限不足</h2>
-    <button type="button" class="btn" @click="$router.push('/')">回到首頁</button>
-  </div>
 
-  <div v-else-if="loading" class="state">載入中...</div>
+  <div v-if="loading" class="state">載入中...</div>
 
   <div v-else class="survey-admin-page">
     <div class="header-row">
@@ -33,7 +29,7 @@
         </div>
         <div v-for="section in scaleSections" :key="section.key" class="stat-card">
           <strong class="num" :class="tierClass(averages[section.key])">{{ averages[section.key] }}</strong>
-          <span>{{ section.title }}</span>
+          <span>{{ section.title }}平均</span>
         </div>
         <div class="stat-card">
           <strong class="num">{{ issueRate }}%</strong>
@@ -256,7 +252,7 @@ import { SCALE_SECTIONS } from 'src/data/surveyQuestions.js'
 const auth = useAuthStore()
 const toast = useToastStore()
 const canAccessAdmin = computed(
-  () => auth.isAdmin || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
+  () => auth.isManager || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
 )
 
 const scaleSections = SCALE_SECTIONS
