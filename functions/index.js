@@ -165,7 +165,8 @@ async function assertIsAdmin(context) {
 const NOTIFY_SUBJECTS = {
   payment: '【建中校慶紀念品】繳費通知',
   pickup: '【建中校慶紀念品】領貨通知',
-  both: '【建中校慶紀念品】繳費暨領貨通知'
+  both: '【建中校慶紀念品】繳費暨領貨通知',
+  custom: '【建中校慶紀念品】訂購通知'
 }
 
 
@@ -181,10 +182,15 @@ export const sendOrderNotification = functions
 
 
     const type =
-      ['payment', 'pickup', 'both'].includes(data.type)
+      ['payment', 'pickup', 'both', 'custom'].includes(data.type)
         ? data.type
         : 'payment'
 
+    const school =
+      String(data.school || 'all').trim()
+
+    const subject =
+      String(data.subject || '').trim()
 
     const paymentTime =
       String(data.paymentTime || '').trim()
@@ -199,34 +205,42 @@ export const sendOrderNotification = functions
       String(data.message || '').trim()
 
 
-
-    if (!location) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        '請提供地點'
-      )
-    }
-
-
-    if (
-      (type === 'payment' || type === 'both')
-      && !paymentTime
-    ) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        '請提供繳費時間'
-      )
-    }
+    if (type === 'custom') {
+      if (!message) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          '請提供訊息內容'
+        )
+      }
+    } else {
+      if (!location) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          '請提供地點'
+        )
+      }
 
 
-    if (
-      (type === 'pickup' || type === 'both')
-      && !pickupTime
-    ) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        '請提供領貨時間'
-      )
+      if (
+        (type === 'payment' || type === 'both')
+        && !paymentTime
+      ) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          '請提供繳費時間'
+        )
+      }
+
+
+      if (
+        (type === 'pickup' || type === 'both')
+        && !pickupTime
+      ) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          '請提供領貨時間'
+        )
+      }
     }
 
 
@@ -240,8 +254,13 @@ export const sendOrderNotification = functions
 
     snapshot.forEach(doc => {
 
-      const email =
-        doc.data().customerEmail
+      const order = doc.data()
+
+      if (school !== 'all' && order.school !== school) {
+        return
+      }
+
+      const email = order.customerEmail
 
       if (email) {
         emailSet.add(email)
@@ -302,7 +321,7 @@ export const sendOrderNotification = functions
         bcc: batch,
 
         subject:
-          NOTIFY_SUBJECTS[type],
+          subject || NOTIFY_SUBJECTS[type],
         html
 
       })

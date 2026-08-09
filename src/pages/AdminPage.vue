@@ -89,14 +89,11 @@
 
     <div class="panel notify-panel">
       <div class="notify-header">
-        <h2>發送{{ notifyTypeLabel }}</h2>
+        <h2>自動寄送通知</h2>
         <button type="button" class="btn" @click="openNotifyModal">
           編輯並發送
         </button>
       </div>
-      <p class="notify-hint">
-        將寄送{{ notifyTypeLabel }}給{{ notifyTargetSchoolLabel }}訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人）
-      </p>
     </div>
 
     <div
@@ -134,6 +131,14 @@
             >
               繳費暨領貨
             </button>
+            <button
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.type === 'custom' }"
+              @click="notifyForm.type = 'custom'"
+            >
+              自訂訊息
+            </button>
           </div>
         </div>
 
@@ -151,7 +156,16 @@
           </select>
         </div>
 
-        <label v-if="notifyForm.type !== 'pickup'" class="field">
+        <label v-if="notifyForm.type === 'custom'" class="field">
+          <span>主旨</span>
+          <input
+            v-model="notifyForm.subject"
+            type="text"
+            placeholder="例如：關於校慶紀念品的重要通知"
+          >
+        </label>
+
+        <label v-if="notifyForm.type !== 'pickup' && notifyForm.type !== 'custom'" class="field">
           <span>繳費時間</span>
           <input
             v-model="notifyForm.paymentTime"
@@ -160,7 +174,7 @@
           >
         </label>
 
-        <label v-if="notifyForm.type !== 'payment'" class="field">
+        <label v-if="notifyForm.type !== 'payment' && notifyForm.type !== 'custom'" class="field">
           <span>領貨時間</span>
           <input
             v-model="notifyForm.pickupTime"
@@ -169,7 +183,7 @@
           >
         </label>
 
-        <label class="field">
+        <label v-if="notifyForm.type !== 'custom'" class="field">
           <span>{{ notifyForm.type === 'both' ? '地點（繳費與領貨共用）' : '地點' }}</span>
           <input
             v-model="notifyForm.location"
@@ -179,20 +193,26 @@
         </label>
 
         <label class="field">
-          <span>補充說明（選填）</span>
+          <span>{{ notifyForm.type === 'custom' ? '訊息內容' : '補充說明（選填）' }}</span>
           <textarea
             v-model="notifyForm.message"
             rows="4"
-            placeholder="例如：請出示 QR Code 給工作人員，以完成繳費或領貨。"
+            :placeholder="notifyForm.type === 'custom' ? '請輸入要寄送給訂購者的訊息內容' : '例如：請出示 QR Code 給工作人員，以完成繳費或領貨。'"
           />
         </label>
 
         <div class="notify-preview">
           <p class="preview-label">預覽內容</p>
-          <p v-if="notifyForm.type !== 'pickup'">繳費時間：<strong>{{ notifyForm.paymentTime || '（尚未填寫）' }}</strong></p>
-          <p v-if="notifyForm.type !== 'payment'">領貨時間：<strong>{{ notifyForm.pickupTime || '（尚未填寫）' }}</strong></p>
-          <p>地點：<strong>{{ notifyForm.location || '（尚未填寫）' }}</strong></p>
-          <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
+          <template v-if="notifyForm.type === 'custom'">
+            <p>主旨：<strong>{{ notifyForm.subject || '（尚未填寫）' }}</strong></p>
+            <p>內容：{{ notifyForm.message || '（尚未填寫）' }}</p>
+          </template>
+          <template v-else>
+            <p v-if="notifyForm.type !== 'pickup'">繳費時間：<strong>{{ notifyForm.paymentTime || '（尚未填寫）' }}</strong></p>
+            <p v-if="notifyForm.type !== 'payment'">領貨時間：<strong>{{ notifyForm.pickupTime || '（尚未填寫）' }}</strong></p>
+            <p>地點：<strong>{{ notifyForm.location || '（尚未填寫）' }}</strong></p>
+            <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
+          </template>
           <p class="preview-count">將發送給{{ notifyTargetSchoolLabel }} <span class="num">{{ notifyRecipientCount }}</span> 位訂購者</p>
         </div>
 
@@ -432,6 +452,7 @@ const sendingNotify = ref(false)
 const notifyForm = ref({
   type: 'payment',
   school: 'all',
+  subject: '',
   paymentTime: '',
   pickupTime: '',
   location: '',
@@ -516,11 +537,13 @@ function confirmDelete(orderId) {
 const notifyTypeLabel = computed(() => {
   if (notifyForm.value.type === 'payment') return '繳費通知'
   if (notifyForm.value.type === 'pickup') return '領貨通知'
+  if (notifyForm.value.type === 'custom') return '自訂通知'
   return '繳費暨領貨通知'
 })
 
 const canSendNotify = computed(() => {
   const f = notifyForm.value
+  if (f.type === 'custom') return !!f.message.trim()
   if (!f.location.trim()) return false
   if (f.type === 'payment') return !!f.paymentTime.trim()
   if (f.type === 'pickup') return !!f.pickupTime.trim()
@@ -539,7 +562,7 @@ function closeNotifyModal() {
 
 async function confirmSendNotify() {
   if (!canSendNotify.value) {
-    toast.show('請填寫必要的時間與地點')
+    toast.show(notifyForm.value.type === 'custom' ? '請填寫訊息內容' : '請填寫必要的時間與地點')
     return
   }
   if (
@@ -557,6 +580,7 @@ async function confirmSendNotify() {
     const result = await sendOrderNotification({
       type: notifyForm.value.type,
       school: notifyForm.value.school,
+      subject: notifyForm.value.subject.trim(),
       paymentTime: notifyForm.value.paymentTime.trim(),
       pickupTime: notifyForm.value.pickupTime.trim(),
       location: notifyForm.value.location.trim(),
@@ -567,6 +591,7 @@ async function confirmSendNotify() {
     notifyForm.value = {
       type: 'payment',
       school: selectedSchool.value,
+      subject: '',
       paymentTime: '',
       pickupTime: '',
       location: '',

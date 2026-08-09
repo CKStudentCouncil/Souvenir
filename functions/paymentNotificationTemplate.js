@@ -8,21 +8,27 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function escapeHtmlPreserveBreaks(value) {
+  return escapeHtml(value).replace(/\n/g, '<br>');
+}
+
 const TYPE_LABELS = {
   payment: '繳費通知',
   pickup: '領貨通知',
-  both: '繳費暨領貨通知'
+  both: '繳費暨領貨通知',
+  custom: '通知'
 };
 
 export function generateOrderNotificationHTML({ type, paymentTime, pickupTime, location, message }) {
   const label = TYPE_LABELS[type] || TYPE_LABELS.payment;
-  const showPayment = type !== 'pickup';
-  const showPickup = type !== 'payment';
+  const isCustom = type === 'custom';
+  const showPayment = !isCustom && type !== 'pickup';
+  const showPickup = !isCustom && type !== 'payment';
 
   const infoRows = [
     showPayment ? ['繳費時間', paymentTime] : null,
     showPickup ? ['領貨時間', pickupTime] : null,
-    ['地點', location]
+    !isCustom ? ['地點', location] : null
   ].filter(Boolean);
 
   const infoRowsHTML = infoRows
@@ -36,9 +42,29 @@ export function generateOrderNotificationHTML({ type, paymentTime, pickupTime, l
     .join('');
 
   const preheaderParts = [];
-  if (showPayment) preheaderParts.push(`繳費時間：${escapeHtml(paymentTime)}`);
-  if (showPickup) preheaderParts.push(`領貨時間：${escapeHtml(pickupTime)}`);
-  preheaderParts.push(`地點：${escapeHtml(location)}`);
+  if (isCustom) {
+    preheaderParts.push(message.slice(0, 80));
+  } else {
+    if (showPayment) preheaderParts.push(`繳費時間：${escapeHtml(paymentTime)}`);
+    if (showPickup) preheaderParts.push(`領貨時間：${escapeHtml(pickupTime)}`);
+    preheaderParts.push(`地點：${escapeHtml(location)}`);
+  }
+
+  const bodyHTML = isCustom
+    ? `<p style="margin: 0; font-size: 14px; color: #1d1d1f; line-height: 1.7; white-space: pre-line;">${escapeHtmlPreserveBreaks(message)}</p>`
+    : `
+      <p style="margin: 0 0 20px; font-size: 14px; color: #6e6e73; line-height: 1.6;">親愛的訂購者您好，請於以下時間、地點完成${showPayment && showPickup ? '繳費與領貨' : showPickup ? '領貨' : '繳費'}：</p>
+
+      <table width="100%" style="margin-bottom: 20px; border: 1px solid #e5e5e7; border-radius: 12px; padding: 4px 14px;" cellpadding="0" cellspacing="0">
+        ${infoRowsHTML}
+      </table>
+
+      ${
+        message
+          ? `<p style="margin: 0 0 4px; font-size: 13px; color: #1d1d1f; font-weight: 700;">補充說明</p>
+             <p style="margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.6;">${escapeHtml(message)}</p>`
+          : ''
+      }`;
 
   return `
     <!DOCTYPE html>
@@ -72,18 +98,7 @@ export function generateOrderNotificationHTML({ type, paymentTime, pickupTime, l
 
               <tr>
                 <td style="padding: 28px;">
-                  <p style="margin: 0 0 20px; font-size: 14px; color: #6e6e73; line-height: 1.6;">親愛的訂購者您好，請於以下時間、地點完成${showPayment && showPickup ? '繳費與領貨' : showPickup ? '領貨' : '繳費'}：</p>
-
-                  <table width="100%" style="margin-bottom: 20px; border: 1px solid #e5e5e7; border-radius: 12px; padding: 4px 14px;" cellpadding="0" cellspacing="0">
-                    ${infoRowsHTML}
-                  </table>
-
-                  ${
-                    message
-                      ? `<p style="margin: 0 0 4px; font-size: 13px; color: #1d1d1f; font-weight: 700;">補充說明</p>
-                         <p style="margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.6;">${escapeHtml(message)}</p>`
-                      : ''
-                  }
+                  ${bodyHTML}
                 </td>
               </tr>
 
