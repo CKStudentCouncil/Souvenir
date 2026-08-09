@@ -33,7 +33,7 @@
         </div>
         <div v-for="section in scaleSections" :key="section.key" class="stat-card">
           <strong class="num" :class="tierClass(averages[section.key])">{{ averages[section.key] }}</strong>
-          <span>{{ section.title }}平均（滿分 5）</span>
+          <span>{{ section.title }}</span>
         </div>
         <div class="stat-card">
           <strong class="num">{{ issueRate }}%</strong>
