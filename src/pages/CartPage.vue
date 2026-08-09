@@ -60,10 +60,22 @@
               使用者條款
             </router-link>
           </label>
+          <label class="terms-agreement">
+            <input v-model="agreedToPolicy" type="checkbox">
+            我已閱讀並同意
+            <router-link
+              to="/policy"
+              target="_blank"
+              rel="noopener"
+              class="terms-link"
+            >
+              銷售與退貨條款
+            </router-link>
+          </label>
           <button
             type="submit"
             class="primary-button"
-            :disabled="submitting || !agreedToTerms"
+            :disabled="submitting || !agreedToTerms || !agreedToPolicy"
           >{{ submitting ? '正在送出訂單' : '送出訂單' }}</button>
           <button type="button" class="secondary-button" @click="showCheckout = false">回到訂單摘要</button>
         </form>
@@ -87,7 +99,7 @@ const showCheckout = ref(false); const submitting = ref(false); const rememberMe
 const checkout = reactive({ name: '', email: '', phone: '', school: '', class: '', number: '' })
 const pricing = computed(() => calculatePricing(cart.cartItems, { usePRPackage: usePRPackage.value, isAdmin: auth.isAdmin }))
 const agreedToTerms = ref(false)
-
+const agreedToPolicy = ref(false)
 onMounted(() => { try { rememberMe.value = localStorage.getItem('rememberMeCheckout') === 'true'; if (rememberMe.value) Object.assign(checkout, JSON.parse(localStorage.getItem('checkoutData') || '{}')) } catch {} })
 watch(rememberMe, (value) => { localStorage.setItem('rememberMeCheckout', String(value)); if (!value) localStorage.removeItem('checkoutData') })
 
@@ -95,6 +107,10 @@ function changeQty(id, delta) { const item = cart.cartItems.find((entry) => entr
 async function placeOrder() {
   if (!agreedToTerms.value) {
     toast.show('請先閱讀並同意使用者條款')
+    return
+  }
+  if (!agreedToPolicy.value) {
+    toast.show('請先閱讀並同意銷售與退貨條款')
     return
   }
   if (!checkout.name.trim() || !checkout.email.trim() || !checkout.phone.trim() || !checkout.school) { toast.show('請先填妥聯絡資料，再送出訂單。'); return }
@@ -105,7 +121,7 @@ async function placeOrder() {
     const isSpecialSchool = checkout.school === '建中家長會' || checkout.school === '其他學校或社會人士'
     const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, class: isSpecialSchool ? '' : checkout.class.trim(), number: isSpecialSchool ? '' : checkout.number.trim() })
     if (result.status !== 201) throw new Error()
-    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; agreedToTerms.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
+    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; agreedToTerms.value = false; agreedToPolicy.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
   } catch { toast.show('訂單尚未送出，請再試一次；購物袋內容會為你保留。') } finally { submitting.value = false }
 }
 </script>

@@ -14,6 +14,11 @@ const routes = [
         component: () => import('pages/SurveyPage.vue')
       },
       {
+        path: 'policy',
+        name: 'policy',
+        component: () => import('pages/SalesPolicyPage.vue')
+      },
+      {
         path: 'product/:id',
         name: 'product',
         component: () => import('pages/ProductPage.vue')

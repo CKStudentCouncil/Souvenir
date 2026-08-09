@@ -37,6 +37,10 @@
           使用者條款
         </router-link>
 
+        <router-link to="/policy" @click="menuOpen = false">
+          銷售與退貨條款
+        </router-link>
+
         <router-link to="/survey" @click="menuOpen = false">
           使用者問卷
         </router-link>
@@ -105,7 +109,14 @@
             <router-link to="/orders">我的訂單</router-link>
             <router-link to="/about">關於我們</router-link>
             <router-link to="/survey">使用者問卷</router-link>
+          </nav>
+        </div>
+
+        <div class="footer-col">
+          <p class="footer-heading">Legal</p>
+          <nav class="footer-links">
             <router-link to="/terms">使用者條款</router-link>
+            <router-link to="/policy">銷售與退貨條款</router-link>
           </nav>
         </div>
   
