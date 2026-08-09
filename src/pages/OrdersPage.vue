@@ -44,7 +44,7 @@
       </article>
     </div>
 
-    <button type="button" class="feedback-link" @click="openSurvey">分享使用心得</button>
+    <!--<button type="button" class="feedback-link" @click="openSurvey">分享使用心得</button>-->
   </div>
 </template>
 
@@ -103,7 +103,7 @@ function itemSummary(items) {
   const names = items.map((item) => item.name).slice(0, 2).join('、')
   return `${count} 件商品 · ${names}${items.length > 2 ? '…' : ''}`
 }
-function openSurvey() { window.open('https://forms.gle/Grnk7FXfrXDQutE87', '_blank') }
+function openSurvey() { window.open('https://souvenir.cksc.tw/survey', '_blank') }
 
 async function confirmDelete(orderId) {
   if (!window.confirm('確定要刪除這筆訂單嗎？刪除後無法復原。')) return
