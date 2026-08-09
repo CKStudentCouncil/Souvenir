@@ -1,6 +1,6 @@
 # CKSC Online Souvenir
 
-CKSC Online Souvenir is the official Quasar/Vue 3 storefront for the Chien Kuo High School Student Council's souvenir campaign.
+CKSC Online Souvenir is the official Quasar/Vue 3 storefront for the Taipei Municipal Chien Kuo High School Student Council's souvenir campaign.
 
 The application allows visitors to browse merchandise, place orders, and track their orders. Authorized managers and administrators can review orders, update payment and delivery status, and send customer notifications.
 
