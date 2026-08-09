@@ -1,6 +1,6 @@
 <template>
   <div class="static-page">
-    <article class="content-card">
+    <article class="content-card" ref="termsContent">
       <p class="eyebrow">User Terms</p>
       <h1 class="text-bold">臺北市立建國高級中學班聯會<br />校慶紀念品訂購系統使用者條款</h1>
       <p class="intro">歡迎您使用臺北市立建國高級中學班聯會校慶紀念品訂購系統（以下簡稱「本系統」）。為保障使用者權益並維護系統運作秩序，請您在使用本系統前，詳閱以下使用者條款。當您使用本系統，即表示您已閱讀、瞭解並同意遵守本條款之所有內容。</p>
@@ -42,10 +42,53 @@
         </section>
       </div>
       <p class="updated">最後更新：<span class="num">2026 年 07 月 26 日</span></p>
-      <router-link to="/" class="primary-button">回到首頁</router-link>
+
+      <div class="action-row">
+        <router-link to="/" class="primary-button">回到首頁</router-link>
+        <button class="secondary-button" :disabled="downloading" @click="downloadPdf">
+          {{ downloading ? '產生中...' : '下載 PDF' }}
+        </button>
+      </div>
     </article>
   </div>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+
+const termsContent = ref(null)
+const downloading = ref(false)
+
+async function downloadPdf() {
+  if (!termsContent.value || downloading.value) return
+  downloading.value = true
+
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+
+    const opt = {
+      margin: [15, 12, 15, 12],
+      filename: '校慶紀念品訂購系統使用者條款.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    }
+
+    // Hide the button row while capturing so it doesn't appear in the PDF
+    const actionRow = termsContent.value.querySelector('.action-row')
+    if (actionRow) actionRow.style.visibility = 'hidden'
+
+    await html2pdf().set(opt).from(termsContent.value).save()
+
+    if (actionRow) actionRow.style.visibility = ''
+  } catch (err) {
+    console.error('PDF generation failed:', err)
+  } finally {
+    downloading.value = false
+  }
+}
+</script>
 
 <style scoped>
 @import 'src/css/termspage.scss';
