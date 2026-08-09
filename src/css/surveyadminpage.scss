@@ -40,7 +40,6 @@
   font-weight: 700;
 }
 
-/* 沿用 admin-page 的 eyebrow 樣式，作為每個內容分區的小標籤 */
 .eyebrow {
   margin: 0 0 12px;
   color: #6e6e73;
@@ -49,7 +48,6 @@
   letter-spacing: .06em;
 }
 
-/* 快速篩選：切換顯示哪個分區，內容原地切換，不做頁面跳轉 */
 .quick-nav {
   display: flex;
   flex-wrap: wrap;
@@ -140,7 +138,6 @@
   color: #1d1d1f;
 }
 
-/* 待關注項目：用醒目底色跟其他 panel 區分，讓人一眼找到重點 */
 .panel.callout {
   background: #fff9f4;
   border-color: #f3ddc4;
@@ -230,7 +227,6 @@
   font-size: .9rem;
 }
 
-/* 分數分級上色：低分需留意 / 中等 / 表現良好，讓平均分數一眼可辨 */
 .tier-low {
   color: #d32f2f;
 }
@@ -349,7 +345,6 @@
   fill: #1d1d1f;
 }
 
-/* 原本 .3rem 在 100x100 viewBox 內幾乎看不見，改用可讀的字級 */
 .donut-caption {
   font-size: .55rem;
   fill: #6e6e73;
@@ -452,7 +447,6 @@
   font-size: .85rem;
 }
 
-/* 使用者輪廓分頁（身分別／得知管道／裝置分布），沿用 .tabs 的藥丸切換樣式 */
 .tab-row {
   display: flex;
   gap: 4px;
