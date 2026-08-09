@@ -34,10 +34,13 @@
 
     <div class="page-heading">
       <p class="eyebrow">後台管理</p>
-      <h1>訂單統計</h1>
+      <h1>{{ canManageOrders ? '訂單統計' : '發送通知' }}</h1>
     </div>
 
-    <div class="filter-block">
+    <div
+      v-if="canManageOrders"
+      class="filter-block"
+    >
       <label>篩選學校：</label>
       <select v-model="selectedSchool">
         <option value="all">全部</option>
@@ -51,7 +54,10 @@
       </select>
     </div>
 
-    <div class="filter-block">
+    <div
+      v-if="canManageOrders"
+      class="filter-block"
+    >
       <label>搜尋訂購者：</label>
       <input
         v-model="customerSearchInput"
@@ -61,7 +67,10 @@
       >
     </div>
 
-    <div class="tabs">
+    <div
+      v-if="canManageOrders"
+      class="tabs"
+    >
       <button
         type="button"
         :class="{ active: activeTab === 'all' }"
@@ -86,7 +95,7 @@
         </button>
       </div>
       <p class="notify-hint">
-        將寄送繳費通知給所有訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人）
+        將寄送{{ notifyTypeLabel }}給{{ notifyTargetSchoolLabel }}訂購者（共 <span class="num">{{ notifyRecipientCount }}</span> 人）
       </p>
     </div>
 
@@ -126,6 +135,20 @@
               繳費暨領貨
             </button>
           </div>
+        </div>
+
+        <div class="filter-block">
+          <span class="field-label">通知對象</span>
+          <select v-model="notifyForm.school">
+            <option value="all">全部學校</option>
+            <option
+              v-for="school in schools"
+              :key="school"
+              :value="school"
+            >
+              {{ school }}
+            </option>
+          </select>
         </div>
 
         <label v-if="notifyForm.type !== 'pickup'" class="field">
@@ -170,7 +193,7 @@
           <p v-if="notifyForm.type !== 'payment'">領貨時間：<strong>{{ notifyForm.pickupTime || '（尚未填寫）' }}</strong></p>
           <p>地點：<strong>{{ notifyForm.location || '（尚未填寫）' }}</strong></p>
           <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
-          <p class="preview-count">將發送給 <span class="num">{{ notifyRecipientCount }}</span> 位訂購者</p>
+          <p class="preview-count">將發送給{{ notifyTargetSchoolLabel }} <span class="num">{{ notifyRecipientCount }}</span> 位訂購者</p>
         </div>
 
         <div class="notify-actions">
@@ -194,7 +217,10 @@
       </div>
     </div>
 
-    <div class="panel export-panel">
+    <div
+      v-if="canManageOrders"
+      class="panel export-panel"
+    >
       <div>
         <h2>{{ activeTab === 'delivered' ? '已交貨統計與匯出' : '匯出與總覽' }}</h2>
         <div class="stats-row">
@@ -222,7 +248,7 @@
     </div>
 
     <div
-      v-if="activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
+      v-if="canManageOrders && activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
       class="panel"
     >
       <h2>交貨人員統計</h2>
@@ -239,7 +265,10 @@
       </div>
     </div>
 
-    <div class="panel">
+    <div
+      v-if="canManageOrders"
+      class="panel"
+    >
       <h2>{{ activeTab === 'delivered' ? '已交貨商品統計' : '商品總數量' }}</h2>
       <ul
         v-if="Object.keys(currentStats.productCounts).length"
@@ -256,7 +285,10 @@
       <p v-else class="empty">尚無統計資料</p>
     </div>
 
-    <div class="orders-section">
+    <div
+      v-if="canManageOrders"
+      class="orders-section"
+    >
       <h2>{{ activeTab === 'delivered' ? '已交貨訂單' : '所有訂單' }}</h2>
       <div
         v-for="order in currentOrders"
@@ -387,6 +419,9 @@ import { USE_MOCK_ORDERS, MOCK_ALLOW_ADMIN_WITHOUT_AUTH } from 'src/config/app'
 const router = useRouter()
 const auth = useAuthStore()
 const canAccessAdmin = computed(
+  () => auth.isManager || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
+)
+const canManageOrders = computed(
   () => auth.isAdmin || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
 )
 const toast = useToastStore()
@@ -396,6 +431,7 @@ const showNotifyModal = ref(false)
 const sendingNotify = ref(false)
 const notifyForm = ref({
   type: 'payment',
+  school: 'all',
   paymentTime: '',
   pickupTime: '',
   location: '',
@@ -404,6 +440,7 @@ const notifyForm = ref({
 
 const {
   schools,
+  orders,
   loading,
   activeTab,
   selectedSchool,
@@ -427,13 +464,22 @@ const {
 
 const deliveryStats = computed(() => calculateDeliveryStats(currentOrders.value))
 
+const notifyRecipientOrders = computed(() => {
+  if (notifyForm.value.school === 'all') return orders.value
+  return orders.value.filter((order) => order.school === notifyForm.value.school)
+})
+
 const notifyRecipientCount = computed(() => {
   const emails = new Set()
-  currentOrders.value.forEach((order) => {
+  notifyRecipientOrders.value.forEach((order) => {
     if (order.customerEmail) emails.add(order.customerEmail)
   })
   return emails.size
 })
+
+const notifyTargetSchoolLabel = computed(() =>
+  notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
+)
 
 async function loadAdminProfile() {
   if (auth.user) {
@@ -482,6 +528,7 @@ const canSendNotify = computed(() => {
 })
 
 function openNotifyModal() {
+  notifyForm.value.school = selectedSchool.value
   showNotifyModal.value = true
 }
 
@@ -497,7 +544,7 @@ async function confirmSendNotify() {
   }
   if (
     !window.confirm(
-      `確定要寄送${notifyTypeLabel.value}給 ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`
+      `確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`
     )
   ) {
     return
@@ -509,6 +556,7 @@ async function confirmSendNotify() {
     const sendOrderNotification = httpsCallable(functionsInstance, 'sendOrderNotification')
     const result = await sendOrderNotification({
       type: notifyForm.value.type,
+      school: notifyForm.value.school,
       paymentTime: notifyForm.value.paymentTime.trim(),
       pickupTime: notifyForm.value.pickupTime.trim(),
       location: notifyForm.value.location.trim(),
@@ -516,7 +564,14 @@ async function confirmSendNotify() {
     })
     toast.show(`已成功寄送給 ${result.data.sentCount} 位訂購者`)
     showNotifyModal.value = false
-    notifyForm.value = { type: 'payment', paymentTime: '', pickupTime: '', location: '', message: '' }
+    notifyForm.value = {
+      type: 'payment',
+      school: selectedSchool.value,
+      paymentTime: '',
+      pickupTime: '',
+      location: '',
+      message: ''
+    }
   } catch (error) {
     console.error('Send notification error:', error)
     toast.show('發送失敗，請稍後再試')

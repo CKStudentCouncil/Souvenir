@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "@sendgrid/mail": "^8.1.6",
     "file-saver": "^2.0.5",
     "firebase": "^10.8.0",
     "pinia": "^2.1.7",

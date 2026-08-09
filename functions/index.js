@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions'
 import nodemailer from 'nodemailer'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
+import AWS from 'aws-sdk'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -13,35 +14,32 @@ initializeApp()
 
 const db = getFirestore()
 
+const SENDER_EMAIL = process.env.SENDER_EMAIL || process.env.GMAIL_EMAIL
+
 const createTransporter = () => {
-  const email = process.env.GMAIL_EMAIL
-  const password = process.env.GMAIL_PASSWORD
+  // Configure AWS SES. Prefer providing AWS credentials via Secret Manager
+  // (requested below) or via an attached IAM role to the Cloud Functions runtime.
+  const region = process.env.AWS_REGION || 'us-east-1'
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
 
-  if (!email) {
-    throw new Error('Missing required environment variable: GMAIL_EMAIL')
+  if (accessKeyId && secretAccessKey) {
+    AWS.config.update({ accessKeyId, secretAccessKey, region })
+  } else {
+    AWS.config.update({ region })
   }
 
-  if (!password) {
-    throw new Error('Missing required secret: GMAIL_PASSWORD')
-  }
+  const ses = new AWS.SES({ apiVersion: '2010-12-01', region })
 
   return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: email,
-      pass: password
-    }
+    SES: { ses, aws: AWS }
   })
 }
 
-
-/**
- * 新訂單自動寄送 QR Code
- */
 export const sendOrderQRCode = functions
   .region('asia-east1')
   .runWith({
-    secrets: ['GMAIL_PASSWORD']
+      secrets: ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','SENDER_EMAIL','AWS_REGION']
   })
   .firestore
   .document('orders/{orderId}')
@@ -50,7 +48,7 @@ export const sendOrderQRCode = functions
     const orderId = context.params.orderId
 
     console.log(
-      `Sending email using account: ${process.env.GMAIL_EMAIL}`
+          `Sending email using account: ${SENDER_EMAIL}`
     )
 
     if (!order.customerEmail) {
@@ -86,7 +84,7 @@ export const sendOrderQRCode = functions
 
 
       const mailOptions = {
-        from: process.env.GMAIL_EMAIL,
+        from: `"建國中學班聯會" <${SENDER_EMAIL}>`,
         to: order.customerEmail,
         subject:
           `建中校慶紀念品訂單確認 - 訂單編號：${orderId}`,
@@ -117,12 +115,6 @@ export const sendOrderQRCode = functions
       )
     }
   })
-
-
-
-/**
- * 群發通知
- */
 
 const MAX_BCC_PER_BATCH = 90
 
@@ -181,7 +173,7 @@ const NOTIFY_SUBJECTS = {
 export const sendOrderNotification = functions
   .region('asia-east1')
   .runWith({
-    secrets: ['GMAIL_PASSWORD']
+      secrets: ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','SENDER_EMAIL','AWS_REGION']
   })
   .https.onCall(async (data, context) => {
 
@@ -272,7 +264,7 @@ export const sendOrderNotification = functions
 
 
     console.log(
-      `Sending order notification (${type}) using account: ${process.env.GMAIL_EMAIL}`
+          `Sending order notification (${type}) using account: ${SENDER_EMAIL}`
     )
 
 
@@ -305,10 +297,8 @@ export const sendOrderNotification = functions
 
       await transporter.sendMail({
 
-        from: process.env.GMAIL_EMAIL,
-
-        to: process.env.GMAIL_EMAIL,
-
+        from: `"建國中學班聯會" <${SENDER_EMAIL}>`,
+        to: SENDER_EMAIL,
         bcc: batch,
 
         subject:

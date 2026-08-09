@@ -35,6 +35,7 @@ A modern online souvenir ordering platform for the Chien Kuo High School Student
 * Firebase Authentication
 * Cloud Firestore
 * Cloud Functions
+* Mailer (nodemailer)
 
 ### Utilities
 
@@ -102,6 +103,8 @@ Before running the project, configure your Firebase project and provide the requ
 ## Deployment
 
 The website is deployed using **GitHub Pages** with **GitHub Actions**.
+
+This project does not use AWS for hosting or deployment.
 
 Every push to the `main` branch automatically:
 

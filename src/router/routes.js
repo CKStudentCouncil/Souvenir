@@ -73,7 +73,8 @@ const routes = [
         component: () => import('pages/OrderDetailPage.vue'),
         meta: {
           requiresManager: true,
-          isAdminSection: true
+          isAdminSection: true,
+          requiresAdmin: true
         }
       },
 

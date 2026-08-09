@@ -38,6 +38,14 @@
         </router-link>
 
         <router-link
+          v-if="auth.isManager && !auth.isAdmin"
+          to="/admin"
+          @click="menuOpen = false"
+        >
+          通知管理
+        </router-link>
+
+        <router-link
           v-if="auth.isAdmin"
           to="/admin"
           @click="menuOpen = false"

@@ -30,9 +30,12 @@ export default defineRouter(function () {
     }
 
     const mockAdminOk = USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH
+    const role = authStore.user?.role
+    const hasManagerAccess = ['manager', 'admin', 'super_admin'].includes(role)
+    const hasAdminAccess = ['admin', 'super_admin'].includes(role)
 
     if (to.meta.requiresManager && !mockAdminOk) {
-      if (!authStore.isLoggedIn || !authStore.isManager) {
+      if (!authStore.isLoggedIn || !hasManagerAccess) {
         return { name: 'comingsoon' }
       }
     }
@@ -41,8 +44,14 @@ export default defineRouter(function () {
       if (!authStore.isLoggedIn) {
         return { name: 'admin-login', query: { redirect: to.fullPath } }
       }
-      if (!authStore.isAdmin) {
+      if (!hasManagerAccess) {
         return { name: 'home' }
+      }
+    }
+
+    if (to.meta.requiresAdmin && !mockAdminOk) {
+      if (!hasAdminAccess) {
+        return { name: 'admin' }
       }
     }
 
@@ -52,7 +61,7 @@ export default defineRouter(function () {
       }
     }
 
-    if (to.name === 'admin-login' && authStore.isAdmin) {
+    if (to.name === 'admin-login' && hasManagerAccess) {
       return { name: 'admin' }
     }
 
@@ -61,7 +70,7 @@ export default defineRouter(function () {
     const shopRoutes = ['home', 'product', 'cart', 'order-success', 'orders', 'order-detail']
 
     if (!USE_MOCK_ORDERS && !isAfterStartTime && shopRoutes.includes(to.name)) {
-      if (!authStore.isManager) {
+      if (!hasManagerAccess) {
         return { name: 'comingsoon' }
       }
     }
