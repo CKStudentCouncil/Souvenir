@@ -1,182 +1,223 @@
 # CKSC Online Souvenir
 
-A modern online souvenir ordering platform for the Chien Kuo High School Student Council, built with **Quasar**, **Vue 3**, and **Firebase**.
+CKSC Online Souvenir is the official Quasar/Vue 3 storefront for the Chien Kuo High School Student Council's souvenir campaign.
 
----
+The application allows visitors to browse merchandise, place orders, and track their orders. Authorized managers and administrators can review orders, update payment and delivery status, and send customer notifications.
 
-## Features
+## Highlights
 
-* Browse products without signing in
-* Shopping cart with local storage
-* Online order submission
-* Student class and seat number validation
-* Support for both CKHS and external schools
-* Google Authentication
-* Admin dashboard for order management
-* Search, filter, and update orders
-* Export orders to Excel
-* Automatic order confirmation emails
-* QR code support for order lookup
-* Customer feedback form after ordering
-
----
+- Product catalog with size-based variants for jackets, shorts, caps, and other merchandise
+- Shopping cart and checkout flow for customer orders
+- Order lookup and order history pages for buyers
+- Role-based administration for managers, admins, and super admins
+- Firebase-backed authentication, Firestore data storage, Firebase Storage, and Analytics
+- Automated order confirmation emails and bulk notification emails through Cloud Functions
+- Launch gate that redirects visitors to `/comingsoon` before the sale opens
 
 ## Tech Stack
 
 ### Frontend
 
-* Vue 3
-* Quasar Framework
-* Vue Router
-* Pinia
+- Vue 3
+- Quasar 2
+- Vue Router
+- Pinia
 
-### Backend
+### Backend & Services
 
-* Firebase Authentication
-* Cloud Firestore
-* Cloud Functions
-* Mailer (nodemailer)
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+- Firebase Analytics
+- Firebase Hosting
+- Firebase Cloud Functions
+- AWS SES for email delivery
 
-### Utilities
+### Utility Libraries
 
-* XLSX
-* FileSaver.js
-
----
+- xlsx
+- file-saver
+- html2pdf.js
+- qrcode
 
 ## Project Structure
 
 ```text
-src/            Frontend application
-functions/      Firebase Cloud Functions
-public/         Static assets
+src/
+├── pages/                 # Route-level screens such as Home, Cart, Orders, Admin, and Account
+├── components/            # Reusable product and UI components
+├── stores/                # Pinia stores for auth, cart, toast state, and related app state
+├── services/              # Order persistence and admin-order helpers
+├── data/                  # Product catalog and pricing data
+└── router/                # Route definitions and navigation guards
+
+functions/                 # Firebase Cloud Functions for email and notification workflows
+public/                    # Static assets
+.github/workflows/
+└── deploy.yml             # GitHub Pages deployment workflow
 ```
 
----
+## Requirements
+
+- Node.js 18, 20, 22, or 24
+- npm or yarn
+- Firebase CLI for Firebase deployment
 
 ## Local Development
 
-Install dependencies:
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-Start the development server:
+### 2. Start the Development Server
 
 ```bash
-quasar dev
+npm run dev
 ```
 
----
+This launches the Quasar/Vite development server.
 
-## Build
+## Production Build
 
-Generate the production build:
+Create a production build with:
 
 ```bash
-quasar build
+npm run build
 ```
 
-The production files will be generated in:
+The generated SPA files are written to:
 
 ```text
 dist/spa
 ```
 
----
+## Firebase Configuration
 
-## Firebase Services
-
-This project uses Firebase for backend services:
-
-* Authentication
-* Cloud Firestore
-* Cloud Functions
-
-> Firebase Hosting is **not** used for production deployment.
-
-Before running the project, configure your Firebase project and provide the required environment variables.
-
----
-
-## Deployment
-
-The website is deployed using **GitHub Pages** with **GitHub Actions**.
-
-This project does not use AWS for hosting or deployment.
-
-Every push to the `main` branch automatically:
-
-1. Builds the Quasar application
-2. Uploads the generated files
-3. Publishes the latest version to GitHub Pages
-
-No manual deployment is required.
-
----
-
-## Repository
+The application is configured to use Firebase through:
 
 ```text
-https://github.com/CKStudentCouncil/Souvenir
+src/boot/firebase.js
 ```
 
----
+If you are using a different Firebase project, update the Firebase configuration and make sure the correct project alias is configured in:
 
-## Project Pages
+```text
+.firebaserc
+```
 
-* Store: `/`
-* Shopping Cart: `/cart`
-* Orders: `/orders`
-* Admin Dashboard: `/admin`
+Example:
 
----
-
-## Pre-Launch Gate (Coming Soon)
-
-Before the sale start date, storefront pages are gated and redirect visitors to `/comingsoon` instead of showing the shop.
-
-**Where it lives:** `src/router/index.js`, inside the `beforeEach` navigation guard.
-
-```javascript
-const starttime = new Date('2025-11-05T12:00:00+08:00')
-const isAfterStartTime = new Date() >= starttime
-const shopRoutes = ['home', 'product', 'cart', 'order-success', 'orders', 'order-detail']
-
-if (!USE_MOCK_ORDERS && !isAfterStartTime && shopRoutes.includes(to.name)) {
-  if (!authStore.isAdmin) {
-    return { name: 'comingsoon' }
+```json
+{
+  "projects": {
+    "default": "cksc-merchandis"
   }
 }
 ```
 
-**How it works:**
+Before running Firebase commands, authenticate and select the appropriate project:
 
-* `starttime` is a fixed date hardcoded in the guard.
-* Any visitor navigating to a route in `shopRoutes` before that date is redirected to `/comingsoon`, unless they're an admin (so the team can preview the store before launch) or `USE_MOCK_ORDERS` is enabled (local/dev mode bypasses the gate entirely).
-* Once the system clock passes `starttime`, the condition stops matching and the storefront opens automatically — no redeploy needed at launch time itself.
+```bash
+firebase login
+firebase use <your-project>
+```
 
-**Known limitations:**
+## Cloud Functions & Email
 
-* **Changing the launch date requires editing this constant and redeploying.** It is not configurable from the admin dashboard or Firestore.
-* **The check runs on the visitor's own device clock**, not a server clock. Someone who sets their local system time forward can view the store early. This is acceptable for the current low-stakes use case, but if the launch date must never be bypassable, the gate should be enforced server-side (e.g. Firestore Security Rules or a Cloud Function) instead of purely in the client-side router.
+The Cloud Functions in:
+
+```text
+functions/index.js
+```
+
+expect the following runtime values or secrets:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `SENDER_EMAIL`
+
+If email delivery is not required during local frontend development, these values are not required for the frontend itself. However, Cloud Functions that depend on them will fail if they are invoked without the required configuration.
+
+## Deployment
+
+### GitHub Pages
+
+The frontend is published through:
+
+```text
+.github/workflows/deploy.yml
+```
+
+The workflow installs dependencies, builds the Quasar application, and publishes the generated files from:
+
+```text
+dist/spa
+```
+
+### Firebase
+
+To deploy the Firebase project and configured services:
+
+```bash
+firebase deploy
+```
+
+## Main Routes
+
+| Route | Description |
+|---|---|
+| `/` | Storefront home |
+| `/product/:id` | Product detail page |
+| `/cart` | Shopping cart and checkout |
+| `/orders` | Buyer order history |
+| `/orders/:id` | Order detail |
+| `/admin` | Admin dashboard |
+| `/admin/login` | Admin login |
+| `/comingsoon` | Pre-launch landing page |
+
+## Application Notes
+
+### Launch Gate
+
+The storefront launch gate is enforced in:
+
+```text
+src/router/index.js
+```
+
+Before the configured launch date, visitors are redirected to `/comingsoon`. Authorized manager and administrator accounts can bypass this restriction.
+
+### Mock Orders
+
+Mock order mode is available in:
+
+```text
+src/config/app.js
+```
+
+It is disabled by default.
+
+## Maintainers
+
+This project is maintained by the **Taipei Municipal Chien Kuo High School Student Council**.
+
+## Developers
+
+### Chris Sun
+
+- 79-2 Student Council Student Assembly Deputy Speaker
+- 80-1 Student Council Chairman (President)
+- 80-2 Student Council Speaker
+
+### Jim Tang
+
+- 80-1 Student Council Executive Department CIO
+- 80-2 Student Council Executive Department IT Associate
 
 ---
 
-## License
-
-This project is maintained by the **Chien Kuo High School Student Council**.
-
-## Developer
-
-This project is developed by:
-
-Chris Sun
-- 79-2 Student Council Student Assembly Deputy Speaker
-- 80-1 Student Council Chairman(President)
-- 80-2 Student Council Speaker
-
-Jim Tang
-- 80-1 Student Council Executive Department CIO
-- 80-2 Student Council Executive Department IT Associate
+**CKSC Online Souvenir**  
+Taipei Municipal Chien Kuo High School Student Council
