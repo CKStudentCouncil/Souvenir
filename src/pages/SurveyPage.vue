@@ -93,7 +93,7 @@
             </div>
 
             <div class="field">
-              <label class="field-label">如果可以改善本系統的一個地方，您最希望改善什麼？</label>
+              <label class="field-label">如果可以改善本系統的一個地方，您最希望改善什麼？（選填）</label>
               <textarea v-model="form.improvement" rows="3" placeholder="請告訴我們"></textarea>
             </div>
 
