@@ -35,10 +35,67 @@ h1 {
 }
 
 .cart-page > header > p:last-child {
-  margin: 0 0 40px;
+  margin: 0 0 32px;
   color: #6e6e73;
   line-height: 1.6;
 }
+
+/* ---------- Step indicator ---------- */
+
+.steps {
+  margin: 0 0 40px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.steps .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d2d2d7;
+  flex-shrink: 0;
+}
+
+.steps .label {
+  color: #a1a1a6;
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.steps li.active .dot { background: #1d1d1f; }
+.steps li.active .label { color: #1d1d1f; }
+.steps li.done .dot { background: #1d1d1f; }
+.steps li.done .label { color: #6e6e73; }
+
+.steps li.track {
+  flex: 0 0 44px;
+  height: 1px;
+  background: #e5e5e7;
+  position: relative;
+  overflow: hidden;
+}
+
+.steps li.track span {
+  position: absolute;
+  inset: 0;
+  background: #1d1d1f;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .3s ease;
+}
+
+.steps li.track span.filled { transform: scaleX(1); }
+
+/* ---------- Layout ---------- */
 
 .cart-layout {
   display: grid;
@@ -72,16 +129,26 @@ h1 {
   background: #fff;
   cursor: pointer;
   font-size: 1.1rem;
+  line-height: 1;
 }
 
-.remove {
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border: 0;
+  border-radius: 999px;
   background: transparent;
-  color: #a12622;
+  color: #a1a1a6;
   cursor: pointer;
-  font: inherit;
-  font-size: .82rem;
+  transition: background-color .15s ease, color .15s ease;
 }
+
+.icon-button:hover { background: #f5f5f7; color: #a12622; }
+
+/* ---------- Summary ---------- */
 
 .summary {
   position: sticky;
@@ -103,19 +170,84 @@ h1 {
   font-size: .82rem;
 }
 
-.saving-note, .gift-note {
+/* Combo savings + gift + PR notes now share one restrained, monochrome
+   language; the only color is the green "earned" state. */
+
+.combo-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.combo-list li {
+  padding: 9px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #248a43;
+  font-size: .82rem;
+  border-bottom: 1px solid #f0f0f1;
+}
+
+.combo-list li:last-child { border-bottom: 0; }
+.combo-name { flex: 1; color: #1d1d1f; }
+.combo-discount { color: #248a43; font-weight: 600; }
+
+.benefit-note {
   margin-bottom: 12px;
   padding: 13px;
-  display: grid;
-  gap: 5px;
   border-radius: 12px;
+  background: #f5f5f7;
+  color: #515154;
   font-size: .82rem;
   line-height: 1.55;
 }
 
-.saving-note { background: #f3f8ff; color: #134a85; }
-.gift-note { background: #f5f5f7; color: #515154; }
-.gift-note.qualified { background: #eef9f0; color: #246a38; }
+.benefit-note strong { display: block; margin-bottom: 3px; color: #1d1d1f; }
+.benefit-note span { display: block; }
+.benefit-note.earned { background: #eef9f0; color: #246a38; }
+.benefit-note.earned strong { color: #246a38; }
+
+.gift-progress {
+  margin-bottom: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #515154;
+  font-size: .82rem;
+  line-height: 1.55;
+}
+
+.gift-progress-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1d1d1f;
+  margin-bottom: 4px;
+}
+
+.gift-progress-top strong { font-size: .84rem; }
+.gift-progress p { margin: 4px 0 0; }
+
+.gift-progress.earned { background: #eef9f0; color: #246a38; }
+.gift-progress.earned .gift-progress-top { color: #246a38; }
+
+.progress-track {
+  margin-top: 8px;
+  height: 5px;
+  border-radius: 999px;
+  background: #e5e5e7;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #1d1d1f;
+  transition: width .35s ease;
+}
 
 .totals { margin: 20px 0; }
 .line { margin: 9px 0; display: flex; justify-content: space-between; font-size: .9rem; }
@@ -140,9 +272,12 @@ h1 {
   cursor: pointer;
   font: 600 .95rem inherit;
   letter-spacing: .01em;
+  transition: opacity .15s ease;
 }
 
+.primary-button:hover:not(:disabled) { opacity: .88; }
 .secondary-button { margin-top: 9px; background: #f5f5f7; color: #1d1d1f; }
+.secondary-button:hover { opacity: .8; }
 
 .checkout-form {
   margin-top: 24px;
@@ -166,9 +301,16 @@ h1 {
   box-sizing: border-box;
   padding: 11px 12px;
   border: 1px solid #d2d2d7;
-  border-radius: 9px;
+  border-radius: 12px;
   background: #fff;
   font: 400 .92rem inherit;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.checkout-form input:focus, .checkout-form select:focus {
+  outline: none;
+  border-color: #1d1d1f;
+  box-shadow: 0 0 0 3px rgba(29, 29, 31, .08);
 }
 
 .checkout-form .remember { display: flex; align-items: center; gap: 8px; font-weight: 400; }
@@ -185,6 +327,7 @@ h1 {
   line-height: 1.6;
 }
 
+.empty-icon { width: 56px; height: 56px; }
 .empty-state h2 { margin: 14px 0 6px; color: #1d1d1f; font-weight: 600; }
 .primary-button { display: inline-block; text-align: center; text-decoration: none; }
 
@@ -193,8 +336,10 @@ h1 {
   .cart-layout { grid-template-columns: 1fr; gap: 28px; }
   .summary { position: static; }
   .cart-item { grid-template-columns: 1fr auto; }
-  .remove { grid-column: 1 / -1; text-align: left; }
+  .icon-button { grid-column: 1 / -1; justify-self: start; }
   .empty-state { min-height: 280px; }
+  .steps .label { display: none; }
+  .steps li.track { flex: 0 0 28px; }
 }
 
 .terms-agreement {

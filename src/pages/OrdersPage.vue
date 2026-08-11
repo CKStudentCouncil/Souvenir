@@ -7,44 +7,80 @@
     </header>
 
     <div v-if="loading" class="empty-state">正在尋找你的訂單</div>
+
     <div v-else-if="orders.length === 0" class="empty-state">
-      <q-icon name="shopping_bag" size="2.2rem" />
+      <svg class="empty-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path
+          d="M8 24a4 4 0 0 1 4-4h40a4 4 0 0 1 4 4v3a5 5 0 0 0 0 10v3a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4v-3a5 5 0 0 0 0-10v-3Z"
+          stroke="#c7c7cc" stroke-width="2" stroke-linejoin="round"
+        />
+        <path d="M26 20v24" stroke="#c7c7cc" stroke-width="2" stroke-dasharray="3 4" />
+      </svg>
       <h2>還沒有訂單</h2>
       <p>準備好了的話，下一件屬於駝客的紀念品正在等你</p>
       <router-link to="/" class="primary-button">探索商品</router-link>
     </div>
 
     <div v-else class="order-list">
-      <article v-for="order in orders" :key="order.id" class="order-card">
-        <div class="card-top">
-          <div class="status" :class="order.delivered ? 'delivered' : 'pending'">
-            <q-icon :name="order.delivered ? 'check_circle' : 'schedule'" />
-            {{ order.delivered ? '已完成交付' : '準備中' }}
+      <article
+        v-for="(order, index) in orders"
+        :key="order.id"
+        class="ticket"
+        :style="{ '--i': index }"
+      >
+        <div class="ticket-main">
+          <div class="ticket-progress" :class="{ done: order.delivered }">
+            <span class="step" aria-hidden="true"></span>
+            <span class="track" aria-hidden="true"></span>
+            <span class="step" aria-hidden="true"></span>
+            <p class="ticket-status">
+              {{ order.delivered ? '已完成交付' : '準備中' }}
+            </p>
           </div>
-          <canvas
-            :ref="(el) => setQrRef(order.id, el)"
-            class="qr-thumb"
-            :aria-label="`訂單 ${shortId(order.id)} 的 QR code，掃描可查看明細`"
-          />
+
+          <p class="ticket-date"><span class="num">{{ formatDate(order.createdAt) }}</span></p>
+          <h2 class="ticket-id">訂單 <span class="num">#{{ shortId(order.id) }}</span></h2>
+          <p class="item-summary">{{ itemSummary(order.items) }}</p>
+
+          <div class="ticket-footer">
+            <strong class="price"><span class="currency">NT$</span><span class="num">{{ order.finalTotal }}</span></strong>
+            <div class="ticket-actions">
+              <router-link :to="`/orders/${order.id}`">查看明細</router-link>
+              <p>&ensp;</p>
+              <button
+                type="button"
+                style="border: none; background-color: transparent; color: #F4320B;"
+                aria-label="刪除訂單"
+                title="刪除訂單"
+                @click="confirmDelete(order.id)"
+              >
+                刪除訂單
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="order-main">
-          <div>
-            <p class="order-date"><span class="num">{{ formatDate(order.createdAt) }}</span></p>
-            <h2>訂單 <span class="num">#{{ shortId(order.id) }}</span></h2>
-            <p class="item-summary">{{ itemSummary(order.items) }}</p>
-          </div>
-          <strong class="price"><span class="currency">NT$</span><span class="num">{{ order.finalTotal }}</span></strong>
-        </div>
+        <div class="perforation" aria-hidden="true"></div>
 
-        <div class="order-actions">
-          <router-link :to="`/orders/${order.id}`">查看明細</router-link>
-          <button type="button" class="delete-button" @click="confirmDelete(order.id)">刪除訂單</button>
-        </div>
+        <button type="button" class="ticket-stub" @click="openQr(order)">
+          <canvas :ref="(el) => setQrRef(order.id, el)" class="qr-thumb" />
+        </button>
       </article>
     </div>
 
     <!--<button type="button" class="feedback-link" @click="openSurvey">分享使用心得</button>-->
+
+    <q-dialog v-model="showQr" transition-show="scale" transition-hide="scale">
+      <div class="qr-modal">
+        <button type="button" class="qr-modal-close" aria-label="關閉" @click="showQr = false">
+          <q-icon name="close" size="18px" />
+        </button>
+        <p class="eyebrow">兌換憑證</p>
+        <h3>訂單 <span class="num">#{{ activeOrder ? shortId(activeOrder.id) : '' }}</span></h3>
+        <canvas ref="modalQrCanvas" class="qr-modal-canvas" />
+        <p class="qr-modal-hint">校慶現場出示此 QR code 即可兌換商品</p>
+      </div>
+    </q-dialog>
   </div>
 </template>
 
@@ -59,6 +95,10 @@ const orders = ref([])
 const loading = ref(true)
 const qrRefs = new Map()
 
+const showQr = ref(false)
+const activeOrder = ref(null)
+const modalQrCanvas = ref(null)
+
 function setQrRef(id, el) {
   if (el) qrRefs.set(id, el)
 }
@@ -70,7 +110,7 @@ async function renderQrs() {
     const url = `${window.location.origin}/orders/${order.id}`
     try {
       await QRCode.toCanvas(canvas, url, {
-        width: 112,
+        width: 88,
         margin: 0,
         color: { dark: '#1d1d1f', light: '#00000000' }
       })
@@ -95,6 +135,23 @@ async function loadOrders() {
 }
 
 onMounted(loadOrders)
+
+async function openQr(order) {
+  activeOrder.value = order
+  showQr.value = true
+  await nextTick()
+  if (!modalQrCanvas.value) return
+  const url = `${window.location.origin}/orders/${order.id}`
+  try {
+    await QRCode.toCanvas(modalQrCanvas.value, url, {
+      width: 220,
+      margin: 0,
+      color: { dark: '#1d1d1f', light: '#ffffff' }
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
 
 function formatDate(timestamp) { return formatOrderDate(timestamp) }
 function shortId(id) { return String(id).slice(-8).toUpperCase() }

@@ -61,7 +61,7 @@ export function generateOrderNotificationHTML({ type, paymentTime, pickupTime, l
 
       ${
         message
-          ? `<p style="margin: 0 0 4px; font-size: 13px; color: #1d1d1f; font-weight: 700;">補充說明</p>
+          ? `<p style="margin: 0 0 4px; font-size: 13px; color: #1d1d1f; font-weight: 700;">說明</p>
              <p style="margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.6;">${escapeHtml(message)}</p>`
           : ''
       }`;

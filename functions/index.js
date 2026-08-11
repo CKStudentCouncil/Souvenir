@@ -116,7 +116,17 @@ export const sendOrderQRCode = functions
     }
   })
 
-const MAX_BCC_PER_BATCH = 90
+const MAX_BCC_PER_BATCH = 49
+
+// AWS SES default sending rate limit is commonly 14 messages/second.
+// Each batched sendMail() call counts as one "message" toward that quota,
+// so we throttle to at most MAX_SENDS_PER_SECOND sendMail() calls per second.
+const MAX_SENDS_PER_SECOND = 14
+const MIN_MS_BETWEEN_SENDS = Math.ceil(1000 / MAX_SENDS_PER_SECOND)
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 
 function chunk(array, size) {
@@ -270,7 +280,16 @@ export const sendOrderNotification = functions
 
 
     const recipients =
-      Array.from(emailSet)
+      Array.from(emailSet).filter(email => {
+        const normalizedEmail = email.trim().toLowerCase()
+        const senderEmail = SENDER_EMAIL.trim().toLowerCase()
+
+        return (
+          normalizedEmail !== senderEmail &&
+          !normalizedEmail.startsWith('no-reply@') &&
+          !normalizedEmail.startsWith('noreply@')
+        )
+      })
 
 
 
@@ -312,7 +331,19 @@ export const sendOrderNotification = functions
 
 
 
+    let lastSendAt = 0
+
     for (const batch of batches) {
+
+      const now = Date.now()
+      const elapsed = now - lastSendAt
+      const waitMs = MIN_MS_BETWEEN_SENDS - elapsed
+
+      if (lastSendAt !== 0 && waitMs > 0) {
+        await sleep(waitMs)
+      }
+
+      lastSendAt = Date.now()
 
       await transporter.sendMail({
 
