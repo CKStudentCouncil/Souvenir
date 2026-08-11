@@ -49,7 +49,7 @@
               <p>&ensp;</p>
               <button
                 type="button"
-                style="border: none; background-color: transparent; color: #F4320B;"
+                style="border: none; background-color: transparent; color: #D32F2F;"
                 aria-label="刪除訂單"
                 title="刪除訂單"
                 @click="confirmDelete(order.id)"
