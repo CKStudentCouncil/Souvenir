@@ -3,7 +3,7 @@
     <section class="hero">
       <p class="eyebrow eyebrow-en">Keep Your Memories Alive</p>
       <h1 class="text-bold">把青春的片刻<br>留在身邊</h1>
-      <p class="hero-copy">為駝客設計的紀念品系列，讓那些在校園裡發生的故事，陪你走得更遠。</p>
+      <p class="hero-copy">為駝客設計的紀念品系列，讓那些在校園裡發生的故事，陪你走得更遠</p>
       <a href="#collection" class="primary-link">探索商品 <q-icon name="south_east" /></a>
     </section>
 
@@ -11,7 +11,7 @@
       <div class="section-heading">
         <p class="eyebrow">精選組合</p>
         <h2 class="text-bold">最適合的組合優惠</h2>
-        <p>結帳時，我們會自動為你套用最合適的組合優惠。</p>
+        <p>結帳時，我們會自動為你套用最合適的組合優惠</p>
       </div>
       <div class="offer-grid">
         <article v-for="combo in comboDeals" :key="combo.id" class="offer-card">
