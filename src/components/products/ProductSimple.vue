@@ -7,9 +7,9 @@
         <p class="eyebrow">CKSC COLLECTION</p>
         <h1>{{ config.product.name }}</h1>
         <p class="price"><del v-if="!config.hideOrPrice">NT$ {{ config.orPrice }}</del> NT$ {{ config.price }}</p>
-        <p class="description">一份小小的紀念，裝進校園裡最值得記得的片刻。</p>
+        <p class="description">一份小小的紀念，裝進校園裡最值得記得的片刻</p>
         <button type="button" class="primary-button" @click="add">加入購物袋 <q-icon name="add_shopping_cart" /></button>
-        <p class="reassurance">符合組合優惠時，將在結帳時自動折抵。</p>
+        <p class="reassurance">符合組合優惠時，將在結帳時自動折抵</p>
       </section>
     </div>
   </div>
