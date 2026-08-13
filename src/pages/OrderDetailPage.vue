@@ -6,7 +6,7 @@
   <div v-else-if="!order" class="state not-found">
     <p class="eyebrow">訂單詳情</p>
     <h2>找不到這筆訂單</h2>
-    <p class="state-copy">可能是訂單編號有誤，或訂單已被移除。</p>
+    <p class="state-copy">可能是訂單編號有誤，或訂單已被移除</p>
     <button type="button" class="btn-primary" @click="goBack">
       返回
     </button>
