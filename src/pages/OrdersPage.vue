@@ -3,7 +3,7 @@
     <header class="page-header">
       <p class="eyebrow">你的訂購紀錄</p>
       <h1>我的訂單</h1>
-      <p>每一筆訂單的進度，都可以在這裡輕鬆查看。</p>
+      <p>每一筆訂單的進度，都可以在這裡輕鬆查看</p>
     </header>
 
     <div v-if="loading" class="empty-state">正在尋找你的訂單</div>
