@@ -5,7 +5,7 @@
       <p class="eyebrow">CKSC COLLECTION</p>
       <h1>{{ config.title }}</h1>
       <p class="price">NT$ {{ config.price }}</p>
-      <p>選擇最想帶在身邊的款式。</p>
+      <p>選擇最想帶在身邊的款式</p>
     </section>
     <div class="variant-grid">
       <article v-for="product in config.variants" :key="product.id" class="variant-card">
