@@ -2,27 +2,29 @@
   <div class="auth-page">
     <div class="auth-shell">
       <header class="auth-header">
-        <p class="eyebrow">帳號</p>
-        <h1>登入 / 註冊</h1>
-        <p class="auth-subtitle">使用 Google 帳號，快速登入或建立新帳號。</p>
+        <p class="eyebrow">Account</p>
+        <h1>Sign In</h1>
+        <p class="auth-subtitle">Staff Only</p>
       </header>
 
   <div class="auth-card">
-    <div v-if="isInLineApp" class="notice">
-      <p class="notice-title">LINE 用戶請注意</p>
-      <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入。</p>
-      <button type="button" class="notice-btn" @click="openExternal">
-        開啟外部瀏覽器
-      </button>
-    </div>
+    <!--
+      <div v-if="isInLineApp" class="notice">
+        <p class="notice-title">LINE 用戶請注意</p>
+        <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入</p>
+        <button type="button" class="notice-btn" @click="openExternal">
+          開啟外部瀏覽器
+        </button>
+      </div>
 
-    <div class="notice">
-      <p class="notice-title">CK APP 用戶請注意</p>
-      <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入。</p>
-      <button type="button" class="notice-btn" @click="openExternal">
-        開啟外部瀏覽器
-      </button>
-    </div>
+      <div class="notice">
+        <p class="notice-title">CK APP 用戶請注意</p>
+        <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入</p>
+        <button type="button" class="notice-btn" @click="openExternal">
+          開啟外部瀏覽器
+        </button>
+      </div>
+    -->
 
     <button
       type="button"
