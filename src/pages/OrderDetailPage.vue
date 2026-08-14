@@ -7,128 +7,110 @@
     <p class="eyebrow">訂單詳情</p>
     <h2>找不到這筆訂單</h2>
     <p class="state-copy">可能是訂單編號有誤，或訂單已被移除</p>
-    <button type="button" class="btn-primary" @click="goBack">
-      返回
-    </button>
+    <button type="button" class="btn-primary" @click="goBack">返回</button>
   </div>
 
   <div v-else class="detail-page">
-
-    <section v-if="isAdminView" class="admin-actions">
-      <div class="action-group">
-        <q-btn-group flat rounded dense>
-          <q-btn
-            type="button"
-            class="action-btn delivered-btn"
-            :class="{ active: order.delivered }"
-            :disabled="order.delivered"
-            @click="setDelivered(true)"
-          >
-            已交貨
-          </q-btn>
-
-          <q-btn
-            type="button"
-            class="action-btn pending-btn"
-            :class="{ active: !order.delivered }"
-            :disabled="!order.delivered"
-            @click="setDelivered(false)"
-          >
-            未交貨
-          </q-btn>
-        </q-btn-group>
-      </div>
-
-      <div class="action-group">
-        <q-btn-group flat rounded dense>
-          <q-btn
-            type="button"
-            class="action-btn paid-btn"
-            :class="{ active: order.paid }"
-            :disabled="order.paid"
-            @click="setPaid(true)"
-          >
-            已付款
-          </q-btn>
-
-          <q-btn
-            type="button"
-            class="action-btn unpaid-btn"
-            :class="{ active: !order.paid }"
-            :disabled="!order.paid"
-            @click="setPaid(false)"
-          >
-            未付款
-          </q-btn>
-        </q-btn-group>
-      </div>
-    </section>
-
-    <header class="detail-hero">
-      <p class="eyebrow">訂單詳情</p>
-      <h1>訂單 {{ order.id }}</h1>
-      <span class="status-pill" :class="{ delivered: order.delivered }">
-        <i />{{ order.delivered ? '已交貨' : '未交貨' }}
-      </span>
-      <span class="status-pill" :class="{ delivered: order.paid }">
-        <i />{{ order.paid ? '已付款' : '未付款' }}
-      </span>
-    </header>
-
-    <section class="summary-card">
-      <div>
-        <p class="summary-label">總金額</p>
-        <p class="summary-value num">NT$ {{ order.finalTotal }}</p>
-      </div>
-      <div>
-        <p class="summary-label">下單時間</p>
-        <p class="summary-value">{{ formatDate(order.createdAt) }}</p>
-      </div>
-    </section>
-
-    <section v-if="order.customerName" class="info-block">
-      <p class="section-label">訂購人資訊</p>
-      <div class="info-grid">
-        <div>
-          <span>姓名</span>
-          <p>{{ order.customerName }}</p>
-        </div>
-        <div>
-          <span>電話</span>
-          <p>{{ order.customerPhone }}</p>
-        </div>
-        <div>
-          <span>Email</span>
-          <p>{{ order.customerEmail }}</p>
-        </div>
-        <div>
-          <span>學校</span>
-          <p>{{ order.school }}</p>
-        </div>
-        <div>
-          <span>班級</span>
-          <p>{{ order.class }}</p>
-        </div>
-        <div>
-          <span>座號</span>
-          <p>{{ order.number }}</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="items-block">
-      <p class="section-label">訂購項目</p>
-      <ul class="items-list">
-        <li v-for="item in order.items" :key="item.id + item.name">
-          <span class="item-name">{{ item.name }} <span class="qty">x {{ item.quantity }}</span></span>
-          <span class="num item-price">NT$ {{ item.price }}</span>
-        </li>
-      </ul>
-    </section>
-
-    <button type="button" class="btn-back" @click="goBack">
+    <button type="button" class="back-link" @click="goBack">
       ← 返回{{ isAdminRoute ? '訂單列表' : '我的訂單' }}
     </button>
+
+    <section v-if="isAdminView" class="admin-toolbar">
+      <div class="toggle-group">
+        <span class="toggle-label">交貨狀態</span>
+        <div class="toggle-switch">
+          <button
+            type="button"
+            :class="{ active: !order.delivered }"
+            @click="setDelivered(false)"
+          >未交貨</button>
+          <button
+            type="button"
+            :class="{ active: order.delivered }"
+            @click="setDelivered(true)"
+          >已交貨</button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <span class="toggle-label">付款狀態</span>
+        <div class="toggle-switch">
+          <button
+            type="button"
+            :class="{ active: !order.paid }"
+            @click="setPaid(false)"
+          >未付款</button>
+          <button
+            type="button"
+            :class="{ active: order.paid }"
+            @click="setPaid(true)"
+          >已付款</button>
+        </div>
+      </div>
+    </section>
+
+    <article class="receipt">
+      <header class="receipt-head">
+        <p class="eyebrow">訂單詳情</p>
+        <h1 class="mono">#{{ order.id }}</h1>
+        <p class="receipt-date">{{ formatDate(order.createdAt) }}</p>
+        <div class="status-pills">
+          <span class="status-pill" :class="{ on: order.delivered }">
+            <i />{{ order.delivered ? '已交貨' : '未交貨' }}
+          </span>
+          <span class="status-pill" :class="{ on: order.paid }">
+            <i />{{ order.paid ? '已付款' : '未付款' }}
+          </span>
+        </div>
+      </header>
+
+      <div class="receipt-divider" />
+
+      <section v-if="order.customerName" class="receipt-section">
+        <p class="section-label">訂購人</p>
+        <dl class="detail-list">
+          <div>
+            <dt>姓名</dt>
+            <dd>{{ order.customerName }}</dd>
+          </div>
+          <div>
+            <dt>電話</dt>
+            <dd class="mono">{{ order.customerPhone }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd class="mono">{{ order.customerEmail }}</dd>
+          </div>
+          <div>
+            <dt>學校</dt>
+            <dd>{{ order.school }}</dd>
+          </div>
+          <div>
+            <dt>班級座號</dt>
+            <dd>{{ order.classNumber || '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div class="receipt-divider" />
+
+      <section class="receipt-section">
+        <p class="section-label">訂購項目 <span class="num">{{ totalItemCount }}</span> 件</p>
+        <ul class="receipt-items">
+          <li v-for="item in order.items" :key="item.id + item.name">
+            <span class="item-name">{{ item.name }} <span class="qty num">×{{ item.quantity }}</span></span>
+            <span class="item-leader" aria-hidden="true" />
+            <span class="item-price num">NT$ {{ item.price }}</span>
+          </li>
+        </ul>
+      </section>
+
+      <div class="receipt-divider receipt-divider--dashed" />
+
+      <footer class="receipt-total">
+        <span>應付總額</span>
+        <strong class="num">NT$ {{ order.finalTotal }}</strong>
+      </footer>
+    </article>
   </div>
 </template>
 
@@ -145,6 +127,14 @@ import {
   updateOrderPayment,
   formatOrderDate
 } from 'src/services/orderService'
+import {
+  fetchOrderById,
+  canViewOrder,
+  updateOrderDelivery,
+  updateOrderPayment,
+  formatOrderDate
+} from 'src/services/orderService'
+import { getLocalOrder, isOrderSaved } from 'src/utils/localOrderStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -167,20 +157,35 @@ const isAdminView = computed(
     )
 )
 
+const totalItemCount = computed(
+  () => order.value?.items?.reduce((total, item) => total + item.quantity, 0) || 0
+)
+
 onMounted(async () => {
   const id = route.params.id
-  if (!isAdminRoute.value && !canViewOrder(id)) {
+  const allowed = isAdminRoute.value || canViewOrder(id) || isOrderSaved(id)
+
+  if (!allowed) {
     loading.value = false
     toast.show('無權查看此訂單')
     return
   }
+
   try {
     order.value = await fetchOrderById(id)
-  } catch {
-    toast.show('載入失敗')
-  } finally {
-    loading.value = false
+  } catch (error) {
+    console.error('Firestore fetch failed, falling back to local copy', error)
   }
+
+  if (!order.value) {
+    order.value = getLocalOrder(id)
+  }
+
+  if (!order.value) {
+    toast.show('載入失敗')
+  }
+
+  loading.value = false
 })
 
 function formatDate(ts) {
@@ -192,7 +197,7 @@ function goBack() {
 }
 
 async function setDelivered(delivered) {
-  if (!isAdminView.value || !order.value) return
+  if (!isAdminView.value || !order.value || order.value.delivered === delivered) return
   try {
     const patch = await updateOrderDelivery(order.value.id, delivered, {
       deliveryUpdatedByName: auth.user?.name || '管理員',
@@ -205,7 +210,7 @@ async function setDelivered(delivered) {
 }
 
 async function setPaid(paid) {
-  if (!isAdminView.value || !order.value) return
+  if (!isAdminView.value || !order.value || order.value.paid === paid) return
   try {
     const patch = await updateOrderPayment(order.value.id, paid, {
       paymentUpdatedByName: auth.user?.name || '管理員',
