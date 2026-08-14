@@ -127,14 +127,6 @@ import {
   updateOrderPayment,
   formatOrderDate
 } from 'src/services/orderService'
-import {
-  fetchOrderById,
-  canViewOrder,
-  updateOrderDelivery,
-  updateOrderPayment,
-  formatOrderDate
-} from 'src/services/orderService'
-import { getLocalOrder, isOrderSaved } from 'src/utils/localOrderStore'
 
 const route = useRoute()
 const router = useRouter()
