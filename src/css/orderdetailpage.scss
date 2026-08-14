@@ -1,10 +1,10 @@
 .state,
 .detail-page {
   box-sizing: border-box;
-  max-width: 640px;
+  max-width: 560px;
   min-height: 60vh;
   margin: 0 auto;
-  padding: 96px 24px 96px;
+  padding: 72px 24px 96px;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
     'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.65;
@@ -27,32 +27,37 @@
   letter-spacing: 0;
 }
 
+.mono {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
+  letter-spacing: 0;
+  font-size: .92em;
+  word-break: break-all;
+}
+
 .eyebrow {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: #6e6e73;
   font-size: .72rem;
   font-weight: 700;
   letter-spacing: .06em;
 }
 
-h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3, p, dl, dd { margin: 0; }
 
-.detail-hero {
-  margin-bottom: 32px;
-  text-align: center;
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6e6e73;
+  font-size: .85rem;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.detail-hero h1 {
-  margin-bottom: 16px;
-  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
-  line-height: 1.25;
-  letter-spacing: -.01em;
-  font-weight: 700;
-}
-
-.detail-hero .status-pill + .status-pill {
-  margin-left: 8px;
-}
+.back-link:hover { color: #1d1d1f; }
 
 .state.not-found h2 {
   margin-bottom: 10px;
@@ -69,15 +74,99 @@ h1, h2, h3, p { margin-top: 0; }
   font-size: .95rem;
 }
 
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.toggle-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.toggle-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #6e6e73;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.toggle-switch {
+  display: flex;
+  padding: 3px;
+  border: 1px solid #e5e5e7;
+  border-radius: 999px;
+  background: #f5f5f7;
+}
+
+.toggle-switch button {
+  flex: 1;
+  padding: 9px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6e6e73;
+  font-family: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+
+.toggle-switch button.active {
+  background: #1d1d1f;
+  color: #fff;
+}
+
+/* ===== 收據卡片 ===== */
+
+.receipt {
+  border: 1px solid #e5e5e7;
+  border-radius: 24px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.receipt-head {
+  padding: 32px 28px 24px;
+  text-align: center;
+}
+
+.receipt-head h1 {
+  margin-bottom: 6px;
+  font-size: clamp(1.3rem, 3.6vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.receipt-date {
+  margin-bottom: 16px;
+  color: #86868b;
+  font-size: .82rem;
+}
+
+.status-pills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 16px;
+  padding: 6px 14px;
   border-radius: 999px;
   background: #f5f5f7;
   color: #6e6e73;
-  font-size: .8rem;
+  font-size: .78rem;
   font-weight: 600;
 }
 
@@ -88,43 +177,27 @@ h1, h2, h3, p { margin-top: 0; }
   background: #ff9f0a;
 }
 
-.status-pill.delivered {
+.status-pill.on {
   background: #1d1d1f;
   color: #fff;
 }
 
-.status-pill.delivered i { background: #32d74b; }
+.status-pill.on i { background: #32d74b; }
 
-.summary-card {
-  display: flex;
-  margin-bottom: 16px;
-  padding: 28px;
-  border-radius: 20px;
-  background: #1d1d1f;
-  color: #fff;
+.receipt-divider {
+  height: 1px;
+  margin: 0 28px;
+  background: #ececee;
 }
 
-.summary-card > div { flex: 1; }
-.summary-card > div + div { border-left: 1px solid rgba(255, 255, 255, .16); padding-left: 24px; }
-
-.summary-label {
-  margin-bottom: 6px;
-  color: #a1a1a6;
-  font-size: .78rem;
+.receipt-divider--dashed {
+  height: 0;
+  border-top: 1px dashed #d2d2d7;
+  background: none;
 }
 
-.summary-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.info-block,
-.items-block {
-  margin-bottom: 16px;
-  padding: 24px;
-  border: 1px solid #e5e5e7;
-  border-radius: 20px;
-  background: #fff;
+.receipt-section {
+  padding: 24px 28px;
 }
 
 .section-label {
@@ -135,156 +208,88 @@ h1, h2, h3, p { margin-top: 0; }
   letter-spacing: .04em;
 }
 
-.info-grid {
+.detail-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px 20px;
 }
 
-.info-grid > div span {
-  display: block;
+.detail-list dt {
   margin-bottom: 4px;
   color: #6e6e73;
   font-size: .75rem;
 }
 
-.info-grid > div p {
-  font-size: .95rem;
+.detail-list dd {
+  font-size: .93rem;
   font-weight: 500;
   word-break: break-word;
 }
 
-.items-list { list-style: none; padding: 0; margin: 0; }
+.receipt-items {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
 
-.items-list li {
+.receipt-items li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.item-name {
+  flex-shrink: 0;
+  font-size: .92rem;
+}
+
+.qty { color: #86868b; font-size: .8rem; }
+
+.item-leader {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 1px dotted #d2d2d7;
+  transform: translateY(-4px);
+}
+
+.item-price {
+  flex-shrink: 0;
+  color: #515154;
+  font-size: .9rem;
+}
+
+.receipt-total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 13px 0;
-}
-
-.items-list li + li { border-top: 1px solid #ececee; }
-
-.item-name { font-size: .95rem; }
-.qty { color: #6e6e73; font-size: .85rem; }
-.item-price { color: #6e6e73; font-size: .9rem; }
-
-.admin-actions {
-  display: flex;
-  flex-direction: column; /* delivery status and payment status each get their own full-width row */
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.action-group {
-  width: 100%;
-}
-
-.group-label {
-  margin-bottom: 8px;
-  color: #6e6e73;
-  font-size: .75rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-}
-
-.action-group .q-btn-group {
-  display: flex;
-  width: 100%;
-}
-
-.action-btn {
-  flex: 1;
-  min-width: 0;
-  height: 52px;
-  padding: 0 8px;
-  border-radius: 16px;
-  border: 1px solid #e5e5e7;
-  background: #fff;
-  color: black;
-  font-size: .92rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .25s ease;
-}
-
-.action-btn:hover {
-  transform: translateY(-1px);
-}
-
-.delivered-btn.active,
-.paid-btn.active {
-  background: black;
-  border-color: black;
-  color: white;
-}
-
-.pending-btn.active,
-.unpaid-btn.active {
-  background: #f5f5f7;
-  border-color: #d2d2d7;
+  padding: 22px 28px 28px;
+  background: #fafafa;
   color: #1d1d1f;
+  font-size: .95rem;
+  font-weight: 600;
 }
 
-@media (max-width: 700px) {
-  .action-btn {
-    height: 44px;
-  }
+.receipt-total strong {
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
-@media (max-width: 380px) {
-  .admin-actions {
-    gap: 6px;
-  }
-
-  .action-btn {
-    height: 36px;
-    border-radius: 12px;
-  }
-}
-
-.btn-primary,
-.btn-secondary {
-  flex: 1;
-  padding: 12px 18px;
+.btn-primary {
+  padding: 12px 24px;
   border: none;
   border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
   font-size: .9rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.btn-primary {
-  background: #1d1d1f;
-  color: #fff;
-}
-
-.btn-secondary {
-  background: #f5f5f7;
-  color: #1d1d1f;
-}
-
-.state.not-found .btn-primary {
-  flex: none;
-  padding: 12px 24px;
-}
-
-.btn-back {
-  display: block;
-  width: 100%;
-  padding: 13px;
-  border: 1px solid #e5e5e7;
-  border-radius: 999px;
-  background: none;
-  color: #6e6e73;
-  font-size: .88rem;
-  cursor: pointer;
-}
-
-@media (max-width: 700px) {
-  .state, .detail-page { padding: 32px 16px 72px; }
-  .info-grid { grid-template-columns: 1fr; }
-  .summary-card { flex-direction: column; gap: 16px; }
-  .summary-card > div + div { border-left: none; padding-left: 0; border-top: 1px solid rgba(255, 255, 255, .16); padding-top: 16px; }
+@media (max-width: 560px) {
+  .state, .detail-page { padding: 40px 16px 72px; }
+  .detail-list { grid-template-columns: 1fr; }
+  .receipt-head, .receipt-section { padding-left: 20px; padding-right: 20px; }
+  .receipt-total { padding-left: 20px; padding-right: 20px; }
+  .receipt-divider { margin-left: 20px; margin-right: 20px; }
 }
