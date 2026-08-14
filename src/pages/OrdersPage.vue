@@ -78,7 +78,7 @@
         <p class="eyebrow">兌換憑證</p>
         <h3>訂單 <span class="num">#{{ activeOrder ? shortId(activeOrder.id) : '' }}</span></h3>
         <canvas ref="modalQrCanvas" class="qr-modal-canvas" />
-        <p class="qr-modal-hint">校慶現場出示此 QR code 即可兌換商品</p>
+        <p class="qr-modal-hint">出示 QR Code 以領取商品</p>
       </div>
     </q-dialog>
   </div>
@@ -89,6 +89,7 @@ import { nextTick, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
 import { useToastStore } from 'src/stores/toast'
 import { deleteOrderById, fetchBuyerOrders, formatOrderDate } from 'src/services/orderService'
+
 
 const toast = useToastStore()
 const orders = ref([])
@@ -154,7 +155,7 @@ async function openQr(order) {
 }
 
 function formatDate(timestamp) { return formatOrderDate(timestamp) }
-function shortId(id) { return String(id).slice(-8).toUpperCase() }
+function shortId(id) { return String(id).toUpperCase() }
 function itemSummary(items) {
   const count = items.reduce((total, item) => total + item.quantity, 0)
   const names = items.map((item) => item.name).slice(0, 2).join('、')

@@ -371,3 +371,99 @@ export const sendOrderNotification = functions
     }
 
   })
+
+const SCHOOL_IDENTITIES = {
+  '建國中學': 'CKS',
+  '北一女中': 'TFG',
+  '中山女高': 'ZS',
+  '景美女中': 'JM',
+  '成功高中': 'CG',
+  '師大附中': 'HSNU',
+  '建中家長會': 'CKP',
+  '建中老師': 'CKT',
+  '其他學校或社會人士': 'O'
+}
+
+function getTaiwanDateString() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date())
+
+  const values = Object.fromEntries(
+    parts
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  )
+
+  return `${values.year}${values.month}${values.day}`
+}
+
+function getSchoolIdentity(school) {
+  return SCHOOL_IDENTITIES[school] || 'O'
+}
+
+async function generateOrderId(school) {
+  const identity = getSchoolIdentity(school)
+  const date = getTaiwanDateString()
+
+  const counterRef = db
+    .collection('orderCounters')
+    .doc(date)
+
+  const serialNumber = await db.runTransaction(async transaction => {
+    const counterSnap = await transaction.get(counterRef)
+
+    const currentSerial = counterSnap.exists
+      ? Number(counterSnap.data()?.serialNumber || 0)
+      : 0
+
+    const nextSerial = currentSerial + 1
+
+    transaction.set(
+      counterRef,
+      {
+        date,
+        serialNumber: nextSerial,
+        updatedAt: new Date()
+      },
+      { merge: true }
+    )
+
+    return nextSerial
+  })
+
+  return `${identity}${date}${String(serialNumber).padStart(4, '0')}`
+}
+
+export const createOrder = functions
+  .region('asia-east1')
+  .https.onCall(async (data, context) => {
+    const orderPayload = data?.orderPayload
+
+    if (!orderPayload || typeof orderPayload !== 'object') {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        '訂單資料無效'
+      )
+    }
+
+    const orderId = await generateOrderId(
+      orderPayload.school
+    )
+
+    await db
+      .collection('orders')
+      .doc(orderId)
+      .set({
+        ...orderPayload,
+        createdAt: new Date()
+      })
+
+    return {
+      status: 201,
+      id: orderId
+    }
+  })

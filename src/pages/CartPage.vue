@@ -114,8 +114,9 @@
               <option v-for="school in schools" :key="school" :value="school">{{ school }}</option>
             </select>
           </label>
-          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士'">班級<input required v-model="checkout.class" placeholder="例：329/三數"></label>
-          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士'">座號<input required v-model="checkout.number" placeholder="例：01"></label>
+          <label v-if="checkout.school == '建中老師'">辦公室<input required v-model="checkout.office" placeholder="例：莊三"></label>
+          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士' && checkout.school != '建中老師'">班級<input required v-model="checkout.class" placeholder="例：329/三數"></label>
+          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士' && checkout.school != '建中老師'">座號<input required v-model="checkout.number" placeholder="例：01"></label>
 
           <label class="remember"><input v-model="rememberMe" type="checkbox">在這台裝置記住我的資料</label>
 
