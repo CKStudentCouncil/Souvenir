@@ -62,7 +62,7 @@ public/                    # Static assets
 - Node.js 18, 20, 22, or 24
 - npm or yarn
 - Firebase CLI for Firebase deployment
-
+<!--
 ## Local Development
 
 ### 1. Install Dependencies
@@ -86,12 +86,37 @@ Create a production build with:
 ```bash
 npm run build
 ```
+-->
+## Local Development With Docker
+
+### 1. Build Image
+
+```bash
+docker build -t my-souvenir-app .
+```
+
+### 2. Run Container
+
+```bash
+docker run -p 9000:9000 my-souvenir-app
+```
+
+This launches the Quasar/Vite development server.
+
+## Production Build
+
+Create a production build with:
+
+```bash
+docker run --rm -p 9000:9000 my-souvenir-app npm run build
+```
 
 The generated SPA files are written to:
 
 ```text
 dist/spa
 ```
+
 
 ## Firebase Configuration
 

@@ -13,7 +13,7 @@
         <p>有訂購或商品問題，歡迎透過以下方式聯繫我們：</p>
         <ul>
           <li>開發者孫逢邦：<span class="mono">chris20090731@gmail.com</span></li>
-          <li>開發者唐盛鈞：<span class="mono">ck11300329@gl.ck.tp.edu.tw</span></li>
+          <li>開發者唐盛鈞：<span class="mono">08020jt@gmail.com</span></li>
           <li>建國中學班聯會：<span class="mono">ckhssc@gl.ck.tp.edu.tw</span></li>
           <li>建中班聯資訊股：<span class="mono">ckscitdivision@gmail.com</span></li>
         </ul>
