@@ -40,7 +40,7 @@
 
       <div class="actions">
         <button type="button" class="primary-button" @click="openSurvey">分享使用心得</button>
-        <a href="https://www.instagram.com/cksc.80th/" target="_blank" rel="noopener" class="ghost-button">
+        <a href="https://www.instagram.com/cksc.81th/" target="_blank" rel="noopener" class="ghost-button">
           <svg class="ig-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="1.6"/>
             <circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6"/>
