@@ -20,7 +20,7 @@
 
         <div class="divider" />
 
-        <p class="description">一份小小的紀念，裝進校園裡最值得記得的片刻</p>
+        <p class="description">一份小小的紀念，裝進校園裡最值得記得的片段</p>
 
         <button type="button" class="primary-button" @click="add">
           加入購物袋

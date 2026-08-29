@@ -11,7 +11,7 @@
         >
       </div>
 
-      <section class="purchase-panel">
+      <section class="purchase-card">
         <p class="eyebrow">CKSC COLLECTION</p>
         <h1>{{ config.title }}</h1>
         <p class="price">
@@ -316,6 +316,14 @@ h1 {
 .primary-button:disabled {
   background: #d2d2d7;
   cursor: not-allowed;
+}
+
+.purchase-card {
+  max-width: 420px;
+  padding: 36px;
+  border: 1px solid #e5e5e7;
+  border-radius: 28px;
+  background: #fff;
 }
 
 @media (max-width: 700px) {
