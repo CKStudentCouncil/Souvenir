@@ -15,8 +15,8 @@
         <p class="eyebrow">CKSC COLLECTION</p>
         <h1>{{ config.title }}</h1>
         <p class="price">
-          <del v-if="config.orPrice">NT$ {{ config.orPrice }}</del>
-          NT$ {{ config.price }}
+          <del v-if="config.orPrice" class="num">NT$ {{ config.orPrice }}</del>
+          <span class="num">NT$ {{ config.price }}</span>
         </p>
 
         <p id="size-label" class="choose-label">選擇尺寸</p>
@@ -46,7 +46,9 @@
 
         <div v-if="showGuide" id="size-guide" class="size-guide">
           <table>
-            <caption>尺寸表（單位：cm）</caption>
+            <caption style="font-weight: 600">
+              尺寸表（單位：cm）
+            </caption>
             <thead>
               <tr>
                 <th scope="col">尺寸</th>
@@ -110,6 +112,15 @@ function add() {
   max-width: 1120px;
   margin: auto;
   padding: 32px 24px 96px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.num {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans TC', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .back-link {
@@ -158,9 +169,10 @@ function add() {
 
 h1 {
   margin: 0 0 14px;
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  line-height: 1;
-  letter-spacing: -.06em;
+  font-size: clamp(2.2rem, 4.6vw, 3.6rem);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  font-weight: 700;
 }
 
 .price {
