@@ -267,6 +267,21 @@
       </button>
     </div>
 
+    <div v-if="canManageOrders" class="panel export-panel">
+      <div>
+        <h2>班代領取收據</h2>
+        <p class="panel-copy">依目前的學校篩選，產生所有班級的領取收據；每個班級會有獨立頁面。</p>
+      </div>
+      <button
+        type="button"
+        class="btn"
+        :disabled="generatingClassReceipts"
+        @click="downloadAllClassReceipts"
+      >
+        {{ generatingClassReceipts ? '開啟中...' : '產生所有班級收據' }}
+      </button>
+    </div>
+
     <div
       v-if="canManageOrders && activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
       class="panel"
@@ -449,6 +464,7 @@ const displayName = ref('管理員')
 const checkingAdmin = ref(true)
 const showNotifyModal = ref(false)
 const sendingNotify = ref(false)
+const generatingClassReceipts = ref(false)
 const notifyForm = ref({
   type: 'payment',
   school: 'all',
@@ -527,6 +543,119 @@ onActivated(() => {
 
 function viewOrderDetail(orderId) {
   router.push({ name: 'admin-order-detail', params: { id: orderId } })
+}
+
+function downloadAllClassReceipts() {
+  if (loading.value) {
+    toast.show('訂單資料載入中，請稍後再試')
+    return
+  }
+
+  const classOrders = orders.value.filter(
+    (order) =>
+      getClassName(order) &&
+      (selectedSchool.value === 'all' || order.school === selectedSchool.value)
+  )
+  if (!classOrders.length) {
+    toast.show('目前篩選條件下沒有可產生收據的班級訂單')
+    return
+  }
+
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    toast.show('無法開啟列印視窗，請允許此網站開啟彈出式視窗後再試一次')
+    return
+  }
+
+  generatingClassReceipts.value = true
+  try {
+    printWindow.document.write(buildAllClassReceiptsHtml(classOrders))
+    printWindow.document.close()
+    printWindow.focus()
+    window.setTimeout(() => printWindow.print(), 300)
+  } catch (error) {
+    console.error('All class receipts generation failed:', error)
+    printWindow.close()
+    toast.show('班級收據產生失敗，請再試一次')
+  } finally {
+    generatingClassReceipts.value = false
+  }
+}
+
+function getClassName(order) {
+  return order.class || order.classNumber || ''
+}
+
+function escapeHtml(value) {
+  return String(value ?? '—')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function buildAllClassReceiptsHtml(classOrders) {
+  const groupedOrders = classOrders.reduce((groups, order) => {
+    const key = `${order.school}\u0000${getClassName(order)}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(order)
+    return groups
+  }, new Map())
+
+  const receipts = [...groupedOrders.entries()]
+    .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey, 'zh-Hant'))
+    .map(([, grouped]) => buildClassReceiptSection(grouped))
+    .join('')
+
+  return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>所有班級代表領取收據</title>
+    <style>
+      @page { size: A4 portrait; margin: 12mm; } * { box-sizing: border-box; }
+      body { margin: 0; color: #111; font-family: 'Noto Sans TC', 'Microsoft JhengHei', Arial, sans-serif; }
+      .class-sheet { height: 273mm; break-after: page; page-break-after: always; } .class-sheet:last-child { break-after: auto; page-break-after: auto; }
+      .receipt { height: 134mm; padding: 3mm 4mm; border: 1px solid #222; overflow: hidden; } .receipt + .receipt { margin-top: 5mm; border-top: 1px dashed #555; }
+      header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 2mm; border-bottom: 1px solid #222; }
+      header p { margin: 0 0 1px; font-size: 8pt; font-weight: 600; } h1 { margin: 0; font-size: 14pt; letter-spacing: .06em; } header strong { font-size: 8pt; }
+      .meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1mm 6mm; margin: 2mm 0; font-size: 8pt; }
+      .notice { margin: 2mm 0; padding: 1.5mm; border: 1px solid #555; background: #f5f5f5; font-size: 7pt; }
+      table { width: 100%; border-collapse: collapse; font-size: 7.5pt; } th, td { padding: 1mm 1.5mm; border: 1px solid #555; vertical-align: top; } th { background: #f0f0f0; } th:nth-child(1), td:nth-child(1), th:nth-child(4), td:nth-child(4) { text-align: right; white-space: nowrap; }
+      .summary { display: flex; justify-content: flex-end; gap: 6mm; margin: 2mm 0; font-size: 8pt; } .summary strong { font-size: 10pt; }
+      footer { display: flex; justify-content: space-between; gap: 6mm; margin-top: 5mm; font-size: 8pt; } footer p { margin: 0; } footer span { display: inline-block; width: 48mm; border-bottom: 1px solid #111; }
+    </style></head><body>${receipts}<script>window.onafterprint = () => window.close()<\/script></body></html>`
+}
+
+function buildClassReceiptSection(groupedOrders) {
+  const firstOrder = groupedOrders[0]
+  const sortedOrders = [...groupedOrders].sort((a, b) =>
+    String(a.number || '').localeCompare(String(b.number || ''), 'zh-Hant', { numeric: true })
+  )
+  const totalAmount = sortedOrders.reduce((sum, order) => sum + Number(order.finalTotal || 0), 0)
+  const totalItems = sortedOrders.reduce(
+    (sum, order) => sum + (order.items || []).reduce(
+      (itemSum, item) => itemSum + Number(item.quantity || 0),
+      0
+    ),
+    0
+  )
+  const studentRows = sortedOrders
+    .map((order) => {
+      const products = (order.items || [])
+        .map((item) => `${escapeHtml(item.name)} ×${escapeHtml(item.quantity)}`)
+        .join('<br>')
+      return `<tr><td>${escapeHtml(order.number)}</td><td>${escapeHtml(order.customerName)}</td><td>${products}</td><td>NT$ ${escapeHtml(order.finalTotal)}</td></tr>`
+    })
+    .join('')
+
+  const makeCopy = (copyLabel) => `<section class="receipt">
+    <header><div><p>建國中學班聯會</p><h1>班級代表領取收據</h1></div><strong>${copyLabel}</strong></header>
+    <div class="meta"><span>學校：${escapeHtml(firstOrder.school)}</span><span>班級：${escapeHtml(getClassName(firstOrder))}</span><span>訂單數量：${sortedOrders.length} 份</span><span>產生日期：${escapeHtml(formatDate(new Date()))}</span></div>
+    <p class="notice">班級代表確認已代為領取下列同班同學的紀念品，並應將商品轉交給各訂購人。</p>
+    <table><thead><tr><th>座號</th><th>學生姓名</th><th>訂購品項</th><th>訂單金額</th></tr></thead><tbody>${studentRows}</tbody></table>
+    <div class="summary"><span>商品總件數：<b>${totalItems}</b></span><span>訂單總額：<strong>NT$ ${totalAmount}</strong></span></div>
+    <footer><p>班級代表簽名：<span></span></p><p>班聯會工作人員簽名：<span></span></p></footer>
+  </section>`
+
+  return `<section class="class-sheet">${makeCopy('班聯會留存聯')}${makeCopy('班級代表收執聯')}</section>`
 }
 
 function confirmDelete(orderId) {

@@ -81,6 +81,39 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   margin-bottom: 20px;
 }
 
+.receipt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e5e5e7;
+  border-radius: 16px;
+  background: #fafafa;
+}
+
+.receipt-actions__title {
+  font-size: .92rem;
+  font-weight: 700;
+}
+
+.receipt-actions__hint {
+  margin-top: 3px;
+  color: #6e6e73;
+  font-size: .78rem;
+}
+
+.receipt-actions .btn-primary {
+  flex-shrink: 0;
+  padding: 10px 16px;
+}
+
+.receipt-actions .btn-primary:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
 .toggle-group {
   flex: 1;
   min-width: 180px;
@@ -292,4 +325,5 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   .receipt-head, .receipt-section { padding-left: 20px; padding-right: 20px; }
   .receipt-total { padding-left: 20px; padding-right: 20px; }
   .receipt-divider { margin-left: 20px; margin-right: 20px; }
+  .receipt-actions { align-items: flex-start; flex-direction: column; }
 }
