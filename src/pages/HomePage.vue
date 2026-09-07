@@ -7,7 +7,7 @@
       <a href="#collection" class="primary-link">探索商品 <q-icon name="south_east" /></a>
     </section>
 
-    <section class="offers" style="margin-top: -40px;">
+    <!--<section class="offers" style="margin-top: -40px;">
       <div class="section-heading">
         <p class="eyebrow">精選組合</p>
         <h2 class="text-bold">最適合的組合優惠</h2>
@@ -24,7 +24,7 @@
           </span>
         </article>
       </div>
-    </section>
+    </section>-->
 
     <section id="collection" class="collection">
       <div class="section-heading">
