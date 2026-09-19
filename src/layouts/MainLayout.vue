@@ -127,7 +127,7 @@
             <a href="https://cktfgpromo.cksc.tw" target="_blank">建北特約官網</a>
               <div class="footer-social">
               <a
-                href="https://www.instagram.com/cksc.81th/"
+                href="https://www.instagram.com/cksc.81st/"
                 target="_blank"
                 rel="noopener"
                 aria-label="Instagram"
