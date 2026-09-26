@@ -1,5 +1,5 @@
 # 依賴與編譯產物 (Dependencies & Build Artifacts)
-node_modules
+**/node_modules
 .quasar
 dist
 
@@ -18,3 +18,5 @@ docker-compose.yml
 # 系統雜訊與記錄檔 (System noise & Logs)
 *.log
 .DS_Store
+.firebase
+.idea

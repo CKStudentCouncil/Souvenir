@@ -1,0 +1,187 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules
+//
+// Who does what:
+//   guests       – signed in anonymously when they check out; can read and
+//                  cancel only their own orders (orders.ownerUid).
+//   manager      – 友校幹部: survey results; sends notifications via a Cloud Function.
+//   admin        – 建班幹部: all orders, payment/delivery status.
+//   super_admin  – 系統管理員: everything above plus user management.
+// Orders and order counters are only created by the createOrder Cloud
+// Function (Admin SDK, which bypasses these rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function hasRole(roles) {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.get('role', '') in roles;
+    }
+
+    function isStaff() {
+      return hasRole(['manager', 'admin', 'super_admin']);
+    }
+
+    function isAdmin() {
+      return hasRole(['admin', 'super_admin']);
+    }
+
+    function isSuperAdmin() {
+      return hasRole(['super_admin']);
+    }
+
+    // Google account with a verified email (anonymous users have none).
+    function hasVerifiedEmail() {
+      return signedIn()
+        && request.auth.token.get('email', null) is string
+        && request.auth.token.get('email_verified', false) == true;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    // Optional text field: absent, or a string of at most `max` characters.
+    function isShortText(data, key, max) {
+      return !(key in data) || (data[key] is string && data[key].size() <= max);
+    }
+
+    // ---------- Staff accounts ----------
+
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow list: if isSuperAdmin();
+
+      // First sign-in of an invited staff member: copies the role from the
+      // invitation (pendingUsers/{pendingId}) that matches their email.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && isValidActivation(request.resource.data);
+
+      // Super admins manage roles; everyone may refresh their own profile.
+      allow update: if isSuperAdmin()
+        || (hasVerifiedEmail()
+            && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['email', 'displayName', 'photoURL', 'updatedAt'])
+            && request.resource.data.get('email', '') == myEmail()
+            && isShortText(request.resource.data, 'displayName', 100)
+            && isShortText(request.resource.data, 'photoURL', 2048)
+            && isShortText(request.resource.data, 'updatedAt', 40));
+
+      allow delete: if isSuperAdmin() && request.auth.uid != uid;
+    }
+
+    // The invitation must be deleted in the same batch, so it can't be
+    // reused to regain access after the account is removed.
+    function isValidActivation(data) {
+      let invitePath = /databases/$(database)/documents/pendingUsers/$(data.pendingId);
+      return hasVerifiedEmail()
+        && data.keys().hasOnly(['email', 'displayName', 'photoURL', 'name', 'role', 'uid',
+                                'pending', 'pendingId', 'createdAt', 'updatedAt'])
+        && data.pendingId is string
+        && data.uid == request.auth.uid
+        && data.email == myEmail()
+        && data.get('pending', false) == false
+        && isShortText(data, 'displayName', 100)
+        && isShortText(data, 'name', 100)
+        && isShortText(data, 'photoURL', 2048)
+        && isShortText(data, 'createdAt', 40)
+        && isShortText(data, 'updatedAt', 40)
+        && exists(invitePath)
+        && get(invitePath).data.email == myEmail()
+        && get(invitePath).data.role == data.role
+        && !existsAfter(invitePath);
+    }
+
+    // Invitations created on the account page; the invitee reads theirs at
+    // sign-in and deletes it once activated.
+    match /pendingUsers/{inviteId} {
+      allow read: if isSuperAdmin()
+        || (hasVerifiedEmail() && resource.data.email == myEmail());
+
+      allow create, update: if isSuperAdmin()
+        && request.resource.data.email is string
+        && request.resource.data.role in ['manager', 'admin', 'super_admin'];
+
+      allow delete: if isSuperAdmin()
+        || (hasVerifiedEmail() && resource.data.email == myEmail());
+    }
+
+    // ---------- Orders ----------
+
+    match /orders/{orderId} {
+      function isOwner() {
+        return signedIn() && resource.data.get('ownerUid', null) == request.auth.uid;
+      }
+
+      allow get, list: if isOwner() || isAdmin();
+
+      // Only the createOrder Cloud Function creates orders (it validates prices).
+      allow create: if false;
+
+      // Admins change payment/delivery status only; items and prices stay fixed.
+      allow update: if isAdmin() && isValidStatusChange();
+
+      // Buyers can cancel their own order until it is paid or delivered.
+      allow delete: if isAdmin()
+        || (isOwner()
+            && resource.data.get('paid', false) == false
+            && resource.data.get('delivered', false) == false);
+    }
+
+    function isValidStatusChange() {
+      let data = request.resource.data;
+      let changed = data.diff(resource.data).affectedKeys();
+      return changed.hasOnly([
+          'delivered', 'deliveryUpdatedAt', 'deliveryUpdatedBy', 'deliveryUpdatedByName',
+          'paid', 'paymentUpdatedAt', 'paymentUpdatedBy', 'paymentUpdatedByName'])
+        && data.get('delivered', false) is bool
+        && data.get('paid', false) is bool
+        // "Updated by" must be the admin making the change.
+        && (!('deliveryUpdatedBy' in changed) || data.deliveryUpdatedBy == request.auth.uid)
+        && (!('paymentUpdatedBy' in changed) || data.paymentUpdatedBy == request.auth.uid)
+        && isShortText(data, 'deliveryUpdatedByName', 100)
+        && isShortText(data, 'paymentUpdatedByName', 100);
+    }
+
+    // Daily order-number counters: Cloud Functions only.
+    match /orderCounters/{date} {
+      allow read, write: if false;
+    }
+
+    // ---------- Survey ----------
+
+    match /surveyResponses/{responseId} {
+      allow create: if isValidSurvey(request.resource.data);
+      allow read: if isStaff();
+      allow update, delete: if false;
+    }
+
+    function isValidSurvey(data) {
+      return data.keys().hasOnly(['identity', 'channels', 'device', 'scores', 'issueCount',
+                                  'issueTypes', 'improvement', 'suggestion', 'createdAt'])
+        && data.identity is string && data.identity.size() <= 50
+        && data.channels is list && data.channels.size() <= 20
+        && data.device is string && data.device.size() <= 50
+        && data.scores is map && data.scores.size() <= 50
+        && data.scores.values().hasOnly([1, 2, 3, 4, 5])
+        && data.issueCount is string && data.issueCount.size() <= 50
+        && data.issueTypes is list && data.issueTypes.size() <= 20
+        && data.improvement is string && data.improvement.size() <= 2000
+        && data.suggestion is string && data.suggestion.size() <= 2000
+        && data.createdAt == request.time;
+    }
+
+    // Anything not matched above is denied.
+  }
+}

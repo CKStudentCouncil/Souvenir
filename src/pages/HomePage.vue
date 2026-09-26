@@ -7,7 +7,7 @@
       <a href="#collection" class="primary-link">探索商品 <q-icon name="south_east" /></a>
     </section>
 
-    <!--<section class="offers" style="margin-top: -40px;">
+    <section v-if="comboDeals.length" class="offers" style="margin-top: -40px;">
       <div class="section-heading">
         <p class="eyebrow">精選組合</p>
         <h2 class="text-bold">最適合的組合優惠</h2>
@@ -24,7 +24,7 @@
           </span>
         </article>
       </div>
-    </section>-->
+    </section>
 
     <section id="collection" class="collection">
       <div class="section-heading">
@@ -35,10 +35,10 @@
         <router-link
           v-for="product in products"
           :key="product.id"
-          :to="`/product/${product.textid}`"
+          :to="`/product/${product.id}`"
           class="product-card"
         >
-          <div class="product-image"><img :src="`/images/product-${product.textid}.png`" :alt="product.name" loading="lazy"></div>
+          <div class="product-image"><img :src="`/images/product-${product.id}.png`" :alt="product.name" loading="lazy"></div>
           <div class="product-meta"><div><p class="product-category">{{ product.category }}</p><h3>{{ product.name }}</h3></div><q-icon name="arrow_forward" /></div>
           <p class="price">
             <del v-if="product.orPrice && product.orPrice !== product.price" class="num">NT$ {{ product.orPrice }}</del>
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { comboDeals, products } from 'src/data/catalog'
+import { comboDeals, products } from 'shared/catalog'
 </script>
 
 <style scoped>

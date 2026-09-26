@@ -1,6 +1,6 @@
-# 1. 使用符合你 engines 規範的 Node.js 20 輕量版本
-# Use a lightweight Node.js 20 version matching your engines specification
-FROM node:20-slim
+# 1. 使用符合你 engines 規範的 Node.js 22 輕量版本
+# Use a lightweight Node.js 22 version matching your engines specification
+FROM node:22-slim
 
 # 2. 設定容器內的工作目錄
 # Set the working directory inside the container
@@ -10,9 +10,9 @@ WORKDIR /app
 # Copy package.json and lock files first to leverage Docker's caching mechanism
 COPY package*.json ./
 
-# 4. 安裝你的 dependencies (這裡會自動把 html2pdf.js 等所有套件抓下來)
-# Install your dependencies (this automatically pulls html2pdf.js and all other packages)
-RUN npm install
+# 4. 依照 package-lock.json 安裝 dependencies
+# Install the exact dependency versions from package-lock.json
+RUN npm ci
 
 # 5. 複製其餘專案原始碼
 # Copy the rest of the project source code

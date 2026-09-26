@@ -1,131 +1,59 @@
-# Firebase Cloud Functions - Email & QR Code
+# Cloud Functions
 
-This directory contains Cloud Functions that handle automatic QR code generation and email sending when orders are created.
+All functions run in `asia-east1` on Node.js 22.
 
-## Setup Instructions
+| Function | Trigger | What it does |
+|---|---|---|
+| `createOrder` | Callable (checkout page) | Validates the order, prices it from `shared/catalog.js`, assigns an ID like `CKS202611050001` and saves it with the buyer's uid |
+| `sendOrderQRCode` | New document in `orders` | Emails the order confirmation with a pickup QR code (links to `/admin/orders/<id>`) |
+| `sendOrderNotification` | Callable (admin page, any staff role) | Emails a payment / pickup / custom notice to every buyer, or to one school. `{ dryRun: true }` only returns the recipient count |
 
-### 1. Install Dependencies
+## Layout
+
+```text
+index.js                 # the three functions above
+lib/orders.js            # order validation, pricing and order-ID generation
+lib/emailTemplates.js    # confirmation and notification emails (shared layout)
+lib/mailer.js            # AWS SES transport and sender address
+shared/                  # catalog, pricing and settings; also imported by the website
+```
+
+## Setup
 
 ```bash
 cd functions
 npm install
 ```
 
-### 2. Create Environment File
-
-Create a `.env.local` file in the `functions/` directory:
+Email is sent through AWS SES. Store the credentials as Secret Manager secrets:
 
 ```bash
-# Windows (PowerShell)
-@'
-GMAIL_EMAIL=cksc.noreply@gmail.com
-GMAIL_PASSWORD=xrsy kxqr josn syvn
-'@ | Out-File -Encoding UTF8 functions\.env.local
-
-# macOS/Linux
-echo 'GMAIL_EMAIL=cksc.noreply@gmail.com
-GMAIL_PASSWORD=xrsy kxqr josn syvn' > functions/.env.local
+firebase functions:secrets:set AWS_ACCESS_KEY_ID
+firebase functions:secrets:set AWS_SECRET_ACCESS_KEY
+firebase functions:secrets:set AWS_REGION        # e.g. ap-northeast-1
+firebase functions:secrets:set SENDER_EMAIL      # an SES-verified address
 ```
 
-Or create the file manually:
-- Create file: `functions/.env.local`
-- Add content:
-  ```
-  GMAIL_EMAIL=cksc.noreply@gmail.com
-  GMAIL_PASSWORD=xrsy kxqr josn syvn
-  ```
+Never commit credentials to this repository.
 
-### 3. Set Gmail App Password
-
-Follow these steps if you haven't already:
-
-1. **Enable 2-Factor Authentication** on your Gmail account:
-   - Go to https://myaccount.google.com/security
-   - Enable 2-Step Verification
-
-2. **Generate an App Password**:
-   - Go to https://myaccount.google.com/apppasswords
-   - Select "Mail" and "Windows Computer"
-   - Copy the generated 16-character password
-
-3. **Update `.env.local`**:
-   - Replace `GMAIL_EMAIL` with your Gmail address
-   - Replace `GMAIL_PASSWORD` with your 16-character app password
-
-### 4. Test Locally
+## Test locally
 
 ```bash
 npm run serve
 ```
 
-This will start the Firebase Emulator Suite. Create a test order in Firestore to see if the email is sent.
+This starts the Functions emulator. Emails are only sent when the secrets are available.
 
-### 5. Deploy to Production
-
-When deploying, use the new params system:
+## Deploy
 
 ```bash
 firebase deploy --only functions
 ```
 
-Firebase will prompt you to enter the parameter values. Provide:
-- `GMAIL_EMAIL`: your Gmail address
-- `GMAIL_PASSWORD`: your app password
+After changing `shared/catalog.js` (prices, products), deploy the functions **and** the website so both use the same prices.
 
-Or define them in the Firebase Console:
-1. Go to Firebase Console → Functions → Runtime Configuration
-2. Add the parameters there
+## Logs
 
-## How It Works
-
-When a new order is created in Firestore (`orders` collection):
-
-1. **QR Code Generation**: A QR code is generated linking to `https://cksc-souvenir.web.app/orders/{orderId}`
-
-2. **Email Sending**: Two emails are sent:
-   - **To**: Customer email (from the order)
-   - **CC**: ckhssc@gl.ck.tp.edu.tw (school email)
-
-3. **Email Content**:
-   - Order confirmation details
-   - Product list
-   - QR code (as inline image)
-   - Links to view the full order
-
-## Email Recipients
-
-- **Customer**: Gets the QR code and can track their order
-- **School Admin** (ckhssc@gl.ck.tp.edu.tw): Gets a copy for their records
-
-## Troubleshooting
-
-### Email not sending?
-
-1. Check Cloud Functions logs:
-   ```bash
-   npm run logs
-   ```
-
-2. Verify `.env.local` file exists and has correct values
-
-3. Ensure Gmail 2FA and App Password are correctly configured
-
-4. Check that the `orders` collection exists in Firestore
-
-### Function not triggering?
-
-- Verify the order URL is correctly formed
-- Check email client supports embedded images (most do)
-- The QR code links to the order detail page
-
-## Security Notes
-
-- `.env.local` is in `.gitignore` - never commit it
-- App passwords are stored securely in `.env.local` (local) and Firebase Params (production)
-- Use different email accounts for development and production if needed
-- Monitor email sending costs (Gmail has limits)
-
-## New Params System
-
-This project uses the new Firebase Cloud Functions `params` API (as of v5.0.0) which replaces the deprecated `functions.config()` API.
-
+```bash
+npm run logs
+```

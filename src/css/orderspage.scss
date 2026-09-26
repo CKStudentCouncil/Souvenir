@@ -283,6 +283,16 @@ h1 {
   text-decoration: underline;
 }
 
+.ticket-actions .delete-button {
+  margin-left: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d32f2f;
+  cursor: pointer;
+  font: 600 0.88rem inherit;
+}
+
 /* ---------- Ticket stub / QR ---------- */
 
 .perforation {
@@ -410,18 +420,6 @@ h1 {
 }
 
 /* ---------- Misc ---------- */
-
-.feedback-link {
-  display: block;
-  margin: 28px auto 0;
-  border: 0;
-  background: transparent;
-  color: #6e6e73;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.85rem;
-  text-decoration: underline;
-}
 
 .empty-state {
   min-height: 320px;

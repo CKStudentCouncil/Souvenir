@@ -1,19 +1,32 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { MAX_ITEM_QUANTITY, findPurchasableItem } from 'shared/catalog'
 
 const CART_KEY = 'cksc_guest_cart'
 
+// Rebuilds saved items from the current catalog so a cart saved before a
+// price change (or holding a removed product) doesn't show stale data.
 function loadFromStorage() {
   try {
-    const raw = localStorage.getItem(CART_KEY)
-    return raw ? JSON.parse(raw) : []
+    const saved = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
+    return saved
+      .map((entry) => {
+        const product = findPurchasableItem(entry.id)
+        const quantity = Math.min(Number(entry.quantity) || 0, MAX_ITEM_QUANTITY)
+        return product && quantity > 0 ? { ...product, quantity } : null
+      })
+      .filter(Boolean)
   } catch {
     return []
   }
 }
 
 function saveToStorage(items) {
-  localStorage.setItem(CART_KEY, JSON.stringify(items))
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify(items))
+  } catch {
+    /* storage unavailable (private mode): keep the cart in memory only */
+  }
 }
 
 export const useCartStore = defineStore('cart', () => {
@@ -28,9 +41,7 @@ export const useCartStore = defineStore('cart', () => {
   function addToCart(product) {
     const exists = cartItems.value.find((item) => item.id === product.id)
     if (exists) {
-      cartItems.value = cartItems.value.map((item) =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      )
+      updateQuantity(product.id, 1)
     } else {
       cartItems.value = [...cartItems.value, { ...product, quantity: 1 }]
     }
@@ -44,7 +55,7 @@ export const useCartStore = defineStore('cart', () => {
     cartItems.value = cartItems.value
       .map((item) =>
         item.id === id
-          ? { ...item, quantity: Math.max(item.quantity + amount, 0) }
+          ? { ...item, quantity: Math.min(Math.max(item.quantity + amount, 0), MAX_ITEM_QUANTITY) }
           : item
       )
       .filter((item) => item.quantity > 0)
@@ -54,16 +65,11 @@ export const useCartStore = defineStore('cart', () => {
     cartItems.value = []
   }
 
-  function setCartItems(items) {
-    cartItems.value = items
-  }
-
   return {
     cartItems,
     addToCart,
     removeFromCart,
     updateQuantity,
-    clearCart,
-    setCartItems
+    clearCart
   }
 })

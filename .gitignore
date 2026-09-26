@@ -1,7 +1,19 @@
-﻿node_modules/
+node_modules/
 .quasar/
 dist/
 .env
 .env.local
 *.log
 .DS_Store
+
+# Firebase CLI deploy cache
+.firebase/
+
+# Editor settings
+.idea/
+.vscode/
+
+# This project uses npm; keep Yarn files out
+.yarn/
+.pnp.*
+yarn.lock

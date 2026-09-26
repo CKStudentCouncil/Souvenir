@@ -35,15 +35,4 @@ h1 {
   letter-spacing: -.01em;
   font-weight: 700;
 }
-
-.coming-soon > p:last-of-type {
-  color: #6e6e73;
-  line-height: 1.6;
-}
-
-.back-link {
-  margin-top: 18px;
-  color: #06c;
-  text-decoration: none;
-}
 </style>

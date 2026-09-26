@@ -38,7 +38,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { productPageConfigs } from 'src/data/catalog'
+import { productPageConfigs } from 'shared/catalog'
 import ProductSized from 'components/products/ProductSized.vue'
 import ProductSimple from 'components/products/ProductSimple.vue'
 import ProductMulti from 'components/products/ProductMulti.vue'

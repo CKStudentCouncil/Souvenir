@@ -1,27 +1,6 @@
 <template>
   <div
-    v-if="auth.loading || checkingAdmin"
-    class="state-screen"
-  >
-    <p>{{ auth.loading ? '載入中...' : '驗證權限中...' }}</p>
-  </div>
-
-  <div
-    v-else-if="!canAccessAdmin"
-    class="state-screen"
-  >
-    <h2>權限不足</h2>
-    <button
-      type="button"
-      class="btn"
-      @click="$router.push('/')"
-    >
-      回到首頁
-    </button>
-  </div>
-
-  <div
-    v-else-if="loading"
+    v-if="loading"
     class="state-screen"
   >
     <p>載入中...</p>
@@ -63,7 +42,6 @@
         v-model="customerSearchInput"
         type="text"
         placeholder="輸入姓名、Email 或電話號碼"
-        @input="debouncedCustomerSearch"
       >
     </div>
 
@@ -74,16 +52,16 @@
       <button
         type="button"
         :class="{ active: activeTab === 'all' }"
-        @click="setActiveTab('all')"
+        @click="activeTab = 'all'"
       >
-        全部訂單 (<span class="num">{{ currentOrders.length }}</span>)
+        全部訂單 (<span class="num">{{ filteredOrders.length }}</span>)
       </button>
       <button
         type="button"
         :class="{ active: activeTab === 'delivered' }"
-        @click="setActiveTab('delivered')"
+        @click="activeTab = 'delivered'"
       >
-        已交貨 (<span class="num">{{ deliveredTabCount }}</span>)
+        已交貨 (<span class="num">{{ deliveredOrders.length }}</span>)
       </button>
     </div>
 
@@ -213,7 +191,10 @@
             <p>地點：<strong>{{ notifyForm.location || '（尚未填寫）' }}</strong></p>
             <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
           </template>
-          <p class="preview-count">將發送給{{ notifyTargetSchoolLabel }} <span class="num">{{ notifyRecipientCount }}</span> 位訂購者</p>
+          <p class="preview-count">
+            將發送給{{ notifyTargetSchoolLabel }}
+            <span class="num">{{ notifyRecipientCount ?? '…' }}</span> 位訂購者
+          </p>
         </div>
 
         <div class="notify-actions">
@@ -261,7 +242,7 @@
       <button
         type="button"
         class="btn"
-        @click="exportToExcel(activeTab === 'delivered')"
+        @click="exportToExcel"
       >
         匯出 Excel
       </button>
@@ -344,7 +325,7 @@
               type="button"
               class="btn-sm"
               :disabled="order.delivered"
-              @click="updateDeliveryStatus(order.id, true)"
+              @click="setStatus(order.id, 'delivered', true)"
             >
               標記已交貨
             </button>
@@ -352,11 +333,11 @@
               type="button"
               class="btn-sm muted"
               :disabled="!order.delivered"
-              @click="updateDeliveryStatus(order.id, false)"
+              @click="setStatus(order.id, 'delivered', false)"
             >
               標記未交貨
             </button>
-          </div>          
+          </div>
         </div>
         <div
           class="delivery-bar"
@@ -372,7 +353,7 @@
               type="button"
               class="btn-sm"
               :disabled="order.paid"
-              @click="updatePaymentStatus(order.id, true)"
+              @click="setStatus(order.id, 'paid', true)"
             >
               標記已付款
             </button>
@@ -380,19 +361,19 @@
               type="button"
               class="btn-sm muted"
               :disabled="!order.paid"
-              @click="updatePaymentStatus(order.id, false)"
+              @click="setStatus(order.id, 'paid', false)"
             >
               標記未付款
             </button>
-          </div>      
+          </div>
         </div>
         <p><strong>訂單ID：</strong><span class="mono">{{ order.id }}</span></p>
         <p><strong>折扣後金額：</strong><span class="num">NT$ {{ order.finalTotal }}</span></p>
-        <p><strong>購買時間：</strong><span class="num">{{ formatDate(order.createdAt) }}</span></p>
+        <p><strong>購買時間：</strong><span class="num">{{ formatOrderDate(order.createdAt) }}</span></p>
         <p><strong>最後付款更新者：</strong>{{ order.paymentUpdatedByName || '—' }}</p>
-        <p><strong>最後付款更新時間：</strong>{{ order.paymentUpdatedAt ? formatDate(order.paymentUpdatedAt) : '—' }}</p>
+        <p><strong>最後付款更新時間：</strong>{{ formatOrderDate(order.paymentUpdatedAt) || '—' }}</p>
         <p><strong>最後交貨更新者：</strong>{{ order.deliveryUpdatedByName || '—' }}</p>
-        <p><strong>最後交貨更新時間：</strong>{{ order.deliveryUpdatedAt ? formatDate(order.deliveryUpdatedAt) : '—' }}</p>
+        <p><strong>最後交貨更新時間：</strong>{{ formatOrderDate(order.deliveryUpdatedAt) || '—' }}</p>
         <div
           v-if="order.customerName || order.customerEmail"
           class="customer-box"
@@ -403,8 +384,9 @@
             <li v-if="order.customerPhone">電話：<span class="mono">{{ order.customerPhone }}</span></li>
             <li v-if="order.customerEmail">Email：<span class="mono">{{ order.customerEmail }}</span></li>
             <li v-if="order.school">學校：{{ order.school }}</li>
-            <li v-if="order.class">班級：{{ order.class }}</li>
+            <li v-if="getOrderClass(order)">班級：{{ getOrderClass(order) }}</li>
             <li v-if="order.number">座號：{{ order.number }}</li>
+            <li v-if="order.office">辦公室：{{ order.office }}</li>
           </ul>
         </div>
         <div class="items-box">
@@ -441,109 +423,57 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { doc, getDoc } from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db } from 'src/boot/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from 'src/services/firebase'
+import { schools } from 'shared/catalog'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { useAdminOrders } from 'src/composables/useAdminOrders'
-import { USE_MOCK_ORDERS, MOCK_ALLOW_ADMIN_WITHOUT_AUTH } from 'src/config/app'
+import { formatOrderDate, getOrderClass } from 'src/utils/orders'
+import { buildClassReceiptsHtml, printHtml } from 'src/utils/receipts'
+
+const sendOrderNotification = httpsCallable(functions, 'sendOrderNotification')
 
 const router = useRouter()
 const auth = useAuthStore()
-const canAccessAdmin = computed(
-  () => auth.isManager || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
-)
-const canManageOrders = computed(
-  () => auth.isAdmin || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
-)
 const toast = useToastStore()
-const displayName = ref('管理員')
-const checkingAdmin = ref(true)
-const showNotifyModal = ref(false)
-const sendingNotify = ref(false)
-const generatingClassReceipts = ref(false)
-const notifyForm = ref({
-  type: 'payment',
-  school: 'all',
-  subject: '',
-  paymentTime: '',
-  pickupTime: '',
-  location: '',
-  message: '請出示 QR Code 給工作人員，以完成繳費或領貨。'
-})
+
+// Managers (友校幹部) only send notifications; admins also manage orders.
+const canManageOrders = computed(() => auth.isAdmin)
 
 const {
-  schools,
-  orders,
   loading,
   activeTab,
   selectedSchool,
   customerSearchInput,
-  debouncedCustomerSearch,
+  filteredOrders,
+  deliveredOrders,
   currentOrders,
-  deliveredTabCount,
   currentStats,
-  setActiveTab,
+  deliveryStats,
   fetchOrders,
-  updateDeliveryStatus,
-  updatePaymentStatus,
+  setStatus,
   deleteOrder,
-  exportToExcel,
-  calculateDeliveryStats,
-  formatDate
-} = useAdminOrders({
-  showToast: toast.show,
-  displayName
-})
+  exportToExcel
+} = useAdminOrders()
 
-const deliveryStats = computed(() => calculateDeliveryStats(currentOrders.value))
-
-const notifyRecipientOrders = computed(() => {
-  if (notifyForm.value.school === 'all') return orders.value
-  return orders.value.filter((order) => order.school === notifyForm.value.school)
-})
-
-const notifyRecipientCount = computed(() => {
-  const emails = new Set()
-  notifyRecipientOrders.value.forEach((order) => {
-    if (order.customerEmail) emails.add(order.customerEmail)
-  })
-  return emails.size
-})
-
-const notifyTargetSchoolLabel = computed(() =>
-  notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
-)
-
-async function loadAdminProfile() {
-  if (auth.user) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', auth.user.uid))
-      displayName.value = userDoc.exists()
-        ? userDoc.data().name || auth.user.displayName || auth.user.email
-        : auth.user.displayName || auth.user.email
-    } catch {
-      displayName.value = auth.user.displayName || auth.user.email || '管理員'
-    }
-  }
-}
-
-onMounted(async () => {
-  await loadAdminProfile()
-  checkingAdmin.value = false
-  if (canAccessAdmin.value) fetchOrders()
-})
-
-onActivated(() => {
-  if (canAccessAdmin.value) fetchOrders()
+onMounted(() => {
+  if (canManageOrders.value) fetchOrders()
+  else loading.value = false
 })
 
 function viewOrderDetail(orderId) {
   router.push({ name: 'admin-order-detail', params: { id: orderId } })
 }
+
+function confirmDelete(orderId) {
+  if (!window.confirm(`確定要刪除此訂單嗎？\nID: ${orderId}`)) return
+  deleteOrder(orderId)
+}
+
+const generatingClassReceipts = ref(false)
 
 function downloadAllClassReceipts() {
   if (loading.value) {
@@ -551,117 +481,41 @@ function downloadAllClassReceipts() {
     return
   }
 
-  const classOrders = orders.value.filter(
-    (order) =>
-      getClassName(order) &&
-      (selectedSchool.value === 'all' || order.school === selectedSchool.value)
-  )
-  if (!classOrders.length) {
+  const html = buildClassReceiptsHtml(filteredOrders.value)
+  if (!html) {
     toast.show('目前篩選條件下沒有可產生收據的班級訂單')
-    return
-  }
-
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) {
-    toast.show('無法開啟列印視窗，請允許此網站開啟彈出式視窗後再試一次')
     return
   }
 
   generatingClassReceipts.value = true
   try {
-    printWindow.document.write(buildAllClassReceiptsHtml(classOrders))
-    printWindow.document.close()
-    printWindow.focus()
-    window.setTimeout(() => printWindow.print(), 300)
+    if (!printHtml(html)) toast.show('無法開啟列印視窗，請允許此網站開啟彈出式視窗後再試一次')
   } catch (error) {
     console.error('All class receipts generation failed:', error)
-    printWindow.close()
     toast.show('班級收據產生失敗，請再試一次')
   } finally {
     generatingClassReceipts.value = false
   }
 }
 
-function getClassName(order) {
-  return order.class || order.classNumber || ''
+// ---- Bulk email notifications ----
+
+function emptyNotifyForm(school = 'all') {
+  return {
+    type: 'payment',
+    school,
+    subject: '',
+    paymentTime: '',
+    pickupTime: '',
+    location: '',
+    message: '請出示 QR Code 給工作人員，以完成繳費或領貨。'
+  }
 }
 
-function escapeHtml(value) {
-  return String(value ?? '—')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function buildAllClassReceiptsHtml(classOrders) {
-  const groupedOrders = classOrders.reduce((groups, order) => {
-    const key = `${order.school}\u0000${getClassName(order)}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(order)
-    return groups
-  }, new Map())
-
-  const receipts = [...groupedOrders.entries()]
-    .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey, 'zh-Hant'))
-    .map(([, grouped]) => buildClassReceiptSection(grouped))
-    .join('')
-
-  return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>所有班級代表領取收據</title>
-    <style>
-      @page { size: A4 portrait; margin: 12mm; } * { box-sizing: border-box; }
-      body { margin: 0; color: #111; font-family: 'Noto Sans TC', 'Microsoft JhengHei', Arial, sans-serif; }
-      .class-sheet { height: 273mm; break-after: page; page-break-after: always; } .class-sheet:last-child { break-after: auto; page-break-after: auto; }
-      .receipt { height: 134mm; padding: 3mm 4mm; border: 1px solid #222; overflow: hidden; } .receipt + .receipt { margin-top: 5mm; border-top: 1px dashed #555; }
-      header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 2mm; border-bottom: 1px solid #222; }
-      header p { margin: 0 0 1px; font-size: 8pt; font-weight: 600; } h1 { margin: 0; font-size: 14pt; letter-spacing: .06em; } header strong { font-size: 8pt; }
-      .meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1mm 6mm; margin: 2mm 0; font-size: 8pt; }
-      .notice { margin: 2mm 0; padding: 1.5mm; border: 1px solid #555; background: #f5f5f5; font-size: 7pt; }
-      table { width: 100%; border-collapse: collapse; font-size: 7.5pt; } th, td { padding: 1mm 1.5mm; border: 1px solid #555; vertical-align: top; } th { background: #f0f0f0; } th:nth-child(1), td:nth-child(1), th:nth-child(4), td:nth-child(4) { text-align: right; white-space: nowrap; }
-      .summary { display: flex; justify-content: flex-end; gap: 6mm; margin: 2mm 0; font-size: 8pt; } .summary strong { font-size: 10pt; }
-      footer { display: flex; justify-content: space-between; gap: 6mm; margin-top: 5mm; font-size: 8pt; } footer p { margin: 0; } footer span { display: inline-block; width: 48mm; border-bottom: 1px solid #111; }
-    </style></head><body>${receipts}<script>window.onafterprint = () => window.close()<\/script></body></html>`
-}
-
-function buildClassReceiptSection(groupedOrders) {
-  const firstOrder = groupedOrders[0]
-  const sortedOrders = [...groupedOrders].sort((a, b) =>
-    String(a.number || '').localeCompare(String(b.number || ''), 'zh-Hant', { numeric: true })
-  )
-  const totalAmount = sortedOrders.reduce((sum, order) => sum + Number(order.finalTotal || 0), 0)
-  const totalItems = sortedOrders.reduce(
-    (sum, order) => sum + (order.items || []).reduce(
-      (itemSum, item) => itemSum + Number(item.quantity || 0),
-      0
-    ),
-    0
-  )
-  const studentRows = sortedOrders
-    .map((order) => {
-      const products = (order.items || [])
-        .map((item) => `${escapeHtml(item.name)} ×${escapeHtml(item.quantity)}`)
-        .join('<br>')
-      return `<tr><td>${escapeHtml(order.number)}</td><td>${escapeHtml(order.customerName)}</td><td>${products}</td><td>NT$ ${escapeHtml(order.finalTotal)}</td></tr>`
-    })
-    .join('')
-
-  const makeCopy = (copyLabel) => `<section class="receipt">
-    <header><div><p>建國中學班聯會</p><h1>班級代表領取收據</h1></div><strong>${copyLabel}</strong></header>
-    <div class="meta"><span>學校：${escapeHtml(firstOrder.school)}</span><span>班級：${escapeHtml(getClassName(firstOrder))}</span><span>訂單數量：${sortedOrders.length} 份</span><span>產生日期：${escapeHtml(formatDate(new Date()))}</span></div>
-    <p class="notice">班級代表確認已代為領取下列同班同學的紀念品，並應將商品轉交給各訂購人。</p>
-    <table><thead><tr><th>座號</th><th>學生姓名</th><th>訂購品項</th><th>訂單金額</th></tr></thead><tbody>${studentRows}</tbody></table>
-    <div class="summary"><span>商品總件數：<b>${totalItems}</b></span><span>訂單總額：<strong>NT$ ${totalAmount}</strong></span></div>
-    <footer><p>班級代表簽名：<span></span></p><p>班聯會工作人員簽名：<span></span></p></footer>
-  </section>`
-
-  return `<section class="class-sheet">${makeCopy('班聯會留存聯')}${makeCopy('班級代表收執聯')}</section>`
-}
-
-function confirmDelete(orderId) {
-  if (!window.confirm(`確定要刪除此訂單嗎？\nID: ${orderId}`)) return
-  deleteOrder(orderId).catch(() => toast.show('刪除失敗'))
-}
+const showNotifyModal = ref(false)
+const sendingNotify = ref(false)
+const notifyForm = ref(emptyNotifyForm())
+const notifyRecipientCount = ref(null)
 
 const notifyTypeLabel = computed(() => {
   if (notifyForm.value.type === 'payment') return '繳費通知'
@@ -669,6 +523,10 @@ const notifyTypeLabel = computed(() => {
   if (notifyForm.value.type === 'custom') return '自訂通知'
   return '繳費暨領貨通知'
 })
+
+const notifyTargetSchoolLabel = computed(() =>
+  notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
+)
 
 const canSendNotify = computed(() => {
   const f = notifyForm.value
@@ -679,9 +537,42 @@ const canSendNotify = computed(() => {
   return !!f.paymentTime.trim() && !!f.pickupTime.trim()
 })
 
+function notifyPayload() {
+  const f = notifyForm.value
+  return {
+    type: f.type,
+    school: f.school,
+    subject: f.subject.trim(),
+    paymentTime: f.paymentTime.trim(),
+    pickupTime: f.pickupTime.trim(),
+    location: f.location.trim(),
+    message: f.message.trim()
+  }
+}
+
+// The recipient count comes from the Cloud Function so it matches exactly
+// who will be emailed (and managers never need to read the orders).
+async function refreshRecipientCount() {
+  const school = notifyForm.value.school
+  notifyRecipientCount.value = null
+  try {
+    const { data } = await sendOrderNotification({ school, dryRun: true })
+    if (showNotifyModal.value && notifyForm.value.school === school) {
+      notifyRecipientCount.value = data.recipientCount
+    }
+  } catch (error) {
+    console.error('Failed to count notification recipients:', error)
+  }
+}
+
+watch(() => notifyForm.value.school, () => {
+  if (showNotifyModal.value) refreshRecipientCount()
+})
+
 function openNotifyModal() {
   notifyForm.value.school = selectedSchool.value
   showNotifyModal.value = true
+  refreshRecipientCount()
 }
 
 function closeNotifyModal() {
@@ -694,38 +585,21 @@ async function confirmSendNotify() {
     toast.show(notifyForm.value.type === 'custom' ? '請填寫訊息內容' : '請填寫必要的時間與地點')
     return
   }
-  if (
-    !window.confirm(
-      `確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`
-    )
-  ) {
+  const count = notifyRecipientCount.value ?? ''
+  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${count} 位訂購者嗎？此動作無法復原。`)) {
     return
   }
 
   sendingNotify.value = true
   try {
-    const functionsInstance = getFunctions(undefined, 'asia-east1')
-    const sendOrderNotification = httpsCallable(functionsInstance, 'sendOrderNotification')
-    const result = await sendOrderNotification({
-      type: notifyForm.value.type,
-      school: notifyForm.value.school,
-      subject: notifyForm.value.subject.trim(),
-      paymentTime: notifyForm.value.paymentTime.trim(),
-      pickupTime: notifyForm.value.pickupTime.trim(),
-      location: notifyForm.value.location.trim(),
-      message: notifyForm.value.message.trim()
-    })
-    toast.show(`已成功寄送給 ${result.data.sentCount} 位訂購者`)
+    const { data } = await sendOrderNotification(notifyPayload())
+    toast.show(
+      data.failedCount
+        ? `已寄送給 ${data.sentCount} 位訂購者，${data.failedCount} 位寄送失敗`
+        : `已成功寄送給 ${data.sentCount} 位訂購者`
+    )
     showNotifyModal.value = false
-    notifyForm.value = {
-      type: 'payment',
-      school: selectedSchool.value,
-      subject: '',
-      paymentTime: '',
-      pickupTime: '',
-      location: '',
-      message: ''
-    }
+    notifyForm.value = emptyNotifyForm(selectedSchool.value)
   } catch (error) {
     console.error('Send notification error:', error)
     toast.show('發送失敗，請稍後再試')
@@ -736,6 +610,5 @@ async function confirmSendNotify() {
 </script>
 
 <style scoped>
-@import 'src/css/app.scss';
 @import 'src/css/adminpage.scss';
 </style>
