@@ -8,24 +8,6 @@
       </header>
 
   <div class="auth-card">
-    <!--
-      <div v-if="isInLineApp" class="notice">
-        <p class="notice-title">LINE 用戶請注意</p>
-        <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入</p>
-        <button type="button" class="notice-btn" @click="openExternal">
-          開啟外部瀏覽器
-        </button>
-      </div>
-
-      <div class="notice">
-        <p class="notice-title">CK APP 用戶請注意</p>
-        <p>請改用外部瀏覽器開啟（例如 Safari、Chrome），否則將無法完成登入</p>
-        <button type="button" class="notice-btn" @click="openExternal">
-          開啟外部瀏覽器
-        </button>
-      </div>
-    -->
-
     <button
       type="button"
       class="google-btn"
@@ -82,13 +64,13 @@ import {
   doc,
   getDoc,
   setDoc,
-  deleteDoc,
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  writeBatch
 } from 'firebase/firestore'
-import { auth, db } from 'src/boot/firebase'
+import { auth, db } from 'src/services/firebase'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 
@@ -99,51 +81,45 @@ const toast = useToastStore()
 
 const agree = ref(false)
 const isLoading = ref(false)
-const isInLineApp = ref(false)
 
+// Popups don't work inside the LINE in-app browser, so use a redirect there.
 function isLineApp() {
   const ua = navigator.userAgent.toLowerCase()
   return ua.includes('line/') || ua.includes('liff/')
 }
 
-function openExternal() {
-  window.open('https://souvenir.cksc.tw', '_blank')
-}
-
+// Makes sure users/{uid} exists for an invited staff member. The first
+// sign-in turns the pendingUsers invitation into a users document; the
+// Firestore rules check `pendingId` against the invitation and require it to
+// be deleted in the same batch.
 async function linkUserAccount(user) {
   const userRef = doc(db, 'users', user.uid)
   const existingSnap = await getDoc(userRef)
+  const now = new Date().toISOString()
 
   if (existingSnap.exists()) {
-    const data = existingSnap.data()
     await setDoc(
       userRef,
       {
-        email: user.email,
-        displayName: user.displayName || data.displayName || '',
+        email: (user.email || '').toLowerCase(),
+        displayName: user.displayName || existingSnap.data().displayName || '',
         photoURL: user.photoURL || '',
-        updatedAt: new Date().toISOString()
+        updatedAt: now
       },
       { merge: true }
     )
-    return data.role || null
+    return
   }
 
   const email = (user.email || '').toLowerCase()
-  const pendingQuery = query(
-    collection(db, 'pendingUsers'),
-    where('email', '==', email)
-  )
-  const pendingSnap = await getDocs(pendingQuery)
-
-  if (pendingSnap.empty) {
-    return null
-  }
+  const pendingSnap = await getDocs(query(collection(db, 'pendingUsers'), where('email', '==', email)))
+  if (pendingSnap.empty) return
 
   const pendingDoc = pendingSnap.docs[0]
   const pendingData = pendingDoc.data()
 
-  await setDoc(userRef, {
+  const batch = writeBatch(db)
+  batch.set(userRef, {
     email,
     displayName: user.displayName || pendingData.name || '',
     photoURL: user.photoURL || '',
@@ -151,50 +127,54 @@ async function linkUserAccount(user) {
     role: pendingData.role,
     uid: user.uid,
     pending: false,
-    createdAt: pendingData.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    pendingId: pendingDoc.id,
+    createdAt: pendingData.createdAt || now,
+    updatedAt: now
   })
-  await deleteDoc(
-    doc(
-      db,
-      'pendingUsers',
-      pendingDoc.id
-    )
-  )
-  return pendingData.role
+  batch.delete(pendingDoc.ref)
+  await batch.commit()
+}
+
+// Only follow in-app paths from ?redirect= (not //other-site.com).
+function safeRedirect(value) {
+  const path = String(value || '')
+  return path.startsWith('/') && !path.startsWith('//') ? path : '/admin'
 }
 
 async function afterLogin(user) {
-  const role = await linkUserAccount(user)
-  await authStore.init()
+  await linkUserAccount(user)
+  await authStore.refresh()
 
-  if (!role || !['super_admin', 'admin', 'manager'].includes(role)) {
+  if (!authStore.isManager) {
     toast.show('此帳號尚未被授權，請聯繫系統管理員新增帳號')
     await authStore.signOut()
     return
   }
 
   toast.show('登入成功！')
-  const fallback = role === 'manager' ? '/scan' : '/admin'
-  const redirect = route.query.redirect || fallback
-  router.replace(String(redirect))
+  router.replace(safeRedirect(route.query.redirect))
+}
+
+function showAuthError(error) {
+  console.error('Google Auth error:', error)
+  if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+    toast.show('Google 登入被取消')
+  } else if (error.code === 'auth/popup-blocked') {
+    toast.show('彈出視窗被阻擋，請允許彈出視窗後重試')
+  } else if (error.code === 'auth/account-exists-with-different-credential') {
+    toast.show('此帳號已使用其他方式註冊')
+  } else {
+    toast.show('Google 認證失敗，請重試')
+  }
 }
 
 onMounted(async () => {
-  isInLineApp.value = isLineApp()
   try {
     isLoading.value = true
     const result = await getRedirectResult(auth)
     if (result?.user) await afterLogin(result.user)
   } catch (error) {
-    console.error('Redirect result error:', error)
-    if (error.code === 'auth/account-exists-with-different-credential') {
-      toast.show('此帳號已使用其他方式註冊')
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      toast.show('登入已取消')
-    } else {
-      toast.show('Google 認證失敗，請重試')
-    }
+    showAuthError(error)
   } finally {
     isLoading.value = false
   }
@@ -211,24 +191,15 @@ async function handleGoogleAuth() {
 
   try {
     isLoading.value = true
-    if (isInLineApp.value) {
+    if (isLineApp()) {
       await signInWithRedirect(auth, provider)
     } else {
       const result = await signInWithPopup(auth, provider)
       await afterLogin(result.user)
-      isLoading.value = false
     }
   } catch (error) {
-    console.error('Google Auth error:', error)
-    if (error.code === 'auth/popup-closed-by-user') {
-      toast.show('Google 登入被取消')
-    } else if (error.code === 'auth/popup-blocked') {
-      toast.show('彈出視窗被阻擋，請允許彈出視窗後重試')
-    } else if (error.code === 'auth/account-exists-with-different-credential') {
-      toast.show('此帳號已使用其他方式註冊')
-    } else if (error.code !== 'auth/cancelled-popup-request') {
-      toast.show('Google 認證失敗，請重試')
-    }
+    showAuthError(error)
+  } finally {
     isLoading.value = false
   }
 }

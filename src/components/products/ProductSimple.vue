@@ -15,7 +15,7 @@
 
         <div class="price-row">
           <span class="price num">NT$ {{ config.price }}</span>
-          <del v-if="!config.hideOrPrice" class="price-original num">NT$ {{ config.orPrice }}</del>
+          <del v-if="config.orPrice && config.orPrice !== config.price" class="price-original num">NT$ {{ config.orPrice }}</del>
         </div>
 
         <div class="divider" />
@@ -176,17 +176,6 @@ h1 {
 }
 
 .primary-button:hover { background: #333336; }
-
-.reassurance {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 16px 0 0;
-  color: #86868b;
-  font-size: .8rem;
-  text-align: center;
-}
 
 @media (max-width: 760px) {
   .product-page { padding: 76px 16px 56px; }

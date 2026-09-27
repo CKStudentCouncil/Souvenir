@@ -2,7 +2,7 @@
   <div class="app-shell">
     <header class="site-header">
       <router-link to="/" class="brand" aria-label="建中紀念品首頁">
-        <img src="../../public/cksclogo.png" alt="CK Souvenir Logo" class="brand-mark" />
+        <img src="/cksclogo.png" alt="CK Souvenir Logo" class="brand-mark" />
         <span>CK Souvenir 2.0</span>
       </router-link>
 
@@ -18,7 +18,7 @@
           <span class="bag-label">購物袋</span>
           <span v-if="itemCount" class="bag-count">{{ itemCount }}</span>
         </router-link>
-        <div class="menu-wrapper">
+        <div ref="menuWrapper" class="menu-wrapper">
           <button
             class="more-button"
             type="button"
@@ -27,12 +27,10 @@
           >
             <q-icon name="more_horiz" size="1.35rem" />
           </button>
-
-          <div v-if="menuOpen" class="menu-popover"></div>
         </div>
       </div>
 
-      <div v-if="menuOpen" class="menu-popover">
+      <div v-if="menuOpen" ref="menuPopover" class="menu-popover">
         <router-link to="/terms" @click="menuOpen = false">
           使用者條款
         </router-link>
@@ -86,7 +84,7 @@
         </router-link>
 
         <button
-          v-if="auth.isManager || auth.isSuperAdmin || auth.isAdmin"
+          v-if="auth.isManager"
           type="button"
           @click="handleSignOut"
         >
@@ -123,8 +121,8 @@
         <div class="footer-col">
           <p class="footer-heading">Links</p>
           <nav class="footer-links">
-            <a href="https://cksc.tw" target="_blank">建中班聯會</a>
-            <a href="https://cktfgpromo.cksc.tw" target="_blank">建北特約官網</a>
+            <a href="https://cksc.tw" target="_blank" rel="noopener">建中班聯會</a>
+            <a href="https://cktfgpromo.cksc.tw" target="_blank" rel="noopener">建北特約官網</a>
               <div class="footer-social">
               <a
                 href="https://www.instagram.com/cksc.81st/"
@@ -164,6 +162,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
+import { countItems } from 'src/utils/orders'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -171,45 +170,30 @@ const cart = useCartStore()
 const toast = useToastStore()
 
 const menuOpen = ref(false)
-const currentYear = computed(() => new Date().getFullYear())
+const menuWrapper = ref(null)
+const menuPopover = ref(null)
+const currentYear = new Date().getFullYear()
 
-const itemCount = computed(() =>
-  cart.cartItems.reduce((total, item) => total + item.quantity, 0)
-)
-
-function closeMenu() {
-  menuOpen.value = false
-}
+const itemCount = computed(() => countItems(cart.cartItems))
 
 function handleClickOutside(event) {
-  const menu = document.querySelector('.menu-wrapper')
-
-  if (menu && !menu.contains(event.target)) {
-    closeMenu()
-  }
+  const inside = [menuWrapper.value, menuPopover.value].some((el) => el?.contains(event.target))
+  if (!inside) menuOpen.value = false
 }
 
 onMounted(() => {
-  if (auth.loading) auth.init()
-
-  document.addEventListener(
-    'click',
-    handleClickOutside
-  )
+  document.addEventListener('click', handleClickOutside)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener(
-    'click',
-    handleClickOutside
-  )
+  document.removeEventListener('click', handleClickOutside)
 })
 
 async function handleSignOut() {
   await auth.signOut()
   menuOpen.value = false
 
-  toast.show('Logged out')
+  toast.show('已登出')
   router.push('/')
 }
 </script>

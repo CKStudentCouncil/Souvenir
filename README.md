@@ -10,7 +10,8 @@ The application allows visitors to browse merchandise, place orders, and track t
 - Shopping cart and checkout flow for customer orders
 - Order lookup and order history pages for buyers
 - Role-based administration for managers, admins, and super admins
-- Firebase-backed authentication, Firestore data storage, Firebase Storage, and Analytics
+- Firebase-backed authentication and Firestore data storage, protected by `firestore.rules`
+- Prices and discounts re-checked on the server for every order
 - Automated order confirmation emails and bulk notification emails through Cloud Functions
 - Launch gate that redirects visitors to `/comingsoon` before the sale opens
 
@@ -25,11 +26,10 @@ The application allows visitors to browse merchandise, place orders, and track t
 
 ### Backend & Services
 
-- Firebase Authentication
+- Firebase Authentication (Google sign-in for staff, anonymous sign-in for buyers)
 - Cloud Firestore
-- Firebase Storage
-- Firebase Analytics
-- Firebase Hosting
+- Google Analytics
+- Firebase Hosting / GitHub Pages
 - Firebase Cloud Functions
 - AWS SES for email delivery
 
@@ -45,48 +45,41 @@ The application allows visitors to browse merchandise, place orders, and track t
 ```text
 src/
 ├── pages/                 # Route-level screens such as Home, Cart, Orders, Admin, and Account
-├── components/            # Reusable product and UI components
-├── stores/                # Pinia stores for auth, cart, toast state, and related app state
-├── services/              # Order persistence and admin-order helpers
-├── data/                  # Product catalog and pricing data
+├── components/            # Product page layouts and the toast
+├── layouts/               # Header, menu and footer
+├── stores/                # Pinia stores: auth (staff roles), cart, toast
+├── services/              # Firebase setup and order reads/writes
+├── composables/           # Admin order list, filters and statistics
+├── utils/                 # Order formatting, receipts, Excel export, PDF download
+├── data/                  # Survey questions
 └── router/                # Route definitions and navigation guards
 
-functions/                 # Firebase Cloud Functions for email and notification workflows
-public/                    # Static assets
+functions/                 # Firebase Cloud Functions
+├── index.js               # createOrder, sendOrderQRCode, sendOrderNotification
+├── lib/                   # Order validation, email templates, SES mailer
+└── shared/                # Catalog, pricing and settings used by BOTH the web app and the functions
+                           #   (imported in the web app as `shared/...`)
+firestore.rules            # Firestore security rules
+public/                    # Static assets (product images go in public/images/product-<id>.png)
 .github/workflows/
 └── deploy.yml             # GitHub Pages deployment workflow
 ```
 
+### Where to change things
+
+| What | File |
+|---|---|
+| Products, prices, sizes, schools, gift rule, combo deals | `functions/shared/catalog.js` |
+| Shop opening time, roles | `functions/shared/config.js` |
+| Survey questions | `src/data/surveyQuestions.js` |
+
+The catalog is shared, so after changing prices deploy **both** the website and the Cloud Functions.
+
 ## Requirements
 
-- Node.js 18, 20, 22, or 24
+- Node.js 22 (20 and 24 also work for the website)
 - npm or yarn
 - Firebase CLI for Firebase deployment
-<!--
-## Local Development
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-### 2. Start the Development Server
-
-```bash
-npm run dev
-```
-
-This launches the Quasar/Vite development server.
-
-## Production Build
-
-Create a production build with:
-
-```bash
-npm run build
-```
--->
 ## Local Development With Docker
 
 ### 1. Build Image
@@ -123,7 +116,7 @@ dist/spa
 The application is configured to use Firebase through:
 
 ```text
-src/boot/firebase.js
+src/services/firebase.js
 ```
 
 If you are using a different Firebase project, update the Firebase configuration and make sure the correct project alias is configured in:
@@ -149,6 +142,13 @@ firebase login
 firebase use <your-project>
 ```
 
+### One-time project setup
+
+1. **Authentication → Sign-in method:** enable **Google** (staff) and **Anonymous** (buyers are signed in anonymously at checkout so they can see and cancel only their own orders).
+2. **Firestore rules:** `firebase deploy --only firestore:rules`
+3. **First super admin:** in the Firestore console create `users/<your Firebase Auth uid>` with `role: "super_admin"`. Everyone else is invited from **帳號管理** and activated on their first Google sign-in.
+4. **Firebase Storage** is not used. If it is enabled, set its rules to deny everything.
+
 ## Cloud Functions & Email
 
 The Cloud Functions in:
@@ -157,14 +157,14 @@ The Cloud Functions in:
 functions/index.js
 ```
 
-expect the following runtime values or secrets:
+expect the following Secret Manager secrets (`firebase functions:secrets:set NAME`):
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_REGION`
 - `SENDER_EMAIL`
 
-If email delivery is not required during local frontend development, these values are not required for the frontend itself. However, Cloud Functions that depend on them will fail if they are invoked without the required configuration.
+See `functions/README.md` for details. The website itself does not need them, but placing an order does need the deployed `createOrder` function.
 
 ## Deployment
 
@@ -184,7 +184,7 @@ dist/spa
 
 ### Firebase
 
-To deploy the Firebase project and configured services:
+To deploy the Cloud Functions and Firestore rules (and Firebase Hosting):
 
 ```bash
 firebase deploy
@@ -213,17 +213,15 @@ The storefront launch gate is enforced in:
 src/router/index.js
 ```
 
-Before the configured launch date, visitors are redirected to `/comingsoon`. Authorized manager and administrator accounts can bypass this restriction.
+Before `SHOP_OPEN_AT` in `functions/shared/config.js`, visitors are redirected to `/comingsoon` and the `createOrder` function rejects orders. Staff accounts can bypass this restriction.
 
-### Mock Orders
+### Staff roles
 
-Mock order mode is available in:
-
-```text
-src/config/app.js
-```
-
-It is disabled by default.
+| Role | Can |
+|---|---|
+| `manager` 友校幹部 | Send payment/pickup notifications, view survey results |
+| `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts |
+| `super_admin` 系統管理員 | Everything above, plus manage staff accounts |
 
 ## Maintainers
 

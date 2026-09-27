@@ -79,7 +79,7 @@
               </div>
               <p>再選購 <span class="num">NT$ {{ pricing.amountNeededForGift }}</span>，即可享有你選的贈品。</p>
             </template>
-            <p v-else>訂單滿 <span class="num">NT$ 1,000</span>，搭配符合資格的贈品即可享折抵。</p>
+            <p v-else>訂單滿 <span class="num">NT$ {{ GIFT_THRESHOLD.toLocaleString() }}</span>，搭配符合資格的贈品即可享折抵。</p>
           </div>
         </template>
 
@@ -114,9 +114,9 @@
               <option v-for="school in schools" :key="school" :value="school">{{ school }}</option>
             </select>
           </label>
-          <label v-if="checkout.school == '建中老師'">辦公室<input required v-model="checkout.office" placeholder="例：莊三"></label>
-          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士' && checkout.school != '建中老師'">班級<input required v-model="checkout.class" placeholder="例：329/三數"></label>
-          <label v-if="checkout.school != '建中家長會' && checkout.school != '其他學校或社會人士' && checkout.school != '建中老師'">座號<input required v-model="checkout.number" placeholder="例：01"></label>
+          <label v-if="fields.needsOffice">辦公室<input v-model="checkout.office" required placeholder="例：莊三"></label>
+          <label v-if="fields.needsClass">班級<input v-model="checkout.class" required placeholder="例：329/三數"></label>
+          <label v-if="fields.needsClass">座號<input v-model="checkout.number" required placeholder="例：01"></label>
 
           <label class="remember"><input v-model="rememberMe" type="checkbox">在這台裝置記住我的資料</label>
 
@@ -144,34 +144,73 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { schools } from 'src/data/catalog'
+import { GIFT_THRESHOLD, schoolFields, schools } from 'shared/catalog'
+import { calculatePricing } from 'shared/pricing'
 import { useAuthStore } from 'src/stores/auth'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
-import { submitOrder, setLastSubmittedOrderId } from 'src/services/orderService'
-import { calculatePricing } from 'src/utils/pricing'
+import { submitOrder } from 'src/services/orderService'
 
-const cart = useCartStore(); const auth = useAuthStore(); const toast = useToastStore(); const router = useRouter()
-const showCheckout = ref(false); const submitting = ref(false); const rememberMe = ref(false); const usePRPackage = ref(false)
-const checkout = reactive({ name: '', email: '', phone: '', school: '', class: '', number: '' })
-const pricing = computed(() => calculatePricing(cart.cartItems, { usePRPackage: usePRPackage.value, isAdmin: auth.isAdmin }))
+const REMEMBER_KEY = 'rememberMeCheckout'
+const CHECKOUT_DATA_KEY = 'checkoutData'
+
+const cart = useCartStore()
+const auth = useAuthStore()
+const toast = useToastStore()
+const router = useRouter()
+
+const showCheckout = ref(false)
+const submitting = ref(false)
+const rememberMe = ref(false)
+const usePRPackage = ref(false)
 const agreedToTerms = ref(false)
 const agreedToPolicy = ref(false)
+const checkout = reactive({ name: '', email: '', phone: '', school: '', class: '', number: '', office: '' })
+
+const fields = computed(() => schoolFields(checkout.school))
+
+// Shown to the buyer only; the createOrder Cloud Function recalculates it.
+const pricing = computed(() =>
+  calculatePricing(cart.cartItems, { usePRPackage: usePRPackage.value, isAdmin: auth.isAdmin })
+)
 
 const giftProgress = computed(() => {
   const p = pricing.value
   if (!p.hasAvailableGift) return 0
   if (p.qualifiesForGift) return 100
-  const remaining = p.amountNeededForGift || 0
-  const threshold = p.originalTotal + remaining
+  const threshold = p.originalTotal + (p.amountNeededForGift || 0)
   if (threshold <= 0) return 0
   return Math.min(100, Math.round((p.originalTotal / threshold) * 100))
 })
 
-onMounted(() => { try { rememberMe.value = localStorage.getItem('rememberMeCheckout') === 'true'; if (rememberMe.value) Object.assign(checkout, JSON.parse(localStorage.getItem('checkoutData') || '{}')) } catch {} })
-watch(rememberMe, (value) => { localStorage.setItem('rememberMeCheckout', String(value)); if (!value) localStorage.removeItem('checkoutData') })
+onMounted(() => {
+  try {
+    rememberMe.value = localStorage.getItem(REMEMBER_KEY) === 'true'
+    if (rememberMe.value) Object.assign(checkout, JSON.parse(localStorage.getItem(CHECKOUT_DATA_KEY) || '{}'))
+  } catch {
+    /* ignore unreadable saved data */
+  }
+})
 
-function changeQty(id, delta) { const item = cart.cartItems.find((entry) => entry.id === id); if (item && item.quantity + delta <= 0) { cart.removeFromCart(id); toast.show('已從購物袋移除商品。'); return } cart.updateQuantity(id, delta) }
+watch(rememberMe, (value) => {
+  try {
+    localStorage.setItem(REMEMBER_KEY, String(value))
+    if (!value) localStorage.removeItem(CHECKOUT_DATA_KEY)
+  } catch {
+    /* storage unavailable */
+  }
+})
+
+function changeQty(id, delta) {
+  const item = cart.cartItems.find((entry) => entry.id === id)
+  if (item && item.quantity + delta <= 0) {
+    cart.removeFromCart(id)
+    toast.show('已從購物袋移除商品。')
+    return
+  }
+  cart.updateQuantity(id, delta)
+}
+
 async function placeOrder() {
   if (!agreedToTerms.value) {
     toast.show('請先閱讀並同意使用者條款')
@@ -181,16 +220,50 @@ async function placeOrder() {
     toast.show('請先閱讀並同意銷售與退貨條款')
     return
   }
-  if (!checkout.name.trim() || !checkout.email.trim() || !checkout.phone.trim() || !checkout.school) { toast.show('請先填妥聯絡資料，再送出訂單。'); return }
-  if (rememberMe.value) localStorage.setItem('checkoutData', JSON.stringify(checkout))
+  if (!checkout.name.trim() || !checkout.email.trim() || !checkout.phone.trim() || !checkout.school) {
+    toast.show('請先填妥聯絡資料，再送出訂單。')
+    return
+  }
+
+  if (rememberMe.value) {
+    try {
+      localStorage.setItem(CHECKOUT_DATA_KEY, JSON.stringify(checkout))
+    } catch {
+      /* storage unavailable */
+    }
+  }
+
   submitting.value = true
   try {
-    const p = pricing.value
-    const isSpecialSchool = checkout.school === '建中家長會' || checkout.school === '其他學校或社會人士'
-    const result = await submitOrder({ userId: auth.user?.uid || null, isGuestOrder: !auth.user, items: JSON.parse(JSON.stringify(cart.cartItems)), originalTotal: p.originalTotal, finalTotal: p.finalTotal, totalDiscount: p.prPackageApplied ? p.prPackageDiscount : p.totalDiscount + p.giftDiscount, appliedCombos: p.prPackageApplied ? [{ name: '公關品訂單' }] : p.appliedCombos, prPackageUsed: p.prPackageApplied, prPackageDiscount: p.prPackageApplied ? p.prPackageDiscount : 0, isAdminOrder: auth.isAdmin, qualifiesForGift: p.qualifiesForGift && !p.prPackageApplied, giftDiscount: p.giftDiscount, hasAvailableGift: p.hasAvailableGift, totalGiftQuantity: p.totalGiftQuantity, giftUsedInCombo: p.giftUsedInCombo, availableGiftCount: p.availableGiftCount, customerName: checkout.name.trim(), customerPhone: checkout.phone.trim(), customerEmail: checkout.email.trim(), school: checkout.school, class: isSpecialSchool ? '' : checkout.class.trim(), number: isSpecialSchool ? '' : checkout.number.trim() })
-    if (result.status !== 201) throw new Error()
-    setLastSubmittedOrderId(result.id); cart.clearCart(); usePRPackage.value = false; agreedToTerms.value = false; agreedToPolicy.value = false; toast.show('訂單已送出。'); router.push({ name: 'order-success', query: { id: result.id } })
-  } catch { toast.show('訂單尚未送出，請再試一次；購物袋內容會為你保留。') } finally { submitting.value = false }
+    const { needsClass, needsOffice } = fields.value
+    const orderId = await submitOrder({
+      items: cart.cartItems.map(({ id, quantity }) => ({ id, quantity })),
+      usePRPackage: usePRPackage.value,
+      customerName: checkout.name.trim(),
+      customerEmail: checkout.email.trim(),
+      customerPhone: checkout.phone.trim(),
+      school: checkout.school,
+      class: needsClass ? checkout.class.trim() : '',
+      number: needsClass ? checkout.number.trim() : '',
+      office: needsOffice ? checkout.office.trim() : ''
+    })
+
+    cart.clearCart()
+    usePRPackage.value = false
+    agreedToTerms.value = false
+    agreedToPolicy.value = false
+    toast.show('訂單已送出。')
+    router.push({ name: 'order-success', query: { id: orderId } })
+  } catch (error) {
+    console.error('Order submission failed:', error)
+    // Validation errors from createOrder carry a message meant for the buyer.
+    const serverMessage = ['functions/invalid-argument', 'functions/failed-precondition'].includes(error.code)
+      ? error.message
+      : ''
+    toast.show(serverMessage || '訂單尚未送出，請再試一次；購物袋內容會為你保留。')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 

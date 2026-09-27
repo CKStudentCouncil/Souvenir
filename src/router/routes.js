@@ -1,3 +1,5 @@
+// meta.shop: hidden behind the launch gate until SHOP_OPEN_AT (shared/config.js)
+// meta.requiresManager / requiresAdmin / requiresSuperAdmin: staff roles, see router/index.js
 const routes = [
   {
     path: '/',
@@ -6,7 +8,38 @@ const routes = [
       {
         path: '',
         name: 'home',
-        component: () => import('pages/HomePage.vue')
+        component: () => import('pages/HomePage.vue'),
+        meta: { shop: true }
+      },
+      {
+        path: 'product/:id',
+        name: 'product',
+        component: () => import('pages/ProductPage.vue'),
+        meta: { shop: true }
+      },
+      {
+        path: 'cart',
+        name: 'cart',
+        component: () => import('pages/CartPage.vue'),
+        meta: { shop: true }
+      },
+      {
+        path: 'order-success',
+        name: 'order-success',
+        component: () => import('pages/OrderSuccessPage.vue'),
+        meta: { shop: true }
+      },
+      {
+        path: 'orders',
+        name: 'orders',
+        component: () => import('pages/OrdersPage.vue'),
+        meta: { shop: true }
+      },
+      {
+        path: 'orders/:id',
+        name: 'order-detail',
+        component: () => import('pages/OrderDetailPage.vue'),
+        meta: { shop: true }
       },
       {
         path: 'survey',
@@ -17,31 +50,6 @@ const routes = [
         path: 'policy',
         name: 'policy',
         component: () => import('pages/SalesPolicyPage.vue')
-      },
-      {
-        path: 'product/:id',
-        name: 'product',
-        component: () => import('pages/ProductPage.vue')
-      },
-      {
-        path: 'cart',
-        name: 'cart',
-        component: () => import('pages/CartPage.vue')
-      },
-      {
-        path: 'order-success',
-        name: 'order-success',
-        component: () => import('pages/OrderSuccessPage.vue')
-      },
-      {
-        path: 'orders',
-        name: 'orders',
-        component: () => import('pages/OrdersPage.vue')
-      },
-      {
-        path: 'orders/:id',
-        name: 'order-detail',
-        component: () => import('pages/OrderDetailPage.vue')
       },
       {
         path: 'terms',
@@ -62,50 +70,32 @@ const routes = [
   },
 
   {
-      path: '/admin',
-      component: () => import('layouts/MainLayout.vue'),
-      meta: {
-        requiresManager: true,
-        isAdminSection: true
-      },
-
+    path: '/admin',
+    component: () => import('layouts/MainLayout.vue'),
+    meta: { requiresManager: true },
     children: [
-
       {
         path: '',
         name: 'admin',
         component: () => import('pages/AdminPage.vue')
       },
-
       {
         path: 'orders/:id',
         name: 'admin-order-detail',
         component: () => import('pages/OrderDetailPage.vue'),
-        meta: {
-          requiresManager: true,
-          isAdminSection: true,
-          requiresAdmin: true
-        }
+        meta: { requiresAdmin: true }
       },
-
       {
         path: 'account',
         name: 'admin-account',
         component: () => import('pages/AccountPage.vue'),
-        meta: {
-          requiresSuperAdmin: true
-        }
+        meta: { requiresSuperAdmin: true }
       },
       {
         path: 'survey',
         name: 'admin-survey',
-        component: () => import('pages/SurveyAdminPage.vue'),
-        meta: {
-          requiresManager: true,
-          isAdminSection: true
-        }
+        component: () => import('pages/SurveyAdminPage.vue')
       }
-
     ]
   },
 

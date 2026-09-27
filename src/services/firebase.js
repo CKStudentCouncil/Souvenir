@@ -1,9 +1,7 @@
-import { boot } from 'quasar/wrappers'
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
-import { getStorage } from 'firebase/storage'
-import { getAnalytics, isSupported } from 'firebase/analytics'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyB8PR6m1CjfxX4JH4BEQXJcs2EjSnDssbE',
@@ -19,11 +17,5 @@ export const app = initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const db = getFirestore(app)
-export const storage = getStorage(app)
-
-export let analytics
-isSupported().then((yes) => {
-  if (yes) analytics = getAnalytics(app)
-})
-
-export default boot(() => {})
+// Cloud Functions are deployed to asia-east1 (see functions/index.js).
+export const functions = getFunctions(app, 'asia-east1')

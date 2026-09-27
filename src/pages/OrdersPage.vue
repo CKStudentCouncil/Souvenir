@@ -46,12 +46,10 @@
             <strong class="price"><span class="currency">NT$</span><span class="num">{{ order.finalTotal }}</span></strong>
             <div class="ticket-actions">
               <router-link :to="`/orders/${order.id}`">查看明細</router-link>
-              <p>&ensp;</p>
               <button
+                v-if="!order.paid && !order.delivered"
                 type="button"
-                style="border: none; background-color: transparent; color: #D32F2F;"
-                aria-label="刪除訂單"
-                title="刪除訂單"
+                class="delete-button"
                 @click="confirmDelete(order.id)"
               >
                 刪除訂單
@@ -67,8 +65,6 @@
         </button>
       </article>
     </div>
-
-    <!--<button type="button" class="feedback-link" @click="openSurvey">分享使用心得</button>-->
 
     <q-dialog v-model="showQr" transition-show="scale" transition-hide="scale">
       <div class="qr-modal">
@@ -88,8 +84,8 @@
 import { nextTick, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
 import { useToastStore } from 'src/stores/toast'
-import { deleteOrderById, fetchBuyerOrders, formatOrderDate } from 'src/services/orderService'
-
+import { deleteOrderById, fetchMyOrders } from 'src/services/orderService'
+import { countItems, formatOrderDate, orderAdminUrl } from 'src/utils/orders'
 
 const toast = useToastStore()
 const orders = ref([])
@@ -104,27 +100,19 @@ function setQrRef(id, el) {
   if (el) qrRefs.set(id, el)
 }
 
-async function renderQrs() {
-  for (const order of orders.value) {
-    const canvas = qrRefs.get(order.id)
-    if (!canvas) continue
-    const url = `${window.location.origin}/orders/${order.id}`
-    try {
-      await QRCode.toCanvas(canvas, url, {
-        width: 88,
-        margin: 0,
-        color: { dark: '#1d1d1f', light: '#00000000' }
-      })
-    } catch (error) {
-      console.error(error)
-    }
+// The QR code opens the order in the admin view when staff scan it at pickup.
+async function drawQr(canvas, orderId, options) {
+  try {
+    await QRCode.toCanvas(canvas, orderAdminUrl(orderId), { margin: 0, ...options })
+  } catch (error) {
+    console.error(error)
   }
 }
 
 async function loadOrders() {
   loading.value = true
   try {
-    orders.value = await fetchBuyerOrders()
+    orders.value = await fetchMyOrders()
   } catch (error) {
     console.error(error)
     toast.show('目前無法載入訂單，請稍後再試。')
@@ -132,7 +120,10 @@ async function loadOrders() {
     loading.value = false
   }
   await nextTick()
-  renderQrs()
+  for (const order of orders.value) {
+    const canvas = qrRefs.get(order.id)
+    if (canvas) await drawQr(canvas, order.id, { width: 88, color: { dark: '#1d1d1f', light: '#00000000' } })
+  }
 }
 
 onMounted(loadOrders)
@@ -141,27 +132,17 @@ async function openQr(order) {
   activeOrder.value = order
   showQr.value = true
   await nextTick()
-  if (!modalQrCanvas.value) return
-  const url = `${window.location.origin}/orders/${order.id}`
-  try {
-    await QRCode.toCanvas(modalQrCanvas.value, url, {
-      width: 220,
-      margin: 0,
-      color: { dark: '#1d1d1f', light: '#ffffff' }
-    })
-  } catch (error) {
-    console.error(error)
+  if (modalQrCanvas.value) {
+    await drawQr(modalQrCanvas.value, order.id, { width: 220, color: { dark: '#1d1d1f', light: '#ffffff' } })
   }
 }
 
 function formatDate(timestamp) { return formatOrderDate(timestamp) }
 function shortId(id) { return String(id).toUpperCase() }
 function itemSummary(items) {
-  const count = items.reduce((total, item) => total + item.quantity, 0)
   const names = items.map((item) => item.name).slice(0, 2).join('、')
-  return `${count} 件商品 · ${names}${items.length > 2 ? '…' : ''}`
+  return `${countItems(items)} 件商品 · ${names}${items.length > 2 ? '…' : ''}`
 }
-function openSurvey() { window.open('https://souvenir.cksc.tw/survey', '_blank') }
 
 async function confirmDelete(orderId) {
   if (!window.confirm('確定要刪除這筆訂單嗎？刪除後無法復原。')) return

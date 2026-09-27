@@ -15,7 +15,7 @@
         <p class="eyebrow">CKSC COLLECTION</p>
         <h1>{{ config.title }}</h1>
         <p class="price">
-          <del v-if="config.orPrice" class="num">NT$ {{ config.orPrice }}</del>
+          <del v-if="config.orPrice && config.orPrice !== config.price" class="num">NT$ {{ config.orPrice }}</del>
           <span class="num">NT$ {{ config.price }}</span>
         </p>
 
@@ -153,10 +153,6 @@ function add() {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.purchase-panel {
-  max-width: 430px;
 }
 
 .eyebrow {

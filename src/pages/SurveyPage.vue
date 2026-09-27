@@ -123,7 +123,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from 'src/boot/firebase'
+import { db } from 'src/services/firebase'
 import { useToastStore } from 'src/stores/toast'
 import {
   IDENTITY_OPTIONS,

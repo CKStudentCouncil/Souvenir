@@ -243,17 +243,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { collection, getDocs } from 'firebase/firestore'
-import { db } from 'src/boot/firebase'
-import { useAuthStore } from 'src/stores/auth'
+import { db } from 'src/services/firebase'
 import { useToastStore } from 'src/stores/toast'
-import { USE_MOCK_ORDERS, MOCK_ALLOW_ADMIN_WITHOUT_AUTH } from 'src/config/app'
 import { SCALE_SECTIONS } from 'src/data/surveyQuestions.js'
 
-const auth = useAuthStore()
 const toast = useToastStore()
-const canAccessAdmin = computed(
-  () => auth.isManager || (USE_MOCK_ORDERS && MOCK_ALLOW_ADMIN_WITHOUT_AUTH)
-)
 
 const scaleSections = SCALE_SECTIONS
 const responses = ref([])
@@ -274,10 +268,6 @@ function isVisible(id) {
 }
 
 onMounted(async () => {
-  if (!canAccessAdmin.value) {
-    loading.value = false
-    return
-  }
   try {
     const snapshot = await getDocs(collection(db, 'surveyResponses'))
     responses.value = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
@@ -425,11 +415,12 @@ function segmentPercent(dist, score) {
   return total ? (dist[score] / total) * 100 : 0
 }
 
+// YYYY-MM-DD in Taiwan time (toISOString() would use UTC and shift late-night responses).
 function toDateKey(createdAt) {
   if (!createdAt) return null
   const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt)
   if (Number.isNaN(d.getTime())) return null
-  return d.toISOString().slice(0, 10)
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' })
 }
 
 const responsesByDate = computed(() => {
