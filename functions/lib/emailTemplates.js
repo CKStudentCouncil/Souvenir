@@ -1,16 +1,7 @@
 import { SITE_URL } from '../shared/config.js';
+import { escapeHtml } from '../shared/format.js';
 
 const CONTACT_EMAIL = 'ckhssc@gl.ck.tp.edu.tw';
-
-function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function formatCurrency(amount) {
   const num = Number(amount) || 0;

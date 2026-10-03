@@ -1,13 +1,10 @@
 // Printable receipts. Each builder returns a full HTML document for printHtml().
+import { escapeHtml as escapeText } from 'shared/format'
 import { countItems, formatOrderDate, getOrderClass } from 'src/utils/orders'
 
-export function escapeHtml(value) {
-  return String(value ?? '—')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+// Escaped text for the receipt; missing values print as a dash.
+function escapeHtml(value) {
+  return escapeText(value ?? '—')
 }
 
 // Opens the document in a new window and starts printing (users pick

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import * as functions from 'firebase-functions'
 import { FieldValue } from 'firebase-admin/firestore'
 import {
@@ -7,9 +8,13 @@ import {
   schoolFields,
   schools
 } from '../shared/catalog.js'
+import { isValidEmail, taiwanDate } from '../shared/format.js'
 import { calculatePricing } from '../shared/pricing.js'
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Each order sends a confirmation email, so cap how many orders one address
+// can receive per day (staff are exempt). Stops the shop being used to spam
+// someone's inbox.
+export const MAX_ORDERS_PER_EMAIL_PER_DAY = 10
 
 function invalid(message) {
   return new functions.https.HttpsError('invalid-argument', message)
@@ -50,7 +55,7 @@ export function buildOrder(payload, { ownerUid, isAdmin }) {
   const { needsClass, needsOffice } = schoolFields(school)
 
   const customerEmail = text(payload.customerEmail, 'Email', 254).toLowerCase()
-  if (!EMAIL_PATTERN.test(customerEmail)) throw invalid('Email 格式不正確')
+  if (!isValidEmail(customerEmail)) throw invalid('Email 格式不正確')
 
   const items = normalizeItems(payload.items)
   const pricing = calculatePricing(items, { usePRPackage: payload.usePRPackage === true, isAdmin })
@@ -80,41 +85,48 @@ export function buildOrder(payload, { ownerUid, isAdmin }) {
   }
 }
 
-// YYYYMMDD in Taiwan time.
-function taiwanDateString(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Taipei',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).formatToParts(date)
-
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${values.year}${values.month}${values.day}`
+function orderId(prefix, date, serial) {
+  return `${prefix}${date}${String(serial).padStart(4, '0')}`
 }
 
-// Saves the order as <school code><YYYYMMDD><4-digit daily serial>, e.g.
-// CKS202611050001. The counter and the order are written in one transaction.
-export async function saveOrderWithNewId(db, order) {
-  const date = taiwanDateString()
-  const counterRef = db.collection('orderCounters').doc(date)
+// Saves the order as <school code><YYYYMMDD><4-digit serial>, e.g.
+// CKS202611050001. Each school has its own daily counter so checkouts from
+// different schools don't queue on one document when the shop opens. The
+// counter, the order and the per-email limit are written in one transaction.
+export async function saveOrderWithNewId(db, order, { limitEmail = true } = {}) {
+  const date = taiwanDate().replaceAll('-', '')
   const prefix = SCHOOL_CODES[order.school] || 'O'
+  const counterRef = db.collection('orderCounters').doc(`${date}_${prefix}`)
+  const emailHash = createHash('sha256').update(order.customerEmail).digest('hex').slice(0, 32)
+  const emailCounterRef = db.collection('orderEmailCounters').doc(`${date}_${emailHash}`)
 
   return db.runTransaction(async (transaction) => {
     const counterSnap = await transaction.get(counterRef)
-    const serialNumber = Number(counterSnap.data()?.serialNumber || 0) + 1
-    const orderId = `${prefix}${date}${String(serialNumber).padStart(4, '0')}`
+    const emailCount = limitEmail ? Number((await transaction.get(emailCounterRef)).data()?.count || 0) : 0
+
+    if (emailCount >= MAX_ORDERS_PER_EMAIL_PER_DAY) {
+      throw new functions.https.HttpsError('resource-exhausted', '此 Email 今日的訂單數已達上限，請明天再試或聯繫班聯會')
+    }
+
+    // Skip any ID that is already taken (e.g. orders made before counters
+    // were split per school), so the create below can't collide.
+    let serialNumber = Number(counterSnap.data()?.serialNumber || 0)
+    let orderRef
+    do {
+      serialNumber += 1
+      orderRef = db.collection('orders').doc(orderId(prefix, date, serialNumber))
+    } while ((await transaction.get(orderRef)).exists)
 
     transaction.set(
       counterRef,
-      { date, serialNumber, updatedAt: FieldValue.serverTimestamp() },
+      { date, school: order.school, serialNumber, updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     )
-    transaction.create(db.collection('orders').doc(orderId), {
-      ...order,
-      createdAt: FieldValue.serverTimestamp()
-    })
+    if (limitEmail) {
+      transaction.set(emailCounterRef, { date, count: emailCount + 1 }, { merge: true })
+    }
+    transaction.create(orderRef, { ...order, createdAt: FieldValue.serverTimestamp() })
 
-    return orderId
-  })
+    return orderRef.id
+  }, { maxAttempts: 10 })
 }

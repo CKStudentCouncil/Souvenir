@@ -13,11 +13,10 @@
 
     <div class="page-heading">
       <p class="eyebrow">後台管理</p>
-      <h1>{{ canManageOrders ? '訂單統計' : '發送通知' }}</h1>
+      <h1>訂單統計</h1>
     </div>
 
     <div
-      v-if="canManageOrders"
       class="filter-block"
     >
       <label>篩選學校：</label>
@@ -34,7 +33,6 @@
     </div>
 
     <div
-      v-if="canManageOrders"
       class="filter-block"
     >
       <label>搜尋訂購者：</label>
@@ -46,7 +44,6 @@
     </div>
 
     <div
-      v-if="canManageOrders"
       class="tabs"
     >
       <button
@@ -193,7 +190,7 @@
           </template>
           <p class="preview-count">
             將發送給{{ notifyTargetSchoolLabel }}
-            <span class="num">{{ notifyRecipientCount ?? '…' }}</span> 位訂購者
+            <span class="num">{{ notifyRecipientCount }}</span> 位訂購者
           </p>
         </div>
 
@@ -219,7 +216,6 @@
     </div>
 
     <div
-      v-if="canManageOrders"
       class="panel export-panel"
     >
       <div>
@@ -248,7 +244,7 @@
       </button>
     </div>
 
-    <div v-if="canManageOrders" class="panel export-panel">
+    <div class="panel export-panel">
       <div>
         <h2>班代領取收據</h2>
         <p class="panel-copy">依目前的學校篩選，產生所有班級的領取收據；每個班級會有獨立頁面。</p>
@@ -264,7 +260,7 @@
     </div>
 
     <div
-      v-if="canManageOrders && activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
+      v-if="activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
       class="panel"
     >
       <h2>交貨人員統計</h2>
@@ -282,7 +278,6 @@
     </div>
 
     <div
-      v-if="canManageOrders"
       class="panel"
     >
       <h2>{{ activeTab === 'delivered' ? '已交貨商品統計' : '商品總數量' }}</h2>
@@ -302,7 +297,6 @@
     </div>
 
     <div
-      v-if="canManageOrders"
       class="orders-section"
     >
       <h2>{{ activeTab === 'delivered' ? '已交貨訂單' : '所有訂單' }}</h2>
@@ -423,31 +417,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from 'src/services/firebase'
 import { schools } from 'shared/catalog'
-import { useAuthStore } from 'src/stores/auth'
+import { notificationRecipients } from 'shared/format'
 import { useToastStore } from 'src/stores/toast'
 import { useAdminOrders } from 'src/composables/useAdminOrders'
 import { formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildClassReceiptsHtml, printHtml } from 'src/utils/receipts'
 
-const sendOrderNotification = httpsCallable(functions, 'sendOrderNotification')
+// Sending to every buyer can take minutes; match the function's 300 s timeout.
+const sendOrderNotification = httpsCallable(functions, 'sendOrderNotification', { timeout: 310000 })
 
 const router = useRouter()
-const auth = useAuthStore()
 const toast = useToastStore()
 
-// Managers (友校幹部) only send notifications; admins also manage orders.
-const canManageOrders = computed(() => auth.isAdmin)
-
 const {
+  orders,
   loading,
   activeTab,
   selectedSchool,
   customerSearchInput,
+  schoolOrders,
   filteredOrders,
   deliveredOrders,
   currentOrders,
@@ -459,10 +452,7 @@ const {
   exportToExcel
 } = useAdminOrders()
 
-onMounted(() => {
-  if (canManageOrders.value) fetchOrders()
-  else loading.value = false
-})
+onMounted(fetchOrders)
 
 function viewOrderDetail(orderId) {
   router.push({ name: 'admin-order-detail', params: { id: orderId } })
@@ -481,7 +471,8 @@ function downloadAllClassReceipts() {
     return
   }
 
-  const html = buildClassReceiptsHtml(filteredOrders.value)
+  // Every order of each class, whatever is typed in the search box.
+  const html = buildClassReceiptsHtml(schoolOrders.value)
   if (!html) {
     toast.show('目前篩選條件下沒有可產生收據的班級訂單')
     return
@@ -515,7 +506,10 @@ function emptyNotifyForm(school = 'all') {
 const showNotifyModal = ref(false)
 const sendingNotify = ref(false)
 const notifyForm = ref(emptyNotifyForm())
-const notifyRecipientCount = ref(null)
+// Same rule the Cloud Function uses to pick recipients.
+const notifyRecipientCount = computed(
+  () => notificationRecipients(orders.value, notifyForm.value.school).length
+)
 
 const notifyTypeLabel = computed(() => {
   if (notifyForm.value.type === 'payment') return '繳費通知'
@@ -550,29 +544,9 @@ function notifyPayload() {
   }
 }
 
-// The recipient count comes from the Cloud Function so it matches exactly
-// who will be emailed (and managers never need to read the orders).
-async function refreshRecipientCount() {
-  const school = notifyForm.value.school
-  notifyRecipientCount.value = null
-  try {
-    const { data } = await sendOrderNotification({ school, dryRun: true })
-    if (showNotifyModal.value && notifyForm.value.school === school) {
-      notifyRecipientCount.value = data.recipientCount
-    }
-  } catch (error) {
-    console.error('Failed to count notification recipients:', error)
-  }
-}
-
-watch(() => notifyForm.value.school, () => {
-  if (showNotifyModal.value) refreshRecipientCount()
-})
-
 function openNotifyModal() {
   notifyForm.value.school = selectedSchool.value
   showNotifyModal.value = true
-  refreshRecipientCount()
 }
 
 function closeNotifyModal() {
@@ -585,8 +559,7 @@ async function confirmSendNotify() {
     toast.show(notifyForm.value.type === 'custom' ? '請填寫訊息內容' : '請填寫必要的時間與地點')
     return
   }
-  const count = notifyRecipientCount.value ?? ''
-  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${count} 位訂購者嗎？此動作無法復原。`)) {
+  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`)) {
     return
   }
 

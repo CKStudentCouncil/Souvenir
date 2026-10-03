@@ -44,14 +44,6 @@
         </router-link>
 
         <router-link
-          v-if="auth.isManager && !auth.isAdmin"
-          to="/admin"
-          @click="menuOpen = false"
-        >
-          通知管理
-        </router-link>
-
-        <router-link
           v-if="auth.isAdmin"
           to="/admin"
           @click="menuOpen = false"
@@ -84,7 +76,7 @@
         </router-link>
 
         <button
-          v-if="auth.isManager"
+          v-if="auth.isLoggedIn"
           type="button"
           @click="handleSignOut"
         >

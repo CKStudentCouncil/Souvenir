@@ -59,6 +59,16 @@ const STATUS_FIELDS = {
   paid: 'payment'
 }
 
+const STATUS_MESSAGES = {
+  delivered: ['已標記為未交貨', '已標記為已交貨'],
+  paid: ['已標記為未付款', '已標記為已付款']
+}
+
+// Toast text after updateOrderStatus().
+export function statusMessage(field, value) {
+  return STATUS_MESSAGES[field][value ? 1 : 0]
+}
+
 // Sets `delivered` or `paid` and records who changed it. Returns the patch
 // with a local timestamp so the page can show it without reloading.
 export async function updateOrderStatus(orderId, field, value, staff) {

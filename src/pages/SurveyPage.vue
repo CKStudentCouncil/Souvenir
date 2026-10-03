@@ -94,12 +94,12 @@
 
             <div class="field">
               <label class="field-label">如果可以改善本系統的一個地方，您最希望改善什麼？（選填）</label>
-              <textarea v-model="form.improvement" rows="3" placeholder="請告訴我們"></textarea>
+              <textarea v-model="form.improvement" rows="3" :maxlength="SURVEY_TEXT_MAX" placeholder="請告訴我們"></textarea>
             </div>
 
             <div class="field">
               <label class="field-label">其他建議或想對開發團隊說的話（選填）</label>
-              <textarea v-model="form.suggestion" rows="3" placeholder="有什麼想說的都可以"></textarea>
+              <textarea v-model="form.suggestion" rows="3" :maxlength="SURVEY_TEXT_MAX" placeholder="有什麼想說的都可以"></textarea>
             </div>
           </section>
 
@@ -131,7 +131,8 @@ import {
   DEVICE_OPTIONS,
   ISSUE_COUNT_OPTIONS,
   ISSUE_TYPE_OPTIONS,
-  SCALE_SECTIONS
+  SCALE_SECTIONS,
+  SURVEY_TEXT_MAX
 } from 'src/data/surveyQuestions.js'
 
 const toast = useToastStore()
@@ -172,6 +173,9 @@ function validate() {
 
   if (!form.issueCount) return '請選擇是否曾遇到操作上的問題'
   if (hasIssue.value && !form.issueTypes.length) return '請選擇問題主要發生在哪個部分'
+  if (form.improvement.trim().length > SURVEY_TEXT_MAX || form.suggestion.trim().length > SURVEY_TEXT_MAX) {
+    return `文字回饋請在 ${SURVEY_TEXT_MAX} 字以內`
+  }
 
   return ''
 }

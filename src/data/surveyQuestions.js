@@ -39,6 +39,9 @@ export const ISSUE_TYPE_OPTIONS = [
   '其他'
 ]
 
+// Longest answer allowed in the free-text questions (also enforced by firestore.rules).
+export const SURVEY_TEXT_MAX = 2000
+
 export const SCALE_SECTIONS = [
   {
     key: 'usability',

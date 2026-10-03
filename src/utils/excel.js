@@ -1,5 +1,6 @@
 import { saveAs } from 'file-saver'
 import * as XLSX from 'xlsx'
+import { taiwanDate } from 'shared/format'
 import { formatOrderDate, getOrderClass } from 'src/utils/orders'
 
 function lineTotal(item) {
@@ -174,7 +175,7 @@ export function exportOrdersToExcel(orders, { onlyDelivered = false, school = 'a
   schoolSheets(orders).forEach(([name, sheet]) => XLSX.utils.book_append_sheet(workbook, sheet, name))
 
   const schoolPrefix = school !== 'all' ? `${school}_` : ''
-  const filename = `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${new Date().toISOString().slice(0, 10)}.xlsx`
+  const filename = `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${taiwanDate()}.xlsx`
   const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
   saveAs(new Blob([buffer], { type: 'application/octet-stream' }), filename)
 }

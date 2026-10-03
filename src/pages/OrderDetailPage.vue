@@ -138,14 +138,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
-import { fetchOrderById, updateOrderStatus } from 'src/services/orderService'
+import { fetchOrderById, statusMessage, updateOrderStatus } from 'src/services/orderService'
 import { countItems, formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildOrderReceiptHtml, printHtml } from 'src/utils/receipts'
-
-const STATUS_MESSAGES = {
-  delivered: ['已標記為未交貨', '已標記為已交貨'],
-  paid: ['已標記為未付款', '已標記為已付款']
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -194,7 +189,7 @@ async function setStatus(field, value) {
       name: auth.displayName
     })
     order.value = { ...order.value, ...patch }
-    toast.show(STATUS_MESSAGES[field][value ? 1 : 0])
+    toast.show(statusMessage(field, value))
   } catch {
     toast.show('更新失敗')
   }

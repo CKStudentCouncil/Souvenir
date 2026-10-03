@@ -3,12 +3,7 @@ import { debounce } from 'src/utils/debounce'
 import { calculateStatistics, calculateDeliveryStats, exportOrdersToExcel } from 'src/utils/excel'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
-import { deleteOrderById, fetchAllOrders, updateOrderStatus } from 'src/services/orderService'
-
-const STATUS_MESSAGES = {
-  delivered: ['已標記為未交貨', '已標記為已交貨'],
-  paid: ['已標記為未付款', '已標記為已付款']
-}
+import { deleteOrderById, fetchAllOrders, statusMessage, updateOrderStatus } from 'src/services/orderService'
 
 // Order list, filters, statistics and actions for the admin page.
 export function useAdminOrders() {
@@ -26,15 +21,21 @@ export function useAdminOrders() {
     customerSearch.value = value.trim().toLowerCase()
   }, 300))
 
-  function matchesFilters(order) {
-    if (selectedSchool.value !== 'all' && order.school !== selectedSchool.value) return false
+  function matchesSearch(order) {
     const q = customerSearch.value
     if (!q) return true
     return [order.customerName, order.customerEmail, order.customerPhone]
       .some((value) => String(value || '').toLowerCase().includes(q))
   }
 
-  const filteredOrders = computed(() => orders.value.filter(matchesFilters))
+  // School filter only (class receipts must list every order of a class).
+  const schoolOrders = computed(() =>
+    selectedSchool.value === 'all'
+      ? orders.value
+      : orders.value.filter((order) => order.school === selectedSchool.value)
+  )
+  // School filter + customer search (the list, statistics and Excel).
+  const filteredOrders = computed(() => schoolOrders.value.filter(matchesSearch))
   const deliveredOrders = computed(() => filteredOrders.value.filter((order) => order.delivered))
   const currentOrders = computed(() =>
     activeTab.value === 'delivered' ? deliveredOrders.value : filteredOrders.value
@@ -64,7 +65,7 @@ export function useAdminOrders() {
       orders.value = orders.value.map((order) =>
         order.id === orderId ? { ...order, ...patch } : order
       )
-      toast.show(STATUS_MESSAGES[field][value ? 1 : 0])
+      toast.show(statusMessage(field, value))
     } catch (err) {
       toast.show('更新失敗：' + err.message)
     }
@@ -94,6 +95,7 @@ export function useAdminOrders() {
     activeTab,
     selectedSchool,
     customerSearchInput,
+    schoolOrders,
     filteredOrders,
     deliveredOrders,
     currentOrders,

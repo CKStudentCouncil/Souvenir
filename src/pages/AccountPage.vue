@@ -262,6 +262,7 @@ import {
 } from 'firebase/firestore'
 import { db } from 'src/services/firebase'
 import { ROLE_LABELS, STAFF_ROLES } from 'shared/config'
+import { isValidEmail } from 'shared/format'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 
@@ -308,10 +309,6 @@ const canApplyRole = computed(() => {
 
 function roleLabel(role) {
   return ROLE_LABELS[role] || role || '未設定'
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim())
 }
 
 function isLastSuperAdmin(user) {

@@ -9,6 +9,12 @@ export function isShopOpen(now = new Date()) {
 
 export const SITE_URL = 'https://souvenir.cksc.tw'
 
+// Firebase App Check (reCAPTCHA v3) site key. Blocks scripted orders and
+// email spam that don't come from this website. Leave empty to turn App
+// Check off; once set, the website sends App Check tokens and createOrder
+// rejects requests without one. Setup: README.md → "App Check".
+export const APP_CHECK_SITE_KEY = ''
+
 // Staff roles, stored in users/{uid}.role.
 export const ROLE_LABELS = {
   super_admin: '系統管理員',

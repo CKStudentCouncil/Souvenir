@@ -4,18 +4,19 @@ All functions run in `asia-east1` on Node.js 22.
 
 | Function | Trigger | What it does |
 |---|---|---|
-| `createOrder` | Callable (checkout page) | Validates the order, prices it from `shared/catalog.js`, assigns an ID like `CKS202611050001` and saves it with the buyer's uid |
+| `createOrder` | Callable (checkout page) | Validates the order, prices it from `shared/catalog.js`, assigns an ID like `CKS202611050001` (per-school daily serial) and saves it with the buyer's uid. Max 10 orders per email per day for non-staff; requires App Check once `APP_CHECK_SITE_KEY` is set |
+| `claimOrders` | Callable (staff login) | Moves a guest's orders to the account they signed in as (proven with the guest's ID token), and gives staff their orders from before `ownerUid` existed |
 | `sendOrderQRCode` | New document in `orders` | Emails the order confirmation with a pickup QR code (links to `/admin/orders/<id>`) |
-| `sendOrderNotification` | Callable (admin page, any staff role) | Emails a payment / pickup / custom notice to every buyer, or to one school. `{ dryRun: true }` only returns the recipient count |
+| `sendOrderNotification` | Callable (admin page, admins only) | Emails a payment / pickup / custom notice to every buyer, or to one school |
 
 ## Layout
 
 ```text
-index.js                 # the three functions above
+index.js                 # the functions above
 lib/orders.js            # order validation, pricing and order-ID generation
 lib/emailTemplates.js    # confirmation and notification emails (shared layout)
 lib/mailer.js            # AWS SES transport and sender address
-shared/                  # catalog, pricing and settings; also imported by the website
+shared/                  # catalog, pricing, settings and small helpers; also imported by the website
 ```
 
 ## Setup

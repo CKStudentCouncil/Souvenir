@@ -7,6 +7,7 @@ import {
 } from 'vue-router'
 import routes from './routes'
 import { useAuthStore } from 'src/stores/auth'
+import { hasPendingRedirectSignIn, safeRedirect } from 'src/services/staffAuth'
 import { isShopOpen } from 'shared/config'
 
 export default defineRouter(function () {
@@ -26,8 +27,12 @@ export default defineRouter(function () {
     const authStore = useAuthStore()
     await authStore.init()
 
+    // Signed-in staff skip the login page and go where they were headed,
+    // unless the page still has to finish a redirect sign-in (LINE).
     if (to.name === 'admin-login') {
-      return authStore.isManager ? { name: 'admin' } : true
+      return authStore.isManager && !hasPendingRedirectSignIn()
+        ? safeRedirect(to.query.redirect)
+        : true
     }
 
     if (to.meta.requiresManager && !authStore.isManager) {
@@ -38,8 +43,9 @@ export default defineRouter(function () {
         : { name: 'admin-login', query: { redirect: to.fullPath } }
     }
 
+    // Managers (友校幹部) only have the survey results.
     if (to.meta.requiresAdmin && !authStore.isAdmin) {
-      return { name: 'admin' }
+      return { name: 'admin-survey' }
     }
 
     if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {

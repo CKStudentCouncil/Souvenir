@@ -244,6 +244,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from 'src/services/firebase'
+import { taiwanDate } from 'shared/format'
 import { useToastStore } from 'src/stores/toast'
 import { SCALE_SECTIONS } from 'src/data/surveyQuestions.js'
 
@@ -419,8 +420,7 @@ function segmentPercent(dist, score) {
 function toDateKey(createdAt) {
   if (!createdAt) return null
   const d = createdAt.toDate ? createdAt.toDate() : new Date(createdAt)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' })
+  return Number.isNaN(d.getTime()) ? null : taiwanDate(d)
 }
 
 const responsesByDate = computed(() => {

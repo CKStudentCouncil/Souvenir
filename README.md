@@ -148,6 +148,11 @@ firebase use <your-project>
 2. **Firestore rules:** `firebase deploy --only firestore:rules`
 3. **First super admin:** in the Firestore console create `users/<your Firebase Auth uid>` with `role: "super_admin"`. Everyone else is invited from **帳號管理** and activated on their first Google sign-in.
 4. **Firebase Storage** is not used. If it is enabled, set its rules to deny everything.
+5. **App Check (recommended before opening):** stops scripts from placing fake orders that email arbitrary addresses. In the Firebase console go to **App Check**, register the web app with **reCAPTCHA v3**, add `souvenir.cksc.tw` to the reCAPTCHA key's domains, put the site key in `APP_CHECK_SITE_KEY` in `functions/shared/config.js`, then deploy the website and the functions together. Until then, each email address is limited to 10 orders per day (staff are exempt).
+
+### Guest orders
+
+Buyers don't log in: the site signs them in anonymously at checkout and every order stores that account as `ownerUid`, so only that browser can see or cancel it. If someone signs in on the staff login page from the same browser, the `claimOrders` function moves their guest orders along with them (to the staff account, or back to a new guest account if the login is refused). Orders placed before `ownerUid` existed can only be seen by admins, except staff orders, which are reassigned to the staff account on their next login.
 
 ## Cloud Functions & Email
 
@@ -219,8 +224,8 @@ Before `SHOP_OPEN_AT` in `functions/shared/config.js`, visitors are redirected t
 
 | Role | Can |
 |---|---|
-| `manager` 友校幹部 | Send payment/pickup notifications, view survey results |
-| `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts |
+| `manager` 友校幹部 | View survey results, see the shop before it opens |
+| `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts, email payment/pickup notifications to buyers |
 | `super_admin` 系統管理員 | Everything above, plus manage staff accounts |
 
 ## Maintainers

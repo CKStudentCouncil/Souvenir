@@ -54,25 +54,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult
-} from 'firebase/auth'
-import {
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  writeBatch
-} from 'firebase/firestore'
-import { auth, db } from 'src/services/firebase'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
+import {
+  completeStaffSignIn,
+  finishRedirectSignIn,
+  safeRedirect,
+  startGoogleSignIn
+} from 'src/services/staffAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -82,72 +71,9 @@ const toast = useToastStore()
 const agree = ref(false)
 const isLoading = ref(false)
 
-// Popups don't work inside the LINE in-app browser, so use a redirect there.
-function isLineApp() {
-  const ua = navigator.userAgent.toLowerCase()
-  return ua.includes('line/') || ua.includes('liff/')
-}
-
-// Makes sure users/{uid} exists for an invited staff member. The first
-// sign-in turns the pendingUsers invitation into a users document; the
-// Firestore rules check `pendingId` against the invitation and require it to
-// be deleted in the same batch.
-async function linkUserAccount(user) {
-  const userRef = doc(db, 'users', user.uid)
-  const existingSnap = await getDoc(userRef)
-  const now = new Date().toISOString()
-
-  if (existingSnap.exists()) {
-    await setDoc(
-      userRef,
-      {
-        email: (user.email || '').toLowerCase(),
-        displayName: user.displayName || existingSnap.data().displayName || '',
-        photoURL: user.photoURL || '',
-        updatedAt: now
-      },
-      { merge: true }
-    )
-    return
-  }
-
-  const email = (user.email || '').toLowerCase()
-  const pendingSnap = await getDocs(query(collection(db, 'pendingUsers'), where('email', '==', email)))
-  if (pendingSnap.empty) return
-
-  const pendingDoc = pendingSnap.docs[0]
-  const pendingData = pendingDoc.data()
-
-  const batch = writeBatch(db)
-  batch.set(userRef, {
-    email,
-    displayName: user.displayName || pendingData.name || '',
-    photoURL: user.photoURL || '',
-    name: pendingData.name || '',
-    role: pendingData.role,
-    uid: user.uid,
-    pending: false,
-    pendingId: pendingDoc.id,
-    createdAt: pendingData.createdAt || now,
-    updatedAt: now
-  })
-  batch.delete(pendingDoc.ref)
-  await batch.commit()
-}
-
-// Only follow in-app paths from ?redirect= (not //other-site.com).
-function safeRedirect(value) {
-  const path = String(value || '')
-  return path.startsWith('/') && !path.startsWith('//') ? path : '/admin'
-}
-
 async function afterLogin(user) {
-  await linkUserAccount(user)
-  await authStore.refresh()
-
-  if (!authStore.isManager) {
+  if (!(await completeStaffSignIn(user, authStore))) {
     toast.show('此帳號尚未被授權，請聯繫系統管理員新增帳號')
-    await authStore.signOut()
     return
   }
 
@@ -168,40 +94,27 @@ function showAuthError(error) {
   }
 }
 
-onMounted(async () => {
+async function run(signIn) {
+  isLoading.value = true
   try {
-    isLoading.value = true
-    const result = await getRedirectResult(auth)
-    if (result?.user) await afterLogin(result.user)
+    const user = await signIn()
+    if (user) await afterLogin(user)
   } catch (error) {
     showAuthError(error)
   } finally {
     isLoading.value = false
   }
-})
+}
 
-async function handleGoogleAuth() {
+// Back from a redirect sign-in (LINE in-app browser).
+onMounted(() => run(finishRedirectSignIn))
+
+function handleGoogleAuth() {
   if (!agree.value) {
     toast.show('請先閱讀並同意使用者條款')
     return
   }
-
-  const provider = new GoogleAuthProvider()
-  provider.setCustomParameters({ prompt: 'select_account' })
-
-  try {
-    isLoading.value = true
-    if (isLineApp()) {
-      await signInWithRedirect(auth, provider)
-    } else {
-      const result = await signInWithPopup(auth, provider)
-      await afterLogin(result.user)
-    }
-  } catch (error) {
-    showAuthError(error)
-  } finally {
-    isLoading.value = false
-  }
+  run(startGoogleSignIn)
 }
 </script>
 

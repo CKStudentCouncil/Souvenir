@@ -8,8 +8,8 @@ rules_version = '2';
 //   manager      – 友校幹部: survey results; sends notifications via a Cloud Function.
 //   admin        – 建班幹部: all orders, payment/delivery status.
 //   super_admin  – 系統管理員: everything above plus user management.
-// Orders and order counters are only created by the createOrder Cloud
-// Function (Admin SDK, which bypasses these rules).
+// Orders and order counters are only written by the Cloud Functions
+// (createOrder, claimOrders) through the Admin SDK, which bypasses these rules.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -120,8 +120,10 @@ service cloud.firestore {
     // ---------- Orders ----------
 
     match /orders/{orderId} {
+      // Plain field access so Firestore can match it to where('ownerUid', '==', uid)
+      // queries; orders without ownerUid simply never match.
       function isOwner() {
-        return signedIn() && resource.data.get('ownerUid', null) == request.auth.uid;
+        return signedIn() && resource.data.ownerUid == request.auth.uid;
       }
 
       allow get, list: if isOwner() || isAdmin();
@@ -154,8 +156,12 @@ service cloud.firestore {
         && isShortText(data, 'paymentUpdatedByName', 100);
     }
 
-    // Daily order-number counters: Cloud Functions only.
-    match /orderCounters/{date} {
+    // Order-number counters and per-email daily limits: Cloud Functions only.
+    match /orderCounters/{counterId} {
+      allow read, write: if false;
+    }
+
+    match /orderEmailCounters/{counterId} {
       allow read, write: if false;
     }
 
