@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
@@ -20,7 +20,7 @@ export const app = initializeApp(firebaseConfig)
 // Proves requests come from this website (createOrder requires it once a key is set).
 if (APP_CHECK_SITE_KEY) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+    provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
     isTokenAutoRefreshEnabled: true
   })
 }

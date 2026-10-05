@@ -148,7 +148,7 @@ firebase use <your-project>
 2. **Firestore rules:** `firebase deploy --only firestore:rules`
 3. **First super admin:** in the Firestore console create `users/<your Firebase Auth uid>` with `role: "super_admin"`. Everyone else is invited from **帳號管理** and activated on their first Google sign-in.
 4. **Firebase Storage** is not used. If it is enabled, set its rules to deny everything.
-5. **App Check (recommended before opening):** stops scripts from placing fake orders that email arbitrary addresses. In the Firebase console go to **App Check**, register the web app with **reCAPTCHA v3**, add `souvenir.cksc.tw` to the reCAPTCHA key's domains, put the site key in `APP_CHECK_SITE_KEY` in `functions/shared/config.js`, then deploy the website and the functions together. Until then, each email address is limited to 10 orders per day (staff are exempt).
+5. **App Check (recommended before opening):** helps block scripts from placing fake orders that email arbitrary addresses. Create a **reCAPTCHA Enterprise** score-based website key with `souvenir.cksc.tw` allowed, then in the Firebase console go to **App Check** and register the web app with **reCAPTCHA Enterprise** using that key. Put the same site key in `APP_CHECK_SITE_KEY` in `functions/shared/config.js`, publish the updated website through GitHub Pages, and verify that App Check tokens are issued before deploying the functions with enforcement enabled. The Firebase SDK manages the reCAPTCHA tokens; no separate HTML click handler is needed. Each email address is also limited to 10 orders per day (staff are exempt).
 
 ### Guest orders
 

@@ -9,11 +9,12 @@ export function isShopOpen(now = new Date()) {
 
 export const SITE_URL = 'https://souvenir.cksc.tw'
 
-// Firebase App Check (reCAPTCHA v3) site key. Blocks scripted orders and
+// Firebase App Check (reCAPTCHA Enterprise) site key. Blocks scripted orders and
 // email spam that don't come from this website. Leave empty to turn App
 // Check off; once set, the website sends App Check tokens and createOrder
-// rejects requests without one. Setup: README.md → "App Check".
-export const APP_CHECK_SITE_KEY = ''
+// rejects requests without one. Publish the updated GitHub Pages website before
+// deploying the enforced function. Setup: README.md → "App Check".
+export const APP_CHECK_SITE_KEY = '6LeDJOAtAAAAAID1f7Ly-w3FH8DBnr-RgN_qKRjz'
 
 // Staff roles, stored in users/{uid}.role.
 export const ROLE_LABELS = {
