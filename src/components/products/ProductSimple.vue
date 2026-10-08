@@ -6,7 +6,7 @@
 
     <div class="product-detail">
       <div class="image-frame">
-        <img :src="`/images/product-${config.imageId}.png`" :alt="config.product.name">
+        <ProductGallery :image-id="config.imageId" :image-ids="config.imageIds" :title="config.product.name" />
       </div>
 
       <section class="purchase-card">
@@ -32,6 +32,7 @@
 </template>
 
 <script setup>
+import ProductGallery from 'components/products/ProductGallery.vue'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
@@ -92,12 +93,6 @@ function add() {
   border-radius: 32px;
   background: #ececee;
   box-shadow: 0 24px 60px rgba(0, 0, 0, .08);
-}
-
-.image-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .purchase-card {

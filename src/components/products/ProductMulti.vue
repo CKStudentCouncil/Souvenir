@@ -9,7 +9,9 @@
     </section>
     <div class="variant-grid">
       <article v-for="product in config.variants" :key="product.id" class="variant-card">
-        <div class="variant-image"><img :src="`/images/product-${product.id}.png`" :alt="product.name"></div>
+        <div class="variant-image">
+          <ProductGallery :image-id="product.id" :image-ids="product.imageIds" :title="product.name" />
+        </div>
         <h2>{{ product.name }}</h2>
         <button type="button" @click="add(product)">加入購物袋</button>
       </article>
@@ -18,6 +20,7 @@
 </template>
 
 <script setup>
+import ProductGallery from 'components/products/ProductGallery.vue'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
@@ -98,12 +101,6 @@ h1 {
   overflow: hidden;
   border-radius: 14px;
   background: #f5f5f7;
-}
-
-.variant-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .variant-card h2 {

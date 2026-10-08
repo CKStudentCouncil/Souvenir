@@ -38,7 +38,7 @@
           :to="`/product/${product.id}`"
           class="product-card"
         >
-          <div class="product-image"><img :src="`/images/product-${product.id}.png`" :alt="product.name" loading="lazy"></div>
+          <div class="product-image"><img :src="`../../public/product-${product.id}.png`" :alt="product.name" loading="lazy"></div>
           <div class="product-meta"><div><p class="product-category">{{ product.category }}</p><h3>{{ product.name }}</h3></div><q-icon name="arrow_forward" /></div>
           <p class="price">
             <del v-if="product.orPrice && product.orPrice !== product.price" class="num">NT$ {{ product.orPrice }}</del>

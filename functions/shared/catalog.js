@@ -24,6 +24,7 @@ export const products = [
   { id: '2', no: 2, name: '短踢', category: '短踢', price: 300, orPrice: 500 },
   { id: '3', no: 3, name: '飲料提袋', category: '飲料提袋', price: 200, orPrice: 400 },
   { id: '4', no: 4, name: '帆布袋', category: '帆布袋', price: 200, orPrice: 400 },
+  { id: '6', no: 6, name: '帽踢', category: '帽踢', price: 500, orPrice: 700 },
   { id: '5_1', no: 7, name: 'Q版建中生', category: '鑰匙圈', price: 50, orPrice: 50 },
   { id: '5_2', no: 7, name: '建中校徽', category: '鑰匙圈', price: 50, orPrice: 50 }
 ]
@@ -49,25 +50,35 @@ const teeSizes = [
   { size: '4XL', length: 77, sleeve: 23, chest: 63, shoulder: 62, productId: '2_7' }
 ]
 
-function sizedProduct({ no, title, price, orPrice, imageId, sizes }) {
+const hoodieSizes = [
+  { size: 'L', length: 67, sleeve: 53, chest: 55, shoulder: 57, productId: '6_1' },
+  { size: 'XL', length: 67, sleeve: 53, chest: 58, shoulder: 60, productId: '6_2' },
+  { size: '2XL', length: 70, sleeve: 56, chest: 60, shoulder: 62, productId: '6_3' },
+  { size: '3XL', length: 70, sleeve: 56, chest: 64, shoulder: 66, productId: '6_4' },
+  { size: '4XL', length: 74, sleeve: 56, chest: 66, shoulder: 68, productId: '6_5' }
+]
+
+function sizedProduct({ no, title, price, orPrice, imageId, imageIds = [imageId], sizes }) {
   return {
     type: 'sized',
     title,
     price,
     orPrice,
     imageId,
+    imageIds,
     sizeData: sizes,
     variants: sizes.map((row) => ({ id: row.productId, no, name: `${title}${row.size}`, price, orPrice }))
   }
 }
 
-function simpleProduct({ id, no, title, price, orPrice, imageId = id }) {
+function simpleProduct({ id, no, title, price, orPrice, imageId = id, imageIds = [imageId] }) {
   return {
     type: 'simple',
     title,
     price,
     orPrice,
     imageId,
+    imageIds,
     product: { id, no, name: title, price, orPrice }
   }
 }
@@ -84,8 +95,9 @@ const keychains = {
 
 // Product pages, keyed by the id in /product/:id.
 export const productPageConfigs = {
-  1: sizedProduct({ no: 1, title: '衝鋒外套', price: 700, orPrice: 900, imageId: '1', sizes: jacketSizes }),
-  2: sizedProduct({ no: 2, title: '短踢', price: 300, orPrice: 500, imageId: '2', sizes: teeSizes }),
+  1: sizedProduct({ no: 1, title: '衝鋒外套', price: 700, orPrice: 900, imageId: '1', imageIds: ['1', '1-2'], sizes: jacketSizes }),
+  2: sizedProduct({ no: 2, title: '短踢', price: 300, orPrice: 500, imageId: '2', imageIds: ['2', '2-2'], sizes: teeSizes }),
+  6: sizedProduct({ no: 6, title: '帽踢', price: 500, orPrice: 700, imageId: '6', imageIds: ['6', '6-2'], sizes: hoodieSizes }),
   3: simpleProduct({ id: '3', no: 3, title: '飲料提袋', price: 200, orPrice: 400 }),
   4: simpleProduct({ id: '4', no: 4, title: '帆布袋', price: 200, orPrice: 400 }),
   '5_1': keychains,

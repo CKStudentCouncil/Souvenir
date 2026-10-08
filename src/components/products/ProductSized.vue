@@ -4,11 +4,7 @@
 
     <div class="product-detail">
       <div class="image-wrap">
-        <img
-          :src="`/images/product-${config.imageId}.png`"
-          :alt="config.title"
-          loading="lazy"
-        >
+        <ProductGallery :image-id="config.imageId" :image-ids="config.imageIds" :title="config.title" />
       </div>
 
       <section class="purchase-card">
@@ -86,6 +82,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import ProductGallery from 'components/products/ProductGallery.vue'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 
@@ -147,12 +144,6 @@ function add() {
   overflow: hidden;
   border-radius: 28px;
   background: #ececee;
-}
-
-.image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .eyebrow {
