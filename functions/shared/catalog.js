@@ -18,7 +18,7 @@ export const GIFT_THRESHOLD = 1000
 export const comboDeals = []
 
 // Cards on the home page. `id` is also the product page URL and image name
-// (public/images/product-<id>.png).
+// (public/product-<id>.png).
 export const products = [
   { id: '1', no: 1, name: '衝鋒外套', category: '衝鋒外套', price: 700, orPrice: 900 },
   { id: '2', no: 2, name: '短踢', category: '短踢', price: 300, orPrice: 500 },
@@ -118,7 +118,7 @@ export function findPurchasableItem(id) {
   return purchasableItems.get(String(id)) || null
 }
 
-// School -> prefix used in order IDs (e.g. CKS202611050001).
+// School -> prefix used in order IDs (e.g. CKS202611050001-4A9C7E21B8D3).
 export const SCHOOL_CODES = {
   建國中學: 'CKS',
   北一女中: 'TFG',

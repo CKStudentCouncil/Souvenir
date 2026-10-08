@@ -60,7 +60,7 @@ functions/                 # Firebase Cloud Functions
 └── shared/                # Catalog, pricing and settings used by BOTH the web app and the functions
                            #   (imported in the web app as `shared/...`)
 firestore.rules            # Firestore security rules
-public/                    # Static assets (product images go in public/images/product-<id>.png)
+public/                    # Static assets (product images go in public/product-<id>.png)
 .github/workflows/
 └── deploy.yml             # GitHub Pages deployment workflow
 ```

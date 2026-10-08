@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { APP_CHECK_SITE_KEY } from 'shared/config'
 
@@ -26,6 +26,10 @@ if (APP_CHECK_SITE_KEY) {
 }
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// Avoid streaming Fetch requests that can fail Safari's access-control checks.
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
+})
 // Cloud Functions are deployed to asia-east1 (see functions/index.js).
 export const functions = getFunctions(app, 'asia-east1')

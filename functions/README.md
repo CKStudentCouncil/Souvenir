@@ -4,7 +4,7 @@ All functions run in `asia-east1` on Node.js 22.
 
 | Function | Trigger | What it does |
 |---|---|---|
-| `createOrder` | Callable (checkout page) | Validates the order, prices it from `shared/catalog.js`, assigns an ID like `CKS202611050001` (per-school daily serial) and saves it with the buyer's uid. Max 10 orders per email per day for non-staff; requires App Check once `APP_CHECK_SITE_KEY` is set |
+| `createOrder` | Callable (checkout page) | Validates the order, prices it from `shared/catalog.js`, assigns an ID like `CKS202611050001-4A9C7E21B8D3` (per-school daily serial plus a random suffix) and saves it with the buyer's uid. Max 10 orders per email per day for non-staff; requires App Check once `APP_CHECK_SITE_KEY` is set |
 | `claimOrders` | Callable (staff login) | Moves a guest's orders to the account they signed in as (proven with the guest's ID token), and gives staff their orders from before `ownerUid` existed |
 | `sendOrderQRCode` | New document in `orders` | Emails the order confirmation with a pickup QR code (links to `/admin/orders/<id>`) |
 | `sendOrderNotification` | Callable (admin page, admins only) | Emails a payment / pickup / custom notice to every buyer, or to one school |

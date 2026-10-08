@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import * as functions from 'firebase-functions'
 import { FieldValue } from 'firebase-admin/firestore'
 import {
@@ -89,13 +89,15 @@ function orderId(prefix, date, serial) {
   return `${prefix}${date}${String(serial).padStart(4, '0')}`
 }
 
-// Saves the order as <school code><YYYYMMDD><4-digit serial>, e.g.
-// CKS202611050001. Each school has its own daily counter so checkouts from
+// Saves the order as <school code><YYYYMMDD><4-digit serial>-<random suffix>, e.g.
+// CKS202611050001-4A9C7E21B8D3. Each school has its own daily counter so checkouts from
 // different schools don't queue on one document when the shop opens. The
 // counter, the order and the per-email limit are written in one transaction.
 export async function saveOrderWithNewId(db, order, { limitEmail = true } = {}) {
   const date = taiwanDate().replaceAll('-', '')
   const prefix = SCHOOL_CODES[order.school] || 'O'
+  // Keep the cryptographic suffix stable if Firestore retries the transaction.
+  const suffix = randomBytes(6).toString('hex').toUpperCase()
   const counterRef = db.collection('orderCounters').doc(`${date}_${prefix}`)
   const emailHash = createHash('sha256').update(order.customerEmail).digest('hex').slice(0, 32)
   const emailCounterRef = db.collection('orderEmailCounters').doc(`${date}_${emailHash}`)
@@ -108,14 +110,17 @@ export async function saveOrderWithNewId(db, order, { limitEmail = true } = {}) 
       throw new functions.https.HttpsError('resource-exhausted', '此 Email 今日的訂單數已達上限，請明天再試或聯繫班聯會')
     }
 
-    // Skip any ID that is already taken (e.g. orders made before counters
-    // were split per school), so the create below can't collide.
+    // Preserve occupied serials from older orders without a suffix as well
+    // as checking the complete new ID before creating the document.
     let serialNumber = Number(counterSnap.data()?.serialNumber || 0)
     let orderRef
-    do {
+    while (true) {
       serialNumber += 1
-      orderRef = db.collection('orders').doc(orderId(prefix, date, serialNumber))
-    } while ((await transaction.get(orderRef)).exists)
+      const baseId = orderId(prefix, date, serialNumber)
+      if ((await transaction.get(db.collection('orders').doc(baseId))).exists) continue
+      orderRef = db.collection('orders').doc(`${baseId}-${suffix}`)
+      if (!(await transaction.get(orderRef)).exists) break
+    }
 
     transaction.set(
       counterRef,
