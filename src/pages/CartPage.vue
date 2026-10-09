@@ -72,14 +72,14 @@
               <q-icon :name="pricing.qualifiesForGift && pricing.hasAvailableGift ? 'redeem' : 'card_giftcard'" size="17px" />
               <strong>{{ pricing.qualifiesForGift && pricing.hasAvailableGift ? '這份小禮由我們招待' : '再多一點小驚喜' }}</strong>
             </div>
-            <p v-if="pricing.qualifiesForGift && pricing.hasAvailableGift">一項符合資格的贈品已自動折抵。</p>
+            <p v-if="pricing.qualifiesForGift && pricing.hasAvailableGift">一項符合資格的贈品已自動折抵</p>
             <template v-else-if="pricing.hasAvailableGift">
               <div class="progress-track" aria-hidden="true">
                 <div class="progress-fill" :style="{ width: giftProgress + '%' }"></div>
               </div>
-              <p>再選購 <span class="num">NT$ {{ pricing.amountNeededForGift }}</span>，即可享有你選的贈品。</p>
+              <p>再選購 <span class="num">NT$ {{ pricing.amountNeededForGift }}</span>，即可享有你選的贈品</p>
             </template>
-            <p v-else>訂單滿 <span class="num">NT$ {{ GIFT_THRESHOLD.toLocaleString() }}</span>，搭配符合資格的贈品即可享折抵。</p>
+            <p v-else>訂單滿 <span class="num">NT$ {{ GIFT_THRESHOLD.toLocaleString() }}</span>，將任意一個鑰匙圈加入購物車，即可享折抵</p>
           </div>
         </template>
 
