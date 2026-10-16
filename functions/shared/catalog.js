@@ -15,7 +15,10 @@ export const GIFT_THRESHOLD = 1000
 // { id: 'combo1', name: '套餐A', items: [1, 2, 2], discount: 150,
 //   comboPrice: 1200, originalPrice: 1350, showdiscount: 150, note: '' }
 // `items` lists product `no`s; repeat a number to require it more than once.
-export const comboDeals = []
+export const comboDeals = [
+  { id: 'combo1', name: '組合1', items:[2, 6], discount:100, comboPrice: 1000, originalPrice: 1100, showdiscount: 100, note: '短踢+帽踢組合' },
+  { id: 'combo2', name: '組合2', items:[1, 2, 6, 3, 4], discount:200, comboPrice: 2000, originalPrice: 2200, showdiscount: 200, note: '衝鋒外套+帽踢組合' }
+]
 
 // Cards on the home page. `id` is also the product page URL and image name
 // (public/product-<id>.png).
