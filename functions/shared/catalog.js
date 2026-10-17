@@ -17,7 +17,7 @@ export const GIFT_THRESHOLD = 1000
 // `items` lists product `no`s; repeat a number to require it more than once.
 export const comboDeals = [
   { id: 'combo1', name: '組合1', items:[2, 6], discount:100, comboPrice: 1000, originalPrice: 1100, showdiscount: 100, note: '短踢+帽踢組合' },
-  { id: 'combo2', name: '組合2', items:[1, 2, 6, 3, 4], discount:200, comboPrice: 2000, originalPrice: 2200, showdiscount: 200, note: '衝鋒外套+帽踢組合' }
+  { id: 'combo2', name: '組合2', items:[1, 2, 6, 3, 4], discount:180, comboPrice: 2000, originalPrice: 2180, showdiscount: 180, note: '衝鋒外套+短踢+帽踢+飲料提袋+帆布袋組合' }
 ]
 
 // Cards on the home page. `id` is also the product page URL and image name
@@ -26,7 +26,7 @@ export const products = [
   { id: '1', no: 1, name: '衝鋒外套', category: '衝鋒外套', price: 800, orPrice: 900 },
   { id: '2', no: 2, name: '短踢', category: '短踢', price: 350, orPrice: 400 },
   { id: '3', no: 3, name: '飲料提袋', category: '飲料提袋', price: 100, orPrice: 100 },
-  { id: '4', no: 4, name: '帆布袋', category: '帆布袋', price: 150, orPrice: 200 },
+  { id: '4', no: 4, name: '帆布袋', category: '帆布袋', price: 130, orPrice: 150 },
   { id: '6', no: 6, name: '帽踢', category: '帽踢', price: 750, orPrice: 800 },
   { id: '5_1', no: 7, name: 'Q版建中生', category: '鑰匙圈', price: 50, orPrice: 50 },
   { id: '5_2', no: 7, name: '建中校徽', category: '鑰匙圈', price: 50, orPrice: 50 }
@@ -102,7 +102,7 @@ export const productPageConfigs = {
   2: sizedProduct({ no: 2, title: '短踢', price: 350, orPrice: 400, imageId: '2', imageIds: ['2', '2-2'], sizes: teeSizes }),
   6: sizedProduct({ no: 6, title: '帽踢', price: 750, orPrice: 800, imageId: '6', imageIds: ['6', '6-2'], sizes: hoodieSizes }),
   3: simpleProduct({ id: '3', no: 3, title: '飲料提袋', price: 100, orPrice: 100 }),
-  4: simpleProduct({ id: '4', no: 4, title: '帆布袋', price: 150, orPrice: 200 }),
+  4: simpleProduct({ id: '4', no: 4, title: '帆布袋', price: 130, orPrice: 150 }),
   '5_1': keychains,
   '5_2': keychains
 }
