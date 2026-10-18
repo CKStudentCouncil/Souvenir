@@ -7,7 +7,7 @@
   >
     <div class="entry-notice">
       <q-icon name="straighten" size="28px" class="notice-icon" aria-hidden="true" />
-      <h2 id="entry-notice-title">尺碼提醒</h2>
+      <h2 id="entry-notice-title">Notification</h2>
       <p id="entry-notice-message">本次校慶紀念品尺碼較為特殊，建議挑選平常穿著的尺寸大兩號到三號</p>
       <button type="button" class="notice-button" autofocus @click="visible = false">
         我知道了
