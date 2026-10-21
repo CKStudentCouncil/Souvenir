@@ -1,7 +1,7 @@
 // Settings shared by the web app and the Cloud Functions.
 
 // Before this time only staff can open the shop pages or place orders.
-export const SHOP_OPEN_AT = new Date('2026-11-05T12:00:00+08:00')
+export const SHOP_OPEN_AT = new Date('2026-10-22T00:00:00+08:00')
 
 export function isShopOpen(now = new Date()) {
   return now >= SHOP_OPEN_AT
