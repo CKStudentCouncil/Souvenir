@@ -38,13 +38,17 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchOrderById } from 'src/services/orderService'
+import { trackOrderPurchase } from 'src/services/analytics'
 
 const route = useRoute()
 const orderId = ref(route.query.id || '')
 const order = ref(null)
 
 onMounted(async () => {
-  if (orderId.value) order.value = await fetchOrderById(orderId.value)
+  if (orderId.value) {
+    order.value = await fetchOrderById(orderId.value)
+    if (order.value && !order.value.isAdminOrder) trackOrderPurchase(order.value)
+  }
 })
 </script>
 
