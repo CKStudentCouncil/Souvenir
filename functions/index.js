@@ -157,6 +157,20 @@ export const sendOrderQRCode = inTaiwan({ secrets: MAIL_SECRETS })
     }
   })
 
+// Admin-triggered resend of an order confirmation.
+export const resendOrderConfirmation = inTaiwan({ secrets: MAIL_SECRETS }).https.onCall(async (data, context) => {
+  await assertRole(context, ADMIN_ROLES)
+  const orderId = String(data?.orderId || '').trim()
+  if (!orderId || orderId.length > 100) throw new HttpsError('invalid-argument', '訂單編號無效')
+  const snap = await db.collection('orders').doc(orderId).get()
+  if (!snap.exists) throw new HttpsError('not-found', '找不到此訂單')
+  const order = snap.data()
+  if (!order.customerEmail) throw new HttpsError('failed-precondition', '此訂單沒有 Email')
+  const qrCode = await QRCode.toBuffer(`${SITE_URL}/admin/orders/${orderId}`, { width: 300, margin: 2, color: { dark: '#1d1d1f', light: '#ffffff' }, errorCorrectionLevel: 'H', type: 'png' })
+  await createTransporter().sendMail({ from: fromHeader(), to: order.customerEmail, subject: `建中校慶紀念品訂單確認 - 訂單編號：${orderId}`, html: generateEmailHTML(orderId, order), attachments: [{ filename: 'order-qrcode.png', content: qrCode, contentType: 'image/png', cid: 'qrcode', contentDisposition: 'inline' }] })
+  return { sentTo: order.customerEmail }
+})
+
 const NOTIFY_TYPES = ['payment', 'pickup', 'both', 'custom']
 
 const NOTIFY_SUBJECTS = {

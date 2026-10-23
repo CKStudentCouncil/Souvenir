@@ -62,6 +62,16 @@
       </button>
     </div>
 
+    <div v-if="isAdminView" class="receipt-actions">
+      <div>
+        <p class="receipt-actions__title">訂單確認 Email</p>
+        <p class="receipt-actions__hint">個別寄送至 {{ order.customerEmail || '（此訂單沒有 Email）' }}</p>
+      </div>
+      <button type="button" class="btn-primary" :disabled="sendingEmail || !order.customerEmail" @click="sendConfirmation">
+        {{ sendingEmail ? '寄送中…' : '手動寄送確認信' }}
+      </button>
+    </div>
+
     <article class="receipt">
       <header class="receipt-head">
         <p class="eyebrow">訂單詳情</p>
@@ -141,6 +151,8 @@ import { useToastStore } from 'src/stores/toast'
 import { fetchOrderById, statusMessage, updateOrderStatus } from 'src/services/orderService'
 import { countItems, formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildOrderReceiptHtml, printHtml } from 'src/utils/receipts'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from 'src/services/firebase'
 
 const route = useRoute()
 const router = useRouter()
@@ -149,6 +161,7 @@ const toast = useToastStore()
 
 const order = ref(null)
 const loading = ref(true)
+const sendingEmail = ref(false)
 
 // Same page for buyers (/orders/:id) and staff (/admin/orders/:id, admins only).
 const isAdminView = computed(() => route.name === 'admin-order-detail')
@@ -178,6 +191,21 @@ function printReceipt() {
 
 function goBack() {
   router.push(isAdminView.value ? '/admin' : '/orders')
+}
+
+async function sendConfirmation() {
+  if (!isAdminView.value || !order.value?.customerEmail || sendingEmail.value) return
+  sendingEmail.value = true
+  try {
+    const send = httpsCallable(functions, 'resendOrderConfirmation')
+    const { data } = await send({ orderId: order.value.id })
+    toast.show(`確認信已寄送至 ${data.sentTo}`)
+  } catch (error) {
+    console.error('Confirmation email failed:', error)
+    toast.show(error.message || '寄送失敗')
+  } finally {
+    sendingEmail.value = false
+  }
 }
 
 // field: 'delivered' | 'paid'

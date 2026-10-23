@@ -1,17 +1,19 @@
 rules_version = '2';
 
-// Deploy with: firebase deploy --only firestore:rules
+// Data model:
+//   users/{uid}: staff profile and role. A staff member can create this only
+//     while consuming a matching pendingUsers invitation.
+//   pendingUsers/{inviteId}: staff invitation, managed by super admins.
+//   orders/{orderId}: created by createOrder and managed by Cloud Functions;
+//     buyers can read and cancel only their own unpaid, undelivered orders.
+//   orderCounters/{id}, orderEmailCounters/{id}: server-only counters.
+//   surveyResponses/{id}: public, validated survey submissions; staff can read.
 //
-// Who does what:
-//   guests       – signed in anonymously when they check out; can read and
-//                  cancel only their own orders (orders.ownerUid).
-//   manager      – 友校幹部: survey results; sends notifications via a Cloud Function.
-//   admin        – 建班幹部: all orders, payment/delivery status.
-//   super_admin  – 系統管理員: everything above plus user management.
-// Orders and order counters are only written by the Cloud Functions
-// (createOrder, claimOrders) through the Admin SDK, which bypasses these rules.
+// Cloud Functions use the Admin SDK and bypass these rules.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------- Authentication and roles ----------
 
     function signedIn() {
       return request.auth != null;
@@ -53,6 +55,10 @@ service cloud.firestore {
     // Optional text field: absent, or a string of at most `max` characters.
     function isShortText(data, key, max) {
       return !(key in data) || (data[key] is string && data[key].size() <= max);
+    }
+
+    function isTimestamp(data, key) {
+      return !(key in data) || data[key] is timestamp;
     }
 
     // ---------- Staff accounts ----------
@@ -150,8 +156,14 @@ service cloud.firestore {
         && data.get('delivered', false) is bool
         && data.get('paid', false) is bool
         // "Updated by" must be the admin making the change.
-        && (!('deliveryUpdatedBy' in changed) || data.deliveryUpdatedBy == request.auth.uid)
-        && (!('paymentUpdatedBy' in changed) || data.paymentUpdatedBy == request.auth.uid)
+        && (!('deliveryUpdatedBy' in changed)
+            || (data.deliveryUpdatedBy is string
+                && data.deliveryUpdatedBy == request.auth.uid))
+        && (!('paymentUpdatedBy' in changed)
+            || (data.paymentUpdatedBy is string
+                && data.paymentUpdatedBy == request.auth.uid))
+        && isTimestamp(data, 'deliveryUpdatedAt')
+        && isTimestamp(data, 'paymentUpdatedAt')
         && isShortText(data, 'deliveryUpdatedByName', 100)
         && isShortText(data, 'paymentUpdatedByName', 100);
     }
