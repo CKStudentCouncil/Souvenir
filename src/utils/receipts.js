@@ -1,5 +1,6 @@
 // Printable receipts. Each builder returns a full HTML document for printHtml().
 import { escapeHtml as escapeText } from 'shared/format'
+import { orderPriceLines } from 'shared/pricing'
 import { countItems, formatOrderDate, getOrderClass } from 'src/utils/orders'
 
 // Escaped text for the receipt; missing values print as a dash.
@@ -54,6 +55,14 @@ export function buildOrderReceiptHtml(order) {
       </tr>`)
     .join('')
 
+  const { subtotal, discounts } = orderPriceLines(order)
+  const discountRows = discounts.length
+    ? [
+        `<tr class="sum"><td colspan="3">商品小計</td><td>NT$ ${escapeHtml(subtotal)}</td></tr>`,
+        ...discounts.map((line) => `<tr class="sum"><td colspan="3">${escapeHtml(line.label)}</td><td>−NT$ ${escapeHtml(line.amount)}</td></tr>`)
+      ].join('')
+    : ''
+
   const makeCopy = (copyLabel) => `
     <section class="receipt-copy">
       <header>
@@ -63,7 +72,7 @@ export function buildOrderReceiptHtml(order) {
       <div class="meta"><span>訂單編號：${escapeHtml(order.id)}</span><span>訂購日期：${escapeHtml(formatOrderDate(order.createdAt))}</span></div>
       <h2>顧客資料</h2><div class="customer">${customerRows}</div>
       <h2>購買明細</h2>
-      <table><thead><tr><th>品項</th><th>單價</th><th>數量</th><th>小計</th></tr></thead><tbody>${itemRows}</tbody></table>
+      <table><thead><tr><th>品項</th><th>單價</th><th>數量</th><th>小計</th></tr></thead><tbody>${itemRows}${discountRows}</tbody></table>
       <p class="total">應收總額：<b>NT$ ${escapeHtml(order.finalTotal)}</b></p>
       <footer><p>顧客簽名：<span></span></p><p>班聯會工作人員簽名：<span></span></p></footer>
     </section>`
@@ -79,7 +88,7 @@ export function buildOrderReceiptHtml(order) {
       .meta { margin: 4mm 0; padding: 2.5mm 0; border-top: 1px solid #222; border-bottom: 1px solid #222; font-size: 9pt; }
       h2 { margin: 3mm 0 2mm; font-size: 10pt; } .customer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5mm 4mm; font-size: 9pt; }
       .customer p { margin: 0; } table { width: 100%; border-collapse: collapse; font-size: 9pt; } th, td { padding: 1.5mm 2mm; border: 1px solid #555; } th { background: #f0f0f0; } th:not(:first-child), td:not(:first-child) { text-align: right; }
-      .total { margin: 2mm 0 0; text-align: right; font-size: 11pt; } footer { margin-top: 6mm; font-size: 10pt; } footer p { margin: 0; } footer span { display: inline-block; width: 48mm; border-bottom: 1px solid #111; }`,
+      .sum td:first-child { text-align: right; } .total { margin: 2mm 0 0; text-align: right; font-size: 11pt; } footer { margin-top: 6mm; font-size: 10pt; } footer p { margin: 0; } footer span { display: inline-block; width: 48mm; border-bottom: 1px solid #111; }`,
     makeCopy('班聯會留存聯') + makeCopy('顧客收執聯')
   )
 }

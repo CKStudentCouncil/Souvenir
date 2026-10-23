@@ -110,3 +110,27 @@ export function calculatePricing(cartItems, options = {}) {
     amountNeededForGift: Math.max(0, GIFT_THRESHOLD - (totalAfterCombo - giftPrice))
   }
 }
+
+// Price breakdown of a saved order for receipts, the order page and emails:
+// subtotal, one line per discount, then the amount to pay. Any difference the
+// stored fields don't explain (very old orders) shows up as「其他折扣」.
+export function orderPriceLines(order) {
+  const items = order.items || []
+  const subtotal = Number(order.originalTotal) ||
+    items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0)
+  const finalTotal = Number(order.finalTotal) || 0
+
+  const discounts = (order.appliedCombos || []).map((combo) => {
+    const count = Number(combo.applicableCount) || 1
+    const label = order.prPackageUsed
+      ? '公關品折抵'
+      : `組合優惠（${combo.name}${count > 1 ? ` ×${count}` : ''}）`
+    return { label, amount: (Number(combo.discount) || 0) * count }
+  })
+  if (Number(order.giftDiscount) > 0) discounts.push({ label: '贈品折抵', amount: Number(order.giftDiscount) })
+
+  const unexplained = subtotal - finalTotal - discounts.reduce((sum, line) => sum + line.amount, 0)
+  if (unexplained > 0) discounts.push({ label: '其他折扣', amount: unexplained })
+
+  return { subtotal, discounts: discounts.filter((line) => line.amount > 0), finalTotal }
+}

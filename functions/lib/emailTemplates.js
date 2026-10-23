@@ -1,5 +1,6 @@
 import { SITE_URL } from '../shared/config.js';
 import { escapeHtml } from '../shared/format.js';
+import { orderPriceLines } from '../shared/pricing.js';
 
 const CONTACT_EMAIL = 'ckhssc@gl.ck.tp.edu.tw';
 
@@ -109,6 +110,20 @@ export function generateEmailHTML(orderId, order) {
     })
     .join('');
 
+  // Subtotal and discounts, so the items add up to the total.
+  const { subtotal, discounts } = orderPriceLines(order);
+  const priceRow = (label, amount, color) => `
+      <tr>
+        <td style="padding: 6px 0; font-size: 14px; color: ${color};">${escapeHtml(label)}</td>
+        <td style="padding: 6px 0; font-size: 14px; color: ${color}; text-align: right;">${amount}</td>
+      </tr>`;
+  const priceRows = discounts.length
+    ? [
+        priceRow('商品小計', `NT$ ${formatCurrency(subtotal)}`, '#6e6e73'),
+        ...discounts.map((line) => priceRow(line.label, `−NT$ ${formatCurrency(line.amount)}`, '#248a43'))
+      ].join('')
+    : '';
+
   const details = infoRows(
     [
       ['訂單編號', escapeHtml(orderId), "font-family: 'SF Mono', Consolas, monospace;"],
@@ -140,6 +155,7 @@ export function generateEmailHTML(orderId, order) {
     </table>
 
     <table width="100%" style="margin-bottom: 24px;">
+      ${priceRows}
       <tr>
         <td style="padding: 10px 0; font-size: 15px; font-weight: 700;">訂單總額</td>
         <td style="padding: 10px 0; font-size: 18px; font-weight: 700; text-align: right;">NT$ ${formatCurrency(order.finalTotal)}</td>

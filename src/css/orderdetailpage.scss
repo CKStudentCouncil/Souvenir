@@ -292,6 +292,9 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   font-size: .9rem;
 }
 
+.receipt-items .saving .item-name,
+.receipt-items .saving .item-price { color: #248a43; }
+
 .receipt-total {
   display: flex;
   align-items: baseline;
