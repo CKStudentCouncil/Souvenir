@@ -127,10 +127,29 @@
           <li v-for="item in order.items" :key="item.id + item.name">
             <span class="item-name">{{ item.name }} <span class="qty num">×{{ item.quantity }}</span></span>
             <span class="item-leader" aria-hidden="true" />
-            <span class="item-price num">NT$ {{ item.price }}</span>
+            <span class="item-price num">NT$ {{ item.price * item.quantity }}</span>
           </li>
         </ul>
       </section>
+
+      <template v-if="priceLines.discounts.length">
+        <div class="receipt-divider" />
+
+        <section class="receipt-section">
+          <ul class="receipt-items">
+            <li>
+              <span class="item-name">商品小計</span>
+              <span class="item-leader" aria-hidden="true" />
+              <span class="item-price num">NT$ {{ priceLines.subtotal }}</span>
+            </li>
+            <li v-for="line in priceLines.discounts" :key="line.label" class="saving">
+              <span class="item-name">{{ line.label }}</span>
+              <span class="item-leader" aria-hidden="true" />
+              <span class="item-price num">−NT$ {{ line.amount }}</span>
+            </li>
+          </ul>
+        </section>
+      </template>
 
       <div class="receipt-divider receipt-divider--dashed" />
 
@@ -151,6 +170,7 @@ import { useToastStore } from 'src/stores/toast'
 import { fetchOrderById, statusMessage, updateOrderStatus } from 'src/services/orderService'
 import { countItems, formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildOrderReceiptHtml, printHtml } from 'src/utils/receipts'
+import { orderPriceLines } from 'shared/pricing'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from 'src/services/firebase'
 
@@ -165,6 +185,7 @@ const sendingEmail = ref(false)
 
 // Same page for buyers (/orders/:id) and staff (/admin/orders/:id, admins only).
 const isAdminView = computed(() => route.name === 'admin-order-detail')
+const priceLines = computed(() => orderPriceLines(order.value || {}))
 
 onMounted(async () => {
   try {
