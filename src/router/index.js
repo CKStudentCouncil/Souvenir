@@ -8,7 +8,7 @@ import {
 import routes from './routes'
 import { useAuthStore } from 'src/stores/auth'
 import { hasPendingRedirectSignIn, safeRedirect } from 'src/services/staffAuth'
-import { isShopOpen } from 'shared/config'
+import { isSaleEnded, isShopOpen } from 'shared/config'
 
 export default defineRouter(function () {
   const createHistory = process.env.SERVER
@@ -50,6 +50,11 @@ export default defineRouter(function () {
 
     if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
       return { name: 'admin' }
+    }
+
+    // Staff can access the shop outside the sales window for administration.
+    if (to.meta.shop && isSaleEnded() && !authStore.isManager) {
+      return { name: 'thankyou' }
     }
 
     // Launch gate: staff can see the shop before it opens.

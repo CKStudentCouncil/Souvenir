@@ -6,7 +6,7 @@ import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 
 import { schools } from './shared/catalog.js'
-import { ADMIN_ROLES, APP_CHECK_SITE_KEY, SITE_URL, STAFF_ROLES, isShopOpen } from './shared/config.js'
+import { ADMIN_ROLES, APP_CHECK_SITE_KEY, SITE_URL, STAFF_ROLES, isSaleEnded, isShopOpen } from './shared/config.js'
 import { notificationRecipients } from './shared/format.js'
 import { generateEmailHTML, generateOrderNotificationHTML } from './lib/emailTemplates.js'
 import { MAIL_SECRETS, createTransporter, fromHeader, senderEmail } from './lib/mailer.js'
@@ -52,6 +52,10 @@ export const createOrder = inTaiwan({ enforceAppCheck: Boolean(APP_CHECK_SITE_KE
 
     const role = await getRole(context.auth.uid)
     const isStaff = STAFF_ROLES.includes(role)
+
+    if (isSaleEnded() && !isStaff) {
+      throw new HttpsError('failed-precondition', '本次販售已結束，謝謝你的支持')
+    }
 
     if (!isShopOpen() && !isStaff) {
       throw new HttpsError('failed-precondition', '尚未開放訂購')

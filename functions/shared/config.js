@@ -2,9 +2,14 @@
 
 // Before this time only staff can open the shop pages or place orders.
 export const SHOP_OPEN_AT = new Date('2026-10-22T00:00:00+08:00')
+export const SHOP_CLOSE_AT = new Date('2026-10-29T23:59:59+08:00')
 
 export function isShopOpen(now = new Date()) {
-  return now >= SHOP_OPEN_AT
+  return now >= SHOP_OPEN_AT && now < SHOP_CLOSE_AT
+}
+
+export function isSaleEnded(now = new Date()) {
+  return now >= SHOP_CLOSE_AT
 }
 
 export const SITE_URL = 'https://souvenir.cksc.tw'

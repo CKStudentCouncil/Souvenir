@@ -150,6 +150,7 @@ import { useAuthStore } from 'src/stores/auth'
 import { useCartStore } from 'src/stores/cart'
 import { useToastStore } from 'src/stores/toast'
 import { submitOrder } from 'src/services/orderService'
+import { isSaleEnded } from 'shared/config'
 
 const REMEMBER_KEY = 'rememberMeCheckout'
 const CHECKOUT_DATA_KEY = 'checkoutData'
@@ -212,6 +213,12 @@ function changeQty(id, delta) {
 }
 
 async function placeOrder() {
+  if (isSaleEnded()) {
+    toast.show('本次販售已結束，謝謝你的支持')
+    router.replace({ name: 'thankyou' })
+    return
+  }
+
   if (!agreedToTerms.value) {
     toast.show('請先閱讀並同意使用者條款')
     return

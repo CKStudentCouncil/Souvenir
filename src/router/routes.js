@@ -1,4 +1,4 @@
-// meta.shop: hidden behind the launch gate until SHOP_OPEN_AT (shared/config.js)
+// meta.shop: hidden outside the sales window in shared/config.js
 // meta.requiresManager / requiresAdmin / requiresSuperAdmin: staff roles, see router/index.js
 const routes = [
   {
@@ -26,20 +26,17 @@ const routes = [
       {
         path: 'order-success',
         name: 'order-success',
-        component: () => import('pages/OrderSuccessPage.vue'),
-        meta: { shop: true }
+        component: () => import('pages/OrderSuccessPage.vue')
       },
       {
         path: 'orders',
         name: 'orders',
-        component: () => import('pages/OrdersPage.vue'),
-        meta: { shop: true }
+        component: () => import('pages/OrdersPage.vue')
       },
       {
         path: 'orders/:id',
         name: 'order-detail',
-        component: () => import('pages/OrderDetailPage.vue'),
-        meta: { shop: true }
+        component: () => import('pages/OrderDetailPage.vue')
       },
       {
         path: 'survey',
@@ -65,6 +62,11 @@ const routes = [
         path: 'comingsoon',
         name: 'comingsoon',
         component: () => import('pages/ComingSoonPage.vue')
+      },
+      {
+        path: 'thankyou',
+        name: 'thankyou',
+        component: () => import('pages/ThankyouPage.vue')
       }
     ]
   },
