@@ -53,6 +53,14 @@
 
         <router-link
           v-if="auth.isSuperAdmin"
+          to="/admin/analytics"
+          @click="menuOpen = false"
+        >
+          財務報表
+        </router-link>
+
+        <router-link
+          v-if="auth.isSuperAdmin"
           to="/admin/account"
           @click="menuOpen = false"
         >

@@ -166,7 +166,8 @@ function schoolSheets(orders) {
   })
 }
 
-export function exportOrdersToExcel(orders, { onlyDelivered = false, school = 'all' } = {}) {
+// `filename` replaces the default name.
+export function exportOrdersToExcel(orders, { onlyDelivered = false, school = 'all', filename = '' } = {}) {
   const workbook = XLSX.utils.book_new()
   const sheetPrefix = onlyDelivered ? '已交貨' : '全部'
 
@@ -175,7 +176,7 @@ export function exportOrdersToExcel(orders, { onlyDelivered = false, school = 'a
   schoolSheets(orders).forEach(([name, sheet]) => XLSX.utils.book_append_sheet(workbook, sheet, name))
 
   const schoolPrefix = school !== 'all' ? `${school}_` : ''
-  const filename = `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${taiwanDate()}.xlsx`
+  const name = filename || `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${taiwanDate()}.xlsx`
   const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-  saveAs(new Blob([buffer], { type: 'application/octet-stream' }), filename)
+  saveAs(new Blob([buffer], { type: 'application/octet-stream' }), name)
 }

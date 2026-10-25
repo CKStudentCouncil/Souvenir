@@ -8,6 +8,8 @@ rules_version = '2';
 //     buyers can read and cancel only their own unpaid, undelivered orders.
 //   orderCounters/{id}, orderEmailCounters/{id}: server-only counters.
 //   surveyResponses/{id}: public, validated survey submissions; staff can read.
+//   salesArchive/{year} and its chunks/{n}: past years' orders for the
+//     analytics page, without names or contact details; super admins only.
 //
 // Cloud Functions use the Admin SDK and bypass these rules.
 service cloud.firestore {
@@ -198,6 +200,19 @@ service cloud.firestore {
         && data.improvement is string && data.improvement.size() <= 2000
         && data.suggestion is string && data.suggestion.size() <= 2000
         && data.createdAt == request.time;
+    }
+
+    // ---------- Sales analytics ----------
+
+    // Imported on the analytics page from a past year's Excel export; only
+    // time, school, grade, items and amounts are stored.
+    match /salesArchive/{year} {
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin() && year.matches('^[0-9]{4}$');
+
+      match /chunks/{chunkId} {
+        allow read, write: if isSuperAdmin();
+      }
     }
 
     // Anything not matched above is denied.

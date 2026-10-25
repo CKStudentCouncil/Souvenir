@@ -6,6 +6,11 @@ dist/
 *.log
 .DS_Store
 
+# Order exports hold customers' names, phone numbers and emails; never commit them
+*.xlsx
+*.xls
+*.csv
+
 # Firebase CLI deploy cache
 .firebase/
 

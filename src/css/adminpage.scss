@@ -477,6 +477,129 @@
   color: #d32f2f;
 }
 
+.btn-outline.danger:disabled {
+  border-color: #e5e5e7;
+  color: #b0b0b5;
+}
+
+.btn.danger {
+  background: #d32f2f;
+}
+
+.btn.danger:disabled {
+  background: #d2d2d7;
+  color: #8e8e93;
+}
+
+/* 刪除全部訂單 */
+.purge-panel {
+  border-color: #f0c4c2;
+}
+
+.purge-flow {
+  display: grid;
+  gap: 12px;
+  flex-basis: 100%;
+  padding-top: 16px;
+  border-top: 1px solid #ececee;
+}
+
+.purge-flow .stats-row {
+  margin-top: 0;
+}
+
+.purge-progress {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: .9rem;
+  font-weight: 600;
+}
+
+.purge-done,
+.purge-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.purge-done {
+  background: #eaf6ee;
+  color: #19703a;
+}
+
+.purge-note {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.purge-error {
+  margin: 0;
+  color: #a12622;
+  font-size: .88rem;
+  font-weight: 600;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #06c;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:disabled {
+  color: #8e8e93;
+  cursor: not-allowed;
+}
+
+.purge-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .9rem;
+  cursor: pointer;
+}
+
+.purge-check input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: #d32f2f;
+}
+
+.purge-phrase {
+  display: grid;
+  gap: 6px;
+  color: #6e6e73;
+  font-size: .85rem;
+}
+
+.purge-phrase strong {
+  color: #1d1d1f;
+}
+
+.purge-phrase input {
+  width: min(100%, 320px);
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1d1f;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.purge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 /* Modal（通知彈窗共用） */
 .modal-overlay {
   position: fixed;

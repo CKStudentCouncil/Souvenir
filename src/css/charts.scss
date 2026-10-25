@@ -1,0 +1,69 @@
+/* Shared by the SVG chart components in components/analytics (each imports it
+   scoped). The SVG itself is styled with attributes; see components/analytics/chart.js. */
+
+.line-chart,
+.column-chart {
+  position: relative;
+}
+
+.chart-svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-svg:focus {
+  outline: none;
+}
+
+.chart-svg:focus-visible {
+  outline: 3px solid rgba(0, 102, 204, 0.28);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 4px;
+  z-index: 2;
+  min-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+  font-size: .8rem;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.tooltip-title {
+  margin: 0 0 4px;
+  color: #6e6e73;
+  font-weight: 600;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  white-space: nowrap;
+}
+
+.tooltip-row strong {
+  color: #1d1d1f;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-row span:last-child {
+  color: #6e6e73;
+}
+
+.tooltip-key {
+  flex: none;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+}

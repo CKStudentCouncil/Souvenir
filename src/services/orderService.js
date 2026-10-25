@@ -4,11 +4,13 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
-  where
+  where,
+  writeBatch
 } from 'firebase/firestore'
 import { signInAnonymously } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
@@ -33,6 +35,17 @@ export async function submitOrder(orderPayload) {
 export async function fetchAllOrders() {
   const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')))
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+// Live version of fetchAllOrders(): calls onChange with every order now and
+// again whenever an order is placed, changed or deleted. Returns the function
+// that stops listening.
+export function watchAllOrders(onChange, onError) {
+  return onSnapshot(
+    query(collection(db, 'orders'), orderBy('createdAt', 'desc')),
+    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError
+  )
 }
 
 // Orders placed from this device (the current, possibly anonymous, account).
@@ -92,4 +105,18 @@ export async function updateOrderStatus(orderId, field, value, staff) {
 
 export async function deleteOrderById(orderId) {
   await deleteDoc(doc(db, 'orders', orderId))
+}
+
+// Firestore's limit on writes in one batch.
+const DELETE_BATCH_SIZE = 500
+
+// Deletes these orders a batch at a time, calling onProgress with how many are
+// gone after each batch. If a batch fails, the earlier ones stay deleted.
+export async function deleteOrdersByIds(orderIds, onProgress) {
+  for (let i = 0; i < orderIds.length; i += DELETE_BATCH_SIZE) {
+    const batch = writeBatch(db)
+    orderIds.slice(i, i + DELETE_BATCH_SIZE).forEach((id) => batch.delete(doc(db, 'orders', id)))
+    await batch.commit()
+    onProgress?.(Math.min(i + DELETE_BATCH_SIZE, orderIds.length))
+  }
 }

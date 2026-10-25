@@ -260,6 +260,131 @@
     </div>
 
     <div
+      v-if="auth.isSuperAdmin"
+      class="panel export-panel purge-panel"
+    >
+      <div>
+        <h2>刪除全部訂單</h2>
+        <p class="panel-copy">
+          銷售結束後用來清空訂單，不受上方篩選影響。刪除前會先下載全部訂單的 Excel，並把今年的資料存入財務報表的往年資料
+          （不含姓名與聯絡方式），明年就能和今年比較；訂單刪除後無法復原
+        </p>
+      </div>
+      <button
+        v-if="!purge"
+        type="button"
+        class="btn-outline danger"
+        :disabled="!orders.length"
+        @click="startPurge"
+      >
+        刪除全部訂單
+      </button>
+
+      <div
+        v-if="purge"
+        class="purge-flow"
+      >
+        <p
+          v-if="purge.step === 'saving'"
+          class="purge-progress"
+          role="status"
+        >
+          正在讀取最新訂單、下載 Excel 並存入往年資料…
+        </p>
+
+        <template v-else-if="purge.step === 'failed'">
+          <p class="purge-error" role="alert">{{ purge.error }}</p>
+          <div class="purge-actions">
+            <button type="button" class="btn" @click="startPurge">重試</button>
+            <button type="button" class="btn-outline" @click="cancelPurge">取消</button>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="stats-row">
+            <div class="stat">
+              <div>訂單數</div>
+              <div class="num">{{ purge.orderCount }}</div>
+            </div>
+            <div class="stat">
+              <div>總營收</div>
+              <div class="num">NT$ {{ purge.revenue }}</div>
+            </div>
+            <div class="stat">
+              <div>期間</div>
+              <div class="num">{{ purge.openDate }} – {{ purge.closeDate }}</div>
+            </div>
+          </div>
+          <p class="purge-done">
+            已下載「{{ purge.filename }}」，並已存入 {{ CURRENT_YEAR }} 年往年資料，核對 <span class="num">{{ purge.orderCount }}</span> 筆無誤。
+            <button
+              type="button"
+              class="link-button"
+              :disabled="purging"
+              @click="downloadPurgeBackup"
+            >
+              沒看到檔案？再下載一次
+            </button>
+          </p>
+          <p v-if="purgeOpenOrders" class="purge-note">其中 {{ purgeOpenOrders }}，刪除後就查不到了。</p>
+          <p v-if="purge.error" class="purge-error" role="alert">{{ purge.error }}</p>
+
+          <label class="purge-check">
+            <input
+              v-model="purge.checked"
+              type="checkbox"
+              :disabled="purging"
+            >
+            <span>我已打開下載的 Excel，確認訂單都在裡面</span>
+          </label>
+          <label class="purge-phrase">
+            <span>請手動輸入「<strong class="num">{{ purgeSummary.phrase }}</strong>」確認</span>
+            <input
+              v-model="purge.phrase"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              :disabled="purging"
+              @paste.prevent
+              @drop.prevent
+            >
+          </label>
+          <p class="panel-copy">按「取消」不會刪除任何訂單，已存入的往年資料會保留</p>
+
+          <div class="purge-actions">
+            <button
+              v-if="purge.newOrders"
+              type="button"
+              class="btn"
+              :disabled="purging"
+              @click="startPurge"
+            >
+              重新備份
+            </button>
+            <button
+              type="button"
+              class="btn danger"
+              :disabled="!purgeSummary.ready"
+              @click="deleteAllOrders"
+            >
+              {{ purge.step === 'deleting'
+                ? `刪除中… ${purge.deleted} / ${purge.orderCount}`
+                : `永久刪除 ${purge.orderCount} 筆訂單` }}
+            </button>
+            <button
+              type="button"
+              class="btn-outline"
+              :disabled="purging"
+              @click="cancelPurge"
+            >
+              取消
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div
       v-if="activeTab === 'delivered' && Object.keys(deliveryStats).length > 0"
       class="panel"
     >
@@ -423,15 +548,19 @@ import { httpsCallable } from 'firebase/functions'
 import { functions } from 'src/services/firebase'
 import { schools } from 'shared/catalog'
 import { notificationRecipients } from 'shared/format'
+import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { useAdminOrders } from 'src/composables/useAdminOrders'
+import { useOrderPurge } from 'src/composables/useOrderPurge'
 import { formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildClassReceiptsHtml, printHtml } from 'src/utils/receipts'
+import { CURRENT_YEAR } from 'src/utils/salesAnalytics'
 
 // Sending to every buyer can take minutes; match the function's 300 s timeout.
 const sendOrderNotification = httpsCallable(functions, 'sendOrderNotification', { timeout: 310000 })
 
 const router = useRouter()
+const auth = useAuthStore()
 const toast = useToastStore()
 
 const {
@@ -461,6 +590,30 @@ function viewOrderDetail(orderId) {
 function confirmDelete(orderId) {
   if (!window.confirm(`確定要刪除此訂單嗎？\nID: ${orderId}`)) return
   deleteOrder(orderId)
+}
+
+// ---- Deleting every order (super admins) ----
+
+const {
+  purge,
+  purgeSummary,
+  purging,
+  startPurge,
+  confirmPurge,
+  cancelPurge,
+  downloadPurgeBackup
+} = useOrderPurge()
+
+// Orders not yet finished, which a deletion would lose track of.
+const purgeOpenOrders = computed(() => {
+  const parts = []
+  if (purge.value?.unpaid) parts.push(`${purge.value.unpaid} 筆尚未付款`)
+  if (purge.value?.undelivered) parts.push(`${purge.value.undelivered} 筆尚未交貨`)
+  return parts.join('、')
+})
+
+async function deleteAllOrders() {
+  if (await confirmPurge()) fetchOrders()
 }
 
 const generatingClassReceipts = ref(false)

@@ -10,6 +10,7 @@ The application allows visitors to browse merchandise, place orders, and track t
 - Shopping cart and checkout flow for customer orders
 - Order lookup and order history pages for buyers
 - Role-based administration for managers, admins, and super admins
+- Real-time financial report for super admins, compared with past years and exportable as PDF
 - Firebase-backed authentication and Firestore data storage, protected by `firestore.rules`
 - Prices and discounts re-checked on the server for every order
 - Automated order confirmation emails and bulk notification emails through Cloud Functions
@@ -45,7 +46,7 @@ The application allows visitors to browse merchandise, place orders, and track t
 ```text
 src/
 ├── pages/                 # Route-level screens such as Home, Cart, Orders, Admin, and Account
-├── components/            # Product page layouts and the toast
+├── components/            # Product page layouts, analytics charts and the toast
 ├── layouts/               # Header, menu and footer
 ├── stores/                # Pinia stores: auth (staff roles), cart, toast
 ├── services/              # Firebase setup and order reads/writes
@@ -205,6 +206,7 @@ firebase deploy
 | `/orders` | Buyer order history |
 | `/orders/:id` | Order detail |
 | `/admin` | Admin dashboard |
+| `/admin/analytics` | Financial report 財務報表 (super admins) |
 | `/admin/login` | Admin login |
 | `/comingsoon` | Pre-launch landing page |
 
@@ -226,7 +228,16 @@ Before `SHOP_OPEN_AT` in `functions/shared/config.js`, visitors are redirected t
 |---|---|
 | `manager` 友校幹部 | View survey results, see the shop before it opens |
 | `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts, email payment/pickup notifications to buyers |
-| `super_admin` 系統管理員 | Everything above, plus manage staff accounts |
+| `super_admin` 系統管理員 | Everything above, plus manage staff accounts, view the financial report and delete all orders after the sale |
+
+### Financial report (財務報表)
+
+`/admin/analytics` (menu: 財務報表) compares this year's sale with a past year: revenue, orders, average order value, items per order and combo use, sales over time, order times, buyer identity (school) and CKHS grade, order values, best sellers and sizes. **全期** compares with the past year's whole sale; **同期** (same time window) counts the past year only up to the same day and time of its sale as now, which is the fair comparison while this year's sale is still running. **匯出 PDF** saves the report as shown, on A4.
+
+- **This year** is read live from the `orders` collection, so the page updates as orders come in. Every order in the collection counts, and day 1 is the date of `SHOP_OPEN_AT`.
+- **Past years** are imported once on the page (匯入往年資料) from that year's order Excel. The file is read in the browser and only the order time, school, grade, items and amounts are saved to `salesArchive`. Names, phone numbers, emails, classes and seat numbers are never uploaded. Only super admins can read or write `salesArchive` (deploy `firestore.rules` first).
+- **Clearing the orders** after the sale: 刪除全部訂單 on `/admin` (super admins only) first fetches every order, downloads it as Excel and saves this year to `salesArchive` the same way as an import, then reads it back to check. Deleting needs the admin to tick that the Excel is complete and type 「刪除 N 筆訂單」; only the backed-up orders are deleted, and an order placed in between means backing up again. The saved year becomes the comparison once `SHOP_OPEN_AT` moves to next year.
+- Order exports contain customers' personal data. Keep them out of the repository (`*.xlsx`, `*.xls` and `*.csv` are git-ignored).
 
 ## Maintainers
 

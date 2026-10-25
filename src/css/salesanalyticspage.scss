@@ -1,0 +1,505 @@
+.analytics-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+  color: #1d1d1f;
+  line-height: 1.6;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.state-screen {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6e6e73;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Heading */
+
+.page-heading {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #6e6e73;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.analytics-page h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #6e6e73;
+  font-size: .85rem;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #248a43;
+  animation: live-pulse 2s ease-out infinite;
+}
+
+.live-status.offline {
+  color: #a12622;
+}
+
+.live-status.offline .live-dot {
+  background: #d32f2f;
+  animation: none;
+}
+
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(36, 138, 67, .45); }
+  70% { box-shadow: 0 0 0 8px rgba(36, 138, 67, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(36, 138, 67, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+.period-note {
+  margin: 8px 0 0;
+  color: #6e6e73;
+  font-size: .88rem;
+}
+
+/* Filters */
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 20px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #e8e8ed;
+}
+
+.segmented button {
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #515154;
+  font: inherit;
+  font-size: .9rem;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+
+.segmented button.active {
+  background: #1d1d1f;
+  color: #fff;
+  font-weight: 600;
+}
+
+.segmented.small {
+  background: #f5f5f7;
+}
+
+.section-heading .segmented.small {
+  background: #e8e8ed;
+}
+
+.segmented.small button {
+  min-height: 30px;
+  padding: 4px 12px;
+  font-size: .82rem;
+}
+
+.compare-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6e6e73;
+  font-size: .9rem;
+}
+
+.compare-select select {
+  height: 44px;
+  padding: 0 38px 0 16px;
+  border: 1px solid #e5e5e7;
+  border-radius: 999px;
+  appearance: none;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%236e6e73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 14px;
+  color: #1d1d1f;
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* PDF export: the page takes A4's printable width (210mm minus the 12mm side
+   margins in utils/pdf.js), the width html2pdf lays its copy out at, so the
+   charts are drawn at the size they're captured. */
+.analytics-page.exporting {
+  width: 186mm;
+  max-width: none;
+  padding: 0;
+}
+
+/* html2canvas draws text without tabular figures but places it as if it had
+   them, which leaves gaps inside numbers. */
+.analytics-page.exporting :deep(*) {
+  font-variant-numeric: normal !important;
+}
+
+/* The on-screen size follows the window width (vw), not the narrowed page. */
+.analytics-page.exporting .kpi-value {
+  font-size: 1.5rem;
+}
+
+/* Buttons and panels (same look as the admin page) */
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  background: #d2d2d7;
+  color: #8e8e93;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  padding: 10px 16px;
+  border: 1px solid #e5e5e7;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d1d1f;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-outline:disabled {
+  color: #b0b0b5;
+  cursor: not-allowed;
+}
+
+.panel {
+  margin-bottom: 20px;
+  padding: 24px;
+  border: 1px solid #e5e5e7;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.panel-copy {
+  margin: 0;
+  color: #6e6e73;
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
+.hint-panel {
+  padding: 16px 20px;
+}
+
+.empty {
+  margin: 8px 0;
+  color: #6e6e73;
+  font-size: .9rem;
+}
+
+/* Import */
+
+.file-input {
+  display: block;
+  margin-top: 16px;
+  font: inherit;
+  font-size: .9rem;
+}
+
+.import-preview {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ececee;
+}
+
+.import-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.import-stats div {
+  display: grid;
+  min-width: 120px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f5f5f7;
+}
+
+.import-stats span {
+  color: #6e6e73;
+  font-size: .8rem;
+}
+
+.import-stats strong {
+  font-size: 1.05rem;
+}
+
+.import-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.import-dates label {
+  display: grid;
+  gap: 4px;
+  color: #6e6e73;
+  font-size: .85rem;
+}
+
+.import-dates input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1d1f;
+  font: inherit;
+}
+
+.import-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff4e5;
+  color: #b45309;
+  font-size: .85rem;
+}
+
+.import-error {
+  margin: 0;
+  color: #a12622;
+  font-size: .88rem;
+  font-weight: 600;
+}
+
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Report */
+
+.report {
+  transition: opacity .2s;
+}
+
+/* While another year's data loads, the old charts stay up, dimmed. */
+.report.refreshing {
+  opacity: .55;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.kpi {
+  padding: 18px 20px;
+  border: 1px solid #e5e5e7;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.kpi-label {
+  margin: 0;
+  color: #6e6e73;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.kpi-value {
+  margin: 4px 0 0;
+  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+}
+
+.kpi-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 8px 0 0;
+  color: #6e6e73;
+  font-size: .8rem;
+}
+
+.kpi-change {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-change.up {
+  color: #19703a;
+}
+
+.kpi-change.down {
+  color: #a12622;
+}
+
+.kpi-change.flat {
+  color: #6e6e73;
+}
+
+.kpi-note {
+  margin: 2px 0 0;
+  color: #86868b;
+  font-size: .75rem;
+}
+
+.analytics-section {
+  margin-bottom: 36px;
+}
+
+.section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.section-heading .eyebrow {
+  margin: 0;
+  font-size: .8rem;
+}
+
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 20px;
+}
+
+.product-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px 40px;
+}
+
+.list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.list-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.page-footnote {
+  margin: 0;
+  color: #86868b;
+  font-size: .78rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .analytics-page {
+    padding: 28px 16px 48px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi {
+    padding: 14px 16px;
+  }
+
+  .kpi-value {
+    font-size: 1.25rem;
+  }
+
+  .filter-actions {
+    margin-left: 0;
+  }
+}

@@ -93,6 +93,12 @@ const routes = [
         meta: { requiresSuperAdmin: true }
       },
       {
+        path: 'analytics',
+        name: 'admin-analytics',
+        component: () => import('pages/SalesAnalyticsPage.vue'),
+        meta: { requiresSuperAdmin: true }
+      },
+      {
         path: 'survey',
         name: 'admin-survey',
         component: () => import('pages/SurveyAdminPage.vue')
