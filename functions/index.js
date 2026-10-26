@@ -281,10 +281,14 @@ export const sendOrderNotification = inTaiwan({ secrets: MAIL_SECRETS, timeoutSe
       lastSendAt = Date.now()
 
       try {
+        // The To header shows the sender, but the envelope only delivers to
+        // the batch: the sender domain has no MX record, so a copy addressed
+        // to it sits in SES retries for 14 hours and then bounces.
         await transporter.sendMail({
           from: fromHeader(),
           to: senderEmail(),
           bcc: batch,
+          envelope: { from: senderEmail(), to: batch },
           subject: notification.subject || NOTIFY_SUBJECTS[notification.type],
           html
         })
