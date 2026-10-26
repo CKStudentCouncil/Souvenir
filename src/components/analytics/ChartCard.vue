@@ -28,7 +28,7 @@
     </ul>
 
     <p v-if="empty" class="chart-empty">{{ emptyText }}</p>
-    <div v-else-if="showTable" class="chart-table-wrap">
+    <div v-else-if="showTable && !exportingPdf" class="chart-table-wrap">
       <table class="chart-table">
         <thead>
           <tr>
@@ -53,7 +53,8 @@
 import { inject, ref } from 'vue'
 
 // Card around one chart: title, legend, and a table view of the same numbers.
-// Its buttons are left out of the PDF export (provided by the page).
+// The PDF export (provided by the page) leaves out its buttons and always
+// shows the chart.
 const exportingPdf = inject('exportingPdf', ref(false))
 
 defineProps({

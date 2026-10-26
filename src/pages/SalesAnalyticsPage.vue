@@ -164,36 +164,38 @@
           </ChartCard>
 
           <ChartCard
-            title="每日表現"
-            :subtitle="`每天的${slotMetric.label}`"
+            v-for="metric in shown(METRICS, slotMetricKey)"
+            :key="metric.key"
+            :title="variantTitle('每日表現', metric.label)"
+            :subtitle="`每天的${metric.label}`"
             :legend="legend"
             legend-shape="line"
-            :table="slotTable"
+            :table="slotTables[metric.key]"
             :empty="timelineEmpty"
           >
             <template #controls>
               <div class="segmented small" role="group" aria-label="指標">
                 <button
-                  v-for="metric in METRICS"
-                  :key="metric.key"
+                  v-for="option in METRICS"
+                  :key="option.key"
                   type="button"
-                  :class="{ active: slotMetricKey === metric.key }"
-                  :aria-pressed="slotMetricKey === metric.key"
-                  @click="slotMetricKey = metric.key"
+                  :class="{ active: slotMetricKey === option.key }"
+                  :aria-pressed="slotMetricKey === option.key"
+                  @click="slotMetricKey = option.key"
                 >
-                  {{ metric.label }}
+                  {{ option.label }}
                 </button>
               </div>
             </template>
             <LineChart
-              :series="slotSeries"
-              :label="`${slotMetric.label}折線圖`"
-              :format="slotMetric.format"
-              :axis-format="slotMetric.axis"
+              :series="slotSeries[metric.key]"
+              :label="`${metric.label}折線圖`"
+              :format="metric.format"
+              :axis-format="metric.axis"
               :x-label="dayTick"
               :tooltip-title="dayTitle"
               :x-step-offset="1"
-              :integer="slotMetricKey === 'orders'"
+              :integer="metric.key === 'orders'"
             />
           </ChartCard>
 
@@ -215,20 +217,22 @@
           </ChartCard>
 
           <ChartCard
-            title="下單熱力圖"
-            :subtitle="`${yearPrefix(rhythmView)}各星期、各時段的訂單占比（台灣時間），可用來安排公告與社群貼文的時間`"
-            :table="weekHourTable"
-            :empty="weekHourEmpty"
+            v-for="view in shown(yearViews, pickedSide(rhythmYear))"
+            :key="view.key"
+            :title="variantTitle('下單熱力圖', hasPrevious && view.label)"
+            :subtitle="`${yearPrefix(view)}各星期、各時段的訂單占比（台灣時間），可用來安排公告與社群貼文的時間`"
+            :table="weekHours[view.side].table"
+            :empty="weekHours[view.side].empty"
           >
             <template v-if="hasPrevious" #controls>
               <div class="segmented small" role="group" aria-label="熱力圖年度">
                 <button
-                  v-for="option in yearOptions"
-                  :key="option.value"
+                  v-for="option in yearViews"
+                  :key="option.key"
                   type="button"
-                  :class="{ active: rhythmView.side === option.value }"
-                  :aria-pressed="rhythmView.side === option.value"
-                  @click="rhythmYear = option.value"
+                  :class="{ active: view.side === option.side }"
+                  :aria-pressed="view.side === option.side"
+                  @click="rhythmYear = option.side"
                 >
                   {{ option.label }}
                 </button>
@@ -237,13 +241,13 @@
             <HeatGrid
               :row-labels="WEEKDAY_LABELS"
               :column-labels="HOUR_LABELS"
-              :values="weekHourValues"
-              :fill="weekHourFill"
-              :scale="weekHourScale"
-              label="各星期、各時段訂單占比熱力圖"
+              :values="weekHours[view.side].values"
+              :fill="weekHours[view.side].fill"
+              :scale="weekHours[view.side].scale"
+              :label="`${view.label}各星期、各時段訂單占比熱力圖`"
               :label-width="40"
               thin-columns
-              :tooltip-for="weekHourTooltip"
+              :tooltip-for="(r, c) => weekHourTooltip(view.side, r, c)"
             />
           </ChartCard>
         </div>
@@ -266,25 +270,27 @@
           </div>
         </div>
         <div class="card-grid">
-          <ChartCard
-            title="各身分"
-            :subtitle="`依訂購時選擇的學校／身分，比較${groupMetric.label}`"
-            :legend="legend"
-            :table="identityTable"
-            :empty="!report.identities.length"
-          >
-            <BarList :rows="identityRows" :colors="colors" :series-labels="seriesLabels" :format="groupMetric.format" />
-          </ChartCard>
+          <template v-for="metric in shown(METRICS, groupMetricKey)" :key="metric.key">
+            <ChartCard
+              :title="variantTitle('各身分', metric.label)"
+              :subtitle="`依訂購時選擇的學校／身分，比較${metric.label}`"
+              :legend="legend"
+              :table="identityTable"
+              :empty="!report.identities.length"
+            >
+              <BarList :rows="identityRows[metric.key]" :colors="colors" :series-labels="seriesLabels" :format="metric.format" />
+            </ChartCard>
 
-          <ChartCard
-            title="建中學生年級"
-            :subtitle="`學校為建國中學的訂單，依班級判斷年級，比較${groupMetric.label}`"
-            :legend="legend"
-            :table="gradeTable"
-            :empty="!report.grades.length"
-          >
-            <BarList :rows="gradeRows" :colors="colors" :series-labels="seriesLabels" :format="groupMetric.format" />
-          </ChartCard>
+            <ChartCard
+              :title="variantTitle('建中學生年級', metric.label)"
+              :subtitle="`學校為建國中學的訂單，依班級判斷年級，比較${metric.label}`"
+              :legend="legend"
+              :table="gradeTable"
+              :empty="!report.grades.length"
+            >
+              <BarList :rows="gradeRows[metric.key]" :colors="colors" :series-labels="seriesLabels" :format="metric.format" />
+            </ChartCard>
+          </template>
         </div>
       </section>
 
@@ -340,8 +346,10 @@
           </ChartCard>
 
           <ChartCard
-            title="優惠與客單價"
-            :subtitle="`使用與未使用組合優惠的訂單，比較${promotionMetric.label}`"
+            v-for="metric in shown(PROMOTION_METRICS, promotionMetricKey)"
+            :key="metric.key"
+            :title="variantTitle('優惠與客單價', metric.label)"
+            :subtitle="`使用與未使用組合優惠的訂單，比較${metric.label}`"
             :legend="legend"
             :table="promotionValueTable"
             :empty="promotionsEmpty"
@@ -349,18 +357,18 @@
             <template #controls>
               <div class="segmented small" role="group" aria-label="優惠比較指標">
                 <button
-                  v-for="metric in PROMOTION_METRICS"
-                  :key="metric.key"
+                  v-for="option in PROMOTION_METRICS"
+                  :key="option.key"
                   type="button"
-                  :class="{ active: promotionMetricKey === metric.key }"
-                  :aria-pressed="promotionMetricKey === metric.key"
-                  @click="promotionMetricKey = metric.key"
+                  :class="{ active: promotionMetricKey === option.key }"
+                  :aria-pressed="promotionMetricKey === option.key"
+                  @click="promotionMetricKey = option.key"
                 >
-                  {{ metric.label }}
+                  {{ option.label }}
                 </button>
               </div>
             </template>
-            <BarList :rows="promotionValueRows" :colors="colors" :series-labels="seriesLabels" :format="promotionMetric.format" />
+            <BarList :rows="promotionValueRows[metric.key]" :colors="colors" :series-labels="seriesLabels" :format="metric.format" />
           </ChartCard>
         </div>
       </section>
@@ -412,30 +420,32 @@
           </ChartCard>
 
           <ChartCard
-            title="客群商品偏好"
-            :subtitle="`${mixDimension.subtitle}買的商品類別，占該客群售出件數的比例`"
+            v-for="dimension in shown(MIX_DIMENSIONS, mixDimensionKey)"
+            :key="dimension.key"
+            :title="variantTitle('客群商品偏好', dimension.label)"
+            :subtitle="`${dimension.subtitle}買的商品類別，占該客群售出件數的比例`"
             :legend="mixLegend"
-            :table="mixTable"
-            :empty="mixEmpty"
+            :table="mixViews[dimension.key].table"
+            :empty="mixViews[dimension.key].empty"
           >
             <template #controls>
               <div class="segmented small" role="group" aria-label="客群">
                 <button
-                  v-for="dimension in MIX_DIMENSIONS"
-                  :key="dimension.key"
+                  v-for="option in MIX_DIMENSIONS"
+                  :key="option.key"
                   type="button"
-                  :class="{ active: mixDimensionKey === dimension.key }"
-                  :aria-pressed="mixDimensionKey === dimension.key"
-                  @click="mixDimensionKey = dimension.key"
+                  :class="{ active: mixDimensionKey === option.key }"
+                  :aria-pressed="mixDimensionKey === option.key"
+                  @click="mixDimensionKey = option.key"
                 >
-                  {{ dimension.label }}
+                  {{ option.label }}
                 </button>
               </div>
             </template>
             <StackedBars
-              :rows="mixRows"
+              :rows="mixViews[dimension.key].rows"
               :colors="mixColors"
-              label="各客群商品類別占比堆疊長條圖"
+              :label="`${dimension.subtitle}商品類別占比堆疊長條圖`"
               :describe="(segment) => `${formatPercent(segment.share)}（${formatCount(segment.count)} 件）`"
             />
           </ChartCard>
@@ -458,33 +468,35 @@
           </ChartCard>
 
           <ChartCard
-            title="交叉購買"
-            :subtitle="`${yearPrefix(basketView)}${pairMetric.subtitle}`"
-            :table="pairTable"
-            :empty="pairsEmpty"
+            v-for="pair in shown(pairViews, `${pairMetricKey}:${pickedSide(basketYear)}`)"
+            :key="pair.key"
+            :title="variantTitle('交叉購買', pair.metric.label, hasPrevious && pair.view.label)"
+            :subtitle="`${yearPrefix(pair.view)}${pair.metric.subtitle}`"
+            :table="pair.table"
+            :empty="pair.empty"
           >
             <template #controls>
               <div class="control-row">
                 <div class="segmented small" role="group" aria-label="交叉購買指標">
                   <button
-                    v-for="metric in PAIR_METRICS"
-                    :key="metric.key"
+                    v-for="option in PAIR_METRICS"
+                    :key="option.key"
                     type="button"
-                    :class="{ active: pairMetricKey === metric.key }"
-                    :aria-pressed="pairMetricKey === metric.key"
-                    @click="pairMetricKey = metric.key"
+                    :class="{ active: pair.metric.key === option.key }"
+                    :aria-pressed="pair.metric.key === option.key"
+                    @click="pairMetricKey = option.key"
                   >
-                    {{ metric.label }}
+                    {{ option.label }}
                   </button>
                 </div>
                 <div v-if="hasPrevious" class="segmented small" role="group" aria-label="交叉購買年度">
                   <button
-                    v-for="option in yearOptions"
-                    :key="option.value"
+                    v-for="option in yearViews"
+                    :key="option.key"
                     type="button"
-                    :class="{ active: basketView.side === option.value }"
-                    :aria-pressed="basketView.side === option.value"
-                    @click="basketYear = option.value"
+                    :class="{ active: pair.view.side === option.side }"
+                    :aria-pressed="pair.view.side === option.side"
+                    @click="basketYear = option.side"
                   >
                     {{ option.label }}
                   </button>
@@ -492,16 +504,16 @@
               </div>
             </template>
             <HeatGrid
-              :row-labels="pairMatrix.labels"
-              :column-labels="pairMatrix.labels"
-              :values="pairValues"
-              :fill="pairFill"
-              :scale="pairScale"
-              :label="`商品類別${pairMetric.label}熱力圖`"
-              :cell-format="pairMetric.cell"
+              :row-labels="pair.labels"
+              :column-labels="pair.labels"
+              :values="pair.values"
+              :fill="pair.fill"
+              :scale="pair.scale"
+              :label="`${pair.view.label}商品類別${pair.metric.label}熱力圖`"
+              :cell-format="pair.metric.cell"
               :cell-height="36"
               :label-width="76"
-              :tooltip-for="pairTooltip"
+              :tooltip-for="(r, c) => pairTooltip(pair, r, c)"
             />
           </ChartCard>
         </div>
@@ -623,16 +635,12 @@ const {
   confirmImport
 } = useSalesAnalytics()
 
+// The variant each card with buttons shows. The PDF shows them all (see shown()).
 const slotMetricKey = ref('revenue')
 const groupMetricKey = ref('revenue')
 const promotionMetricKey = ref('aov')
 const mixDimensionKey = ref('identities')
 const pairMetricKey = ref('share')
-const slotMetric = computed(() => METRICS.find((metric) => metric.key === slotMetricKey.value))
-const groupMetric = computed(() => METRICS.find((metric) => metric.key === groupMetricKey.value))
-const promotionMetric = computed(() => PROMOTION_METRICS.find((metric) => metric.key === promotionMetricKey.value))
-const mixDimension = computed(() => MIX_DIMENSIONS.find((dimension) => dimension.key === mixDimensionKey.value))
-const pairMetric = computed(() => PAIR_METRICS.find((metric) => metric.key === pairMetricKey.value))
 // The year each heatmap shows; they show one at a time.
 const rhythmYear = ref('current')
 const basketYear = ref('current')
@@ -746,7 +754,8 @@ function timeSeries(metric) {
 }
 
 const cumulativeSeries = computed(() => timeSeries('cumulative'))
-const slotSeries = computed(() => timeSeries(slotMetricKey.value))
+// Per metric key, like the other charts with variants below.
+const slotSeries = computed(() => Object.fromEntries(METRICS.map((metric) => [metric.key, timeSeries(metric.key)])))
 const timelineEmpty = computed(() =>
   !cumulativeSeries.value.some((series) => series.values.some((value) => value > 0))
 )
@@ -797,8 +806,13 @@ function barRows(rows, pick) {
   }))
 }
 
-const identityRows = computed(() => barRows(report.value.identities, (summary) => summary[groupMetricKey.value]))
-const gradeRows = computed(() => barRows(report.value.grades, (summary) => summary[groupMetricKey.value]))
+// Bar rows for each of `metrics`, by key.
+function metricRows(rows, metrics) {
+  return Object.fromEntries(metrics.map((metric) => [metric.key, barRows(rows, (entry) => entry?.[metric.key] ?? null)]))
+}
+
+const identityRows = computed(() => metricRows(report.value.identities, METRICS))
+const gradeRows = computed(() => metricRows(report.value.grades, METRICS))
 const valueRows = computed(() => barRows(report.value.values, (entry) => entry.share))
 const unitRows = computed(() => barRows(report.value.units, (entry) => entry.share))
 
@@ -812,7 +826,7 @@ const promotionUsageRows = computed(() =>
   barRows(report.value.promotions.filter((row) => row.key !== 'none'), (entry) => entry?.share ?? null)
 )
 const promotionValueRows = computed(() =>
-  barRows(report.value.promotions.filter((row) => row.key !== 'gift'), (entry) => entry?.[promotionMetricKey.value] ?? null)
+  metricRows(report.value.promotions.filter((row) => row.key !== 'gift'), PROMOTION_METRICS)
 )
 
 const discountStats = computed(() => {
@@ -832,35 +846,53 @@ const mixColors = computed(() =>
   ]))
 )
 const mixLegend = computed(() => report.value.mix.categories.map((label) => ({ label, color: mixColors.value[label] })))
-const mixGroups = computed(() => report.value.mix[mixDimensionKey.value])
-const mixEmpty = computed(() =>
-  !mixGroups.value.some((row) => row.current.units || (hasPrevious.value && row.previous.units))
-)
-const mixRows = computed(() =>
-  mixGroups.value.map((row) => ({
-    label: row.label,
-    bars: [row.current, row.previous]
-      .slice(0, seriesLabels.value.length)
-      .map((mix, i) => ({ label: seriesLabels.value[i], segments: mix.segments }))
+
+// Per grouping (身分, 建中年級): its bars, table, and whether it has any units.
+const mixViews = computed(() =>
+  Object.fromEntries(MIX_DIMENSIONS.map((dimension) => {
+    const groups = report.value.mix[dimension.key]
+    const years = (row) => [row.current, row.previous].slice(0, seriesLabels.value.length)
+    return [dimension.key, {
+      empty: !groups.some((row) => row.current.units || (hasPrevious.value && row.previous.units)),
+      rows: groups.map((row) => ({
+        label: row.label,
+        bars: years(row).map((mix, i) => ({ label: seriesLabels.value[i], segments: mix.segments }))
+      })),
+      table: {
+        columns: ['客群', ...report.value.mix.categories, '售出件數'],
+        rows: groups.flatMap((row) =>
+          years(row).map((mix, i) => [
+            hasPrevious.value ? `${row.label}（${seriesLabels.value[i]}）` : row.label,
+            ...mix.segments.map((segment) => `${formatPercent(segment.share)}（${formatCount(segment.count)}）`),
+            formatCount(mix.units)
+          ])
+        )
+      }
+    }]
   }))
 )
 
 // ---- Heatmaps (one year at a time) ----
 
-const yearOptions = computed(() => [
-  { value: 'current', label: seriesLabels.value[0] },
-  { value: 'previous', label: seriesLabels.value[1] }
-])
 const shownSides = computed(() => (hasPrevious.value ? ['current', 'previous'] : ['current']))
 
 function yearLabel(side) {
   return seriesLabels.value[side === 'current' ? 0 : 1]
 }
 
-// This year unless the compared year is picked: its blue ramp, or gray for the compared year.
-function yearView(choice) {
-  const side = hasPrevious.value ? choice : 'current'
-  return { side, label: yearLabel(side), ramp: side === 'current' ? RAMPS.blue : RAMPS.gray }
+// One per year shown: its blue ramp, or gray for the compared year.
+const yearViews = computed(() =>
+  shownSides.value.map((side) => ({
+    key: side,
+    side,
+    label: yearLabel(side),
+    ramp: side === 'current' ? RAMPS.blue : RAMPS.gray
+  }))
+)
+
+// The picked year, or this year when there's nothing to compare with.
+function pickedSide(choice) {
+  return hasPrevious.value ? choice : 'current'
 }
 
 // Names the year shown, when there are two to pick from (the PDF has no buttons).
@@ -878,39 +910,40 @@ function sequentialFill(ramp, max) {
   return (value) => (value > 0 && max > 0 ? rampColor(ramp, value / max) : INK.hover)
 }
 
-const rhythmView = computed(() => yearView(rhythmYear.value))
 const weekHourMax = computed(() => matrixMax(shownSides.value.map((side) => report.value.weekHours[side])))
-const weekHourValues = computed(() =>
-  report.value.weekHours[rhythmView.value.side].map((row) => row.map((cell) => cell.share))
-)
-const weekHourFill = computed(() => sequentialFill(rhythmView.value.ramp, weekHourMax.value))
-const weekHourScale = computed(() => ({
-  start: formatPercent(0),
-  end: formatPercent(weekHourMax.value),
-  colors: rhythmView.value.ramp
-}))
-const weekHourEmpty = computed(() =>
-  !report.value.weekHours[rhythmView.value.side].some((row) => row.some((cell) => cell.count))
+
+// Per year: the shares, shading, key, table, and whether it has any orders.
+const weekHours = computed(() =>
+  Object.fromEntries(yearViews.value.map((view) => {
+    const matrix = report.value.weekHours[view.side]
+    return [view.side, {
+      values: matrix.map((row) => row.map((cell) => cell.share)),
+      fill: sequentialFill(view.ramp, weekHourMax.value),
+      scale: { start: formatPercent(0), end: formatPercent(weekHourMax.value), colors: view.ramp },
+      empty: !matrix.some((row) => row.some((cell) => cell.count)),
+      table: {
+        columns: ['時段', ...WEEKDAY_LABELS],
+        rows: HOUR_LABELS.map((hour, c) => [
+          `${hour}:00–${hour}:59`,
+          ...matrix.map((row) => `${formatPercent(row[c].share)}（${formatCount(row[c].count)}）`)
+        ])
+      }
+    }]
+  }))
 )
 
-function weekHourTooltip(r, c) {
-  const line = (side) => {
-    const cell = report.value.weekHours[side][r][c]
-    return `${yearLabel(side)} ${formatPercent(cell.share)}（${formatCount(cell.count)} 筆）`
+function weekHourTooltip(side, r, c) {
+  const line = (lineSide) => {
+    const cell = report.value.weekHours[lineSide][r][c]
+    return `${yearLabel(lineSide)} ${formatPercent(cell.share)}（${formatCount(cell.count)} 筆）`
   }
   return {
     title: `${WEEKDAY_LABELS[r]} ${c}:00–${c}:59`,
     // The shown year first.
-    lines: (rhythmView.value.side === 'current' ? shownSides.value : ['previous', 'current']).map(line)
+    lines: (side === 'current' ? shownSides.value : ['previous', 'current']).map(line)
   }
 }
 
-const basketView = computed(() => yearView(basketYear.value))
-const pairMatrix = computed(() => report.value.basket.pairs[basketView.value.side])
-const pairValues = computed(() =>
-  pairMatrix.value.cells.map((row) => row.map((cell) => cell?.[pairMetricKey.value] ?? null))
-)
-const pairsEmpty = computed(() => !pairMatrix.value.cells.some((row) => row.some(Boolean)))
 const pairMax = computed(() => matrixMax(shownSides.value.map((side) => report.value.basket.pairs[side].cells)))
 
 // Lift on a log scale around 1, out to the furthest cell (at least 2×, at
@@ -928,26 +961,48 @@ function liftFill(lift) {
   return t >= 0 ? rampColor(RAMPS.above, t) : rampColor(RAMPS.below, -t)
 }
 
-const pairFill = computed(() =>
-  pairMetricKey.value === 'lift' ? liftFill : sequentialFill(basketView.value.ramp, pairMax.value)
-)
-const pairScale = computed(() => {
-  if (pairMetricKey.value === 'lift') {
+function pairScale(metric, view) {
+  if (metric.key === 'lift') {
     const end = (power) => `${Number((2 ** power).toFixed(2))} 倍`
     return { start: end(-liftSpan.value), end: end(liftSpan.value), colors: [...RAMPS.below].reverse().concat(RAMPS.above.slice(1)) }
   }
-  return { start: '0%', end: pairMetric.value.cell(pairMax.value), colors: basketView.value.ramp }
-})
+  return { start: '0%', end: metric.cell(pairMax.value), colors: view.ramp }
+}
 
 function formatLift(lift) {
   return lift == null ? '—' : `${lift.toFixed(1)} 倍`
 }
 
-function pairTooltip(r, c) {
-  const cell = pairMatrix.value.cells[r][c]
-  const [bought, also] = [pairMatrix.value.labels[r], pairMatrix.value.labels[c]]
+// One per metric and year, keyed like `share:current`.
+const pairViews = computed(() =>
+  PAIR_METRICS.flatMap((metric) => yearViews.value.map((view) => {
+    const { labels, cells } = report.value.basket.pairs[view.side]
+    return {
+      key: `${metric.key}:${view.side}`,
+      metric,
+      view,
+      labels,
+      cells,
+      values: cells.map((row) => row.map((cell) => cell?.[metric.key] ?? null)),
+      fill: metric.key === 'lift' ? liftFill : sequentialFill(view.ramp, pairMax.value),
+      scale: pairScale(metric, view),
+      empty: !cells.some((row) => row.some(Boolean)),
+      table: {
+        columns: ['買了＼也買了', ...labels],
+        rows: cells.map((row, r) => [
+          labels[r],
+          ...row.map((cell) => (cell ? `${formatPercent(cell.share)}（${formatLift(cell.lift)}）` : '—'))
+        ])
+      }
+    }
+  }))
+)
+
+function pairTooltip(pair, r, c) {
+  const cell = pair.cells[r][c]
+  const [bought, also] = [pair.labels[r], pair.labels[c]]
   return {
-    title: `${yearPrefix(basketView.value)}買了${bought}的 ${formatCount(cell.base)} 筆訂單`,
+    title: `${yearPrefix(pair.view)}買了${bought}的 ${formatCount(cell.base)} 筆訂單`,
     lines: [
       `${formatPercent(cell.share)}（${formatCount(cell.count)} 筆）也買了${also}`,
       `提升度 ${formatLift(cell.lift)}`
@@ -1003,7 +1058,9 @@ function groupTable(header, rows) {
 }
 
 const cumulativeTable = computed(() => seriesTable(cumulativeSeries.value, formatCurrency))
-const slotTable = computed(() => seriesTable(slotSeries.value, slotMetric.value.format))
+const slotTables = computed(() =>
+  Object.fromEntries(METRICS.map((metric) => [metric.key, seriesTable(slotSeries.value[metric.key], metric.format)]))
+)
 const hourTable = computed(() => shareTable('時段', hourRows.value, '筆'))
 const identityTable = computed(() => groupTable('身分', report.value.identities))
 const gradeTable = computed(() => groupTable('年級', report.value.grades))
@@ -1044,36 +1101,6 @@ const promotionValueTable = computed(() => {
   }
 })
 
-const mixTable = computed(() => ({
-  columns: ['客群', ...report.value.mix.categories, '售出件數'],
-  rows: mixGroups.value.flatMap((row) =>
-    [row.current, row.previous].slice(0, seriesLabels.value.length).map((mix, i) => [
-      hasPrevious.value ? `${row.label}（${seriesLabels.value[i]}）` : row.label,
-      ...mix.segments.map((segment) => `${formatPercent(segment.share)}（${formatCount(segment.count)}）`),
-      formatCount(mix.units)
-    ])
-  )
-}))
-
-const weekHourTable = computed(() => ({
-  columns: ['時段', ...WEEKDAY_LABELS],
-  rows: HOUR_LABELS.map((hour, c) => [
-    `${hour}:00–${hour}:59`,
-    ...report.value.weekHours[rhythmView.value.side].map((row) => `${formatPercent(row[c].share)}（${formatCount(row[c].count)}）`)
-  ])
-}))
-
-const pairTable = computed(() => {
-  const { labels, cells } = pairMatrix.value
-  return {
-    columns: ['買了＼也買了', ...labels],
-    rows: cells.map((row, r) => [
-      labels[r],
-      ...row.map((cell) => (cell ? `${formatPercent(cell.share)}（${formatLift(cell.lift)}）` : '—'))
-    ])
-  }
-})
-
 const productTable = computed(() => {
   const now = new Map(report.value.products.current.map((product) => [product.label, product]))
   const past = new Map(hasPrevious.value ? report.value.products.previous.map((product) => [product.label, product]) : [])
@@ -1096,16 +1123,28 @@ const toast = useToastStore()
 const pageRoot = ref(null)
 const exporting = ref(false)
 const exportStamp = ref('')
-// Chart cards hide their buttons too.
+// Chart cards hide their buttons too, and show their chart even when the table is open.
 provide('exportingPdf', exporting)
+
+// The variants a card with buttons shows: the picked one on screen; in the
+// PDF, which has no buttons, every one (each its own card).
+function shown(variants, key) {
+  if (exporting.value) return variants
+  return [variants.find((variant) => variant.key === key) || variants[0]]
+}
+
+// A card's title, naming its variant in the PDF.
+function variantTitle(title, ...names) {
+  return exporting.value ? [title, ...names.filter(Boolean)].join('・') : title
+}
 
 function nextFrame() {
   return new Promise((resolve) => requestAnimationFrame(resolve))
 }
 
-// The report as shown, without the controls. html2pdf lays its copy out at
-// the PDF's printable width, so the page is narrowed to that width first
-// (.exporting) and the charts get a few frames to redraw at it.
+// The report with every chart variant, without the controls. html2pdf lays
+// its copy out at the PDF's printable width, so the page is narrowed to that
+// width first (.exporting) and the charts get a few frames to draw at it.
 async function exportPdf() {
   if (exporting.value) return
   toast.show('正在產生 PDF…')
