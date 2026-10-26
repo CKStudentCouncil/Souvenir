@@ -213,6 +213,39 @@
               :tooltip-title="(hour) => `${hour}:00–${hour}:59`"
             />
           </ChartCard>
+
+          <ChartCard
+            title="下單熱力圖"
+            :subtitle="`${yearPrefix(rhythmView)}各星期、各時段的訂單占比（台灣時間），可用來安排公告與社群貼文的時間`"
+            :table="weekHourTable"
+            :empty="weekHourEmpty"
+          >
+            <template v-if="hasPrevious" #controls>
+              <div class="segmented small" role="group" aria-label="熱力圖年度">
+                <button
+                  v-for="option in yearOptions"
+                  :key="option.value"
+                  type="button"
+                  :class="{ active: rhythmView.side === option.value }"
+                  :aria-pressed="rhythmView.side === option.value"
+                  @click="rhythmYear = option.value"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </template>
+            <HeatGrid
+              :row-labels="WEEKDAY_LABELS"
+              :column-labels="HOUR_LABELS"
+              :values="weekHourValues"
+              :fill="weekHourFill"
+              :scale="weekHourScale"
+              label="各星期、各時段訂單占比熱力圖"
+              :label-width="40"
+              thin-columns
+              :tooltip-for="weekHourTooltip"
+            />
+          </ChartCard>
         </div>
       </section>
 
@@ -284,6 +317,56 @@
 
       <section class="analytics-section">
         <div class="section-heading">
+          <p class="eyebrow">促銷成效</p>
+        </div>
+        <div class="card-grid">
+          <ChartCard
+            title="優惠使用率"
+            subtitle="使用各項優惠的訂單占比；折扣率＝折抵金額 ÷ 商品原價合計"
+            :legend="legend"
+            :table="promotionUsageTable"
+            :empty="promotionsEmpty"
+          >
+            <dl class="card-stats">
+              <div v-for="stat in discountStats" :key="stat.label">
+                <dt>{{ stat.label }}</dt>
+                <dd>
+                  <span class="stat-value">{{ stat.value }}</span>
+                  <span v-if="hasPrevious" class="stat-compare">{{ compareLabel }} {{ stat.previous }}</span>
+                </dd>
+              </div>
+            </dl>
+            <BarList :rows="promotionUsageRows" :colors="colors" :series-labels="seriesLabels" :format="formatPercent" />
+          </ChartCard>
+
+          <ChartCard
+            title="優惠與客單價"
+            :subtitle="`使用與未使用組合優惠的訂單，比較${promotionMetric.label}`"
+            :legend="legend"
+            :table="promotionValueTable"
+            :empty="promotionsEmpty"
+          >
+            <template #controls>
+              <div class="segmented small" role="group" aria-label="優惠比較指標">
+                <button
+                  v-for="metric in PROMOTION_METRICS"
+                  :key="metric.key"
+                  type="button"
+                  :class="{ active: promotionMetricKey === metric.key }"
+                  :aria-pressed="promotionMetricKey === metric.key"
+                  @click="promotionMetricKey = metric.key"
+                >
+                  {{ metric.label }}
+                </button>
+              </div>
+            </template>
+            <BarList :rows="promotionValueRows" :colors="colors" :series-labels="seriesLabels" :format="promotionMetric.format" />
+          </ChartCard>
+        </div>
+      </section>
+
+      <section class="analytics-section">
+        <div class="section-heading">
           <p class="eyebrow">商品</p>
         </div>
         <div class="stack">
@@ -327,12 +410,109 @@
               :tooltip-title="(i) => `尺寸 ${report.sizes[i].label}`"
             />
           </ChartCard>
+
+          <ChartCard
+            title="客群商品偏好"
+            :subtitle="`${mixDimension.subtitle}買的商品類別，占該客群售出件數的比例`"
+            :legend="mixLegend"
+            :table="mixTable"
+            :empty="mixEmpty"
+          >
+            <template #controls>
+              <div class="segmented small" role="group" aria-label="客群">
+                <button
+                  v-for="dimension in MIX_DIMENSIONS"
+                  :key="dimension.key"
+                  type="button"
+                  :class="{ active: mixDimensionKey === dimension.key }"
+                  :aria-pressed="mixDimensionKey === dimension.key"
+                  @click="mixDimensionKey = dimension.key"
+                >
+                  {{ dimension.label }}
+                </button>
+              </div>
+            </template>
+            <StackedBars
+              :rows="mixRows"
+              :colors="mixColors"
+              label="各客群商品類別占比堆疊長條圖"
+              :describe="(segment) => `${formatPercent(segment.share)}（${formatCount(segment.count)} 件）`"
+            />
+          </ChartCard>
+        </div>
+      </section>
+
+      <section class="analytics-section">
+        <div class="section-heading">
+          <p class="eyebrow">購物籃分析</p>
+        </div>
+        <div class="card-grid">
+          <ChartCard
+            title="商品滲透率"
+            subtitle="含有該類商品的訂單占全部訂單的比例"
+            :legend="legend"
+            :table="penetrationTable"
+            :empty="isEmptyShares(report.basket.products)"
+          >
+            <BarList :rows="penetrationRows" :colors="colors" :series-labels="seriesLabels" :format="formatPercent" />
+          </ChartCard>
+
+          <ChartCard
+            title="交叉購買"
+            :subtitle="`${yearPrefix(basketView)}${pairMetric.subtitle}`"
+            :table="pairTable"
+            :empty="pairsEmpty"
+          >
+            <template #controls>
+              <div class="control-row">
+                <div class="segmented small" role="group" aria-label="交叉購買指標">
+                  <button
+                    v-for="metric in PAIR_METRICS"
+                    :key="metric.key"
+                    type="button"
+                    :class="{ active: pairMetricKey === metric.key }"
+                    :aria-pressed="pairMetricKey === metric.key"
+                    @click="pairMetricKey = metric.key"
+                  >
+                    {{ metric.label }}
+                  </button>
+                </div>
+                <div v-if="hasPrevious" class="segmented small" role="group" aria-label="交叉購買年度">
+                  <button
+                    v-for="option in yearOptions"
+                    :key="option.value"
+                    type="button"
+                    :class="{ active: basketView.side === option.value }"
+                    :aria-pressed="basketView.side === option.value"
+                    @click="basketYear = option.value"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
+            </template>
+            <HeatGrid
+              :row-labels="pairMatrix.labels"
+              :column-labels="pairMatrix.labels"
+              :values="pairValues"
+              :fill="pairFill"
+              :scale="pairScale"
+              :label="`商品類別${pairMetric.label}熱力圖`"
+              :cell-format="pairMetric.cell"
+              :cell-height="36"
+              :label-width="76"
+              :tooltip-for="pairTooltip"
+            />
+          </ChartCard>
         </div>
       </section>
 
       <p class="page-footnote">
         日期與時段以台灣時間計算。「同期」只比較往年開賣後同一天、同一時刻為止的資料；「全期」比較往年整段銷售期間。
         開賣前成立的訂單算在第 1 天，往年結束日之後的訂單算在最後一天。平均客單價不含 NT$0 的訂單（例如公關品）。
+        下單熱力圖、促銷成效、客群商品偏好與購物籃分析不含公關品訂單。往年匯入的資料沒有記錄滿額贈品，顯示為「—」。
+        客群商品偏好與購物籃分析依商品類別計算，往年的商品依名稱歸入今年的類別（例如黑色短踢算短踢、各款鑰匙圈合併）。
+        交叉購買的「倍」是提升度：買了左側類別的訂單也買上方類別的比例，除以全部訂單買上方類別的比例；大於 1 倍代表兩者常一起買，適合做成組合或加購。
       </p>
     </div>
   </div>
@@ -344,7 +524,10 @@ import { taiwanDate } from 'shared/format'
 import BarList from 'src/components/analytics/BarList.vue'
 import ChartCard from 'src/components/analytics/ChartCard.vue'
 import ColumnChart from 'src/components/analytics/ColumnChart.vue'
+import HeatGrid from 'src/components/analytics/HeatGrid.vue'
 import LineChart from 'src/components/analytics/LineChart.vue'
+import StackedBars from 'src/components/analytics/StackedBars.vue'
+import { INK, RAMPS, rampColor } from 'src/components/analytics/chart'
 import { useSalesAnalytics } from 'src/composables/useSalesAnalytics'
 import { useToastStore } from 'src/stores/toast'
 import { downloadElementAsPdf } from 'src/utils/pdf'
@@ -354,13 +537,20 @@ import {
   formatCurrency,
   formatDay,
   formatDecimal,
-  formatPercent
+  formatPercent,
+  OTHER_CATEGORY,
+  WEEKDAY_LABELS
 } from 'src/utils/salesAnalytics'
 
 // This year is the accent; the year it's compared with is gray context.
 const CURRENT_COLOR = '#06c'
 const PREVIOUS_COLOR = '#86868b'
 const TOP_PRODUCTS = 8
+// Product categories in the mix chart, in catalog order. Neighbours in this
+// order stay apart for color-blind readers (checked with the dataviz palette
+// validator); 其他 is gray.
+const CATEGORY_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6']
+const OTHER_COLOR = '#aeaeb2'
 
 // 全期: the compared year's whole sale. 同期: only up to the same day and time
 // of its sale as now.
@@ -383,6 +573,31 @@ const METRICS = [
   { key: 'revenue', label: '營收', format: formatCurrency, axis: formatCompact },
   { key: 'orders', label: '訂單數', format: formatCount, axis: formatCount },
   { key: 'aov', label: '平均客單價', format: formatCurrency, axis: formatCompact }
+]
+
+const PROMOTION_METRICS = [
+  { key: 'aov', label: '平均客單價', format: formatCurrency },
+  { key: 'unitsPerOrder', label: '平均每單件數', format: formatDecimal }
+]
+
+const PAIR_METRICS = [
+  {
+    key: 'share',
+    label: '同時購買率',
+    subtitle: '買了左側類別的訂單中，也買了上方類別的比例',
+    cell: (value) => `${Math.round(value * 100)}%`
+  },
+  {
+    key: 'lift',
+    label: '提升度',
+    subtitle: '同時購買率是上方類別整體購買率的幾倍：藍色高於 1 倍，常一起買；紅色低於 1 倍，很少一起買',
+    cell: (value) => value.toFixed(1)
+  }
+]
+
+const MIX_DIMENSIONS = [
+  { key: 'identities', label: '身分', subtitle: '各身分' },
+  { key: 'grades', label: '建中年級', subtitle: '建國中學各年級' }
 ]
 
 const ARROWS = { up: '▲', down: '▼', flat: '－' }
@@ -410,8 +625,17 @@ const {
 
 const slotMetricKey = ref('revenue')
 const groupMetricKey = ref('revenue')
+const promotionMetricKey = ref('aov')
+const mixDimensionKey = ref('identities')
+const pairMetricKey = ref('share')
 const slotMetric = computed(() => METRICS.find((metric) => metric.key === slotMetricKey.value))
 const groupMetric = computed(() => METRICS.find((metric) => metric.key === groupMetricKey.value))
+const promotionMetric = computed(() => PROMOTION_METRICS.find((metric) => metric.key === promotionMetricKey.value))
+const mixDimension = computed(() => MIX_DIMENSIONS.find((dimension) => dimension.key === mixDimensionKey.value))
+const pairMetric = computed(() => PAIR_METRICS.find((metric) => metric.key === pairMetricKey.value))
+// The year each heatmap shows; they show one at a time.
+const rhythmYear = ref('current')
+const basketYear = ref('current')
 
 const hasPrevious = computed(() => report.value.hasPrevious)
 const timeline = computed(() => report.value.timeline)
@@ -578,6 +802,161 @@ const gradeRows = computed(() => barRows(report.value.grades, (summary) => summa
 const valueRows = computed(() => barRows(report.value.values, (entry) => entry.share))
 const unitRows = computed(() => barRows(report.value.units, (entry) => entry.share))
 
+// ---- Promotions ----
+
+const promotionsEmpty = computed(() =>
+  !report.value.promotions.some((row) => row.current?.orders || (hasPrevious.value && row.previous?.orders))
+)
+// The gift is missing (null) for imported years.
+const promotionUsageRows = computed(() =>
+  barRows(report.value.promotions.filter((row) => row.key !== 'none'), (entry) => entry?.share ?? null)
+)
+const promotionValueRows = computed(() =>
+  barRows(report.value.promotions.filter((row) => row.key !== 'gift'), (entry) => entry?.[promotionMetricKey.value] ?? null)
+)
+
+const discountStats = computed(() => {
+  const { current: now, previous: past } = report.value.discounts
+  return [
+    { label: '折扣率', value: formatPercent(now.rate), previous: formatPercent(past.rate) },
+    { label: '折抵金額', value: formatCurrency(now.discount), previous: formatCurrency(past.discount) }
+  ]
+})
+
+// ---- Product mix by customer group ----
+
+const mixColors = computed(() =>
+  Object.fromEntries(report.value.mix.categories.map((category, i) => [
+    category,
+    category === OTHER_CATEGORY ? OTHER_COLOR : CATEGORY_COLORS[i]
+  ]))
+)
+const mixLegend = computed(() => report.value.mix.categories.map((label) => ({ label, color: mixColors.value[label] })))
+const mixGroups = computed(() => report.value.mix[mixDimensionKey.value])
+const mixEmpty = computed(() =>
+  !mixGroups.value.some((row) => row.current.units || (hasPrevious.value && row.previous.units))
+)
+const mixRows = computed(() =>
+  mixGroups.value.map((row) => ({
+    label: row.label,
+    bars: [row.current, row.previous]
+      .slice(0, seriesLabels.value.length)
+      .map((mix, i) => ({ label: seriesLabels.value[i], segments: mix.segments }))
+  }))
+)
+
+// ---- Heatmaps (one year at a time) ----
+
+const yearOptions = computed(() => [
+  { value: 'current', label: seriesLabels.value[0] },
+  { value: 'previous', label: seriesLabels.value[1] }
+])
+const shownSides = computed(() => (hasPrevious.value ? ['current', 'previous'] : ['current']))
+
+function yearLabel(side) {
+  return seriesLabels.value[side === 'current' ? 0 : 1]
+}
+
+// This year unless the compared year is picked: its blue ramp, or gray for the compared year.
+function yearView(choice) {
+  const side = hasPrevious.value ? choice : 'current'
+  return { side, label: yearLabel(side), ramp: side === 'current' ? RAMPS.blue : RAMPS.gray }
+}
+
+// Names the year shown, when there are two to pick from (the PDF has no buttons).
+function yearPrefix(view) {
+  return hasPrevious.value ? `${view.label}，` : ''
+}
+
+// The top of a heatmap's scale, over both years so they shade alike.
+function matrixMax(matrices) {
+  return Math.max(0, ...matrices.flatMap((matrix) => matrix.flatMap((row) => row.map((cell) => cell?.share || 0))))
+}
+
+// Light to dark up to `max`. Zero is the surface wash, so "none" differs from "a little".
+function sequentialFill(ramp, max) {
+  return (value) => (value > 0 && max > 0 ? rampColor(ramp, value / max) : INK.hover)
+}
+
+const rhythmView = computed(() => yearView(rhythmYear.value))
+const weekHourMax = computed(() => matrixMax(shownSides.value.map((side) => report.value.weekHours[side])))
+const weekHourValues = computed(() =>
+  report.value.weekHours[rhythmView.value.side].map((row) => row.map((cell) => cell.share))
+)
+const weekHourFill = computed(() => sequentialFill(rhythmView.value.ramp, weekHourMax.value))
+const weekHourScale = computed(() => ({
+  start: formatPercent(0),
+  end: formatPercent(weekHourMax.value),
+  colors: rhythmView.value.ramp
+}))
+const weekHourEmpty = computed(() =>
+  !report.value.weekHours[rhythmView.value.side].some((row) => row.some((cell) => cell.count))
+)
+
+function weekHourTooltip(r, c) {
+  const line = (side) => {
+    const cell = report.value.weekHours[side][r][c]
+    return `${yearLabel(side)} ${formatPercent(cell.share)}（${formatCount(cell.count)} 筆）`
+  }
+  return {
+    title: `${WEEKDAY_LABELS[r]} ${c}:00–${c}:59`,
+    // The shown year first.
+    lines: (rhythmView.value.side === 'current' ? shownSides.value : ['previous', 'current']).map(line)
+  }
+}
+
+const basketView = computed(() => yearView(basketYear.value))
+const pairMatrix = computed(() => report.value.basket.pairs[basketView.value.side])
+const pairValues = computed(() =>
+  pairMatrix.value.cells.map((row) => row.map((cell) => cell?.[pairMetricKey.value] ?? null))
+)
+const pairsEmpty = computed(() => !pairMatrix.value.cells.some((row) => row.some(Boolean)))
+const pairMax = computed(() => matrixMax(shownSides.value.map((side) => report.value.basket.pairs[side].cells)))
+
+// Lift on a log scale around 1, out to the furthest cell (at least 2×, at
+// most 4×, so one rare pair doesn't wash out the rest).
+const liftSpan = computed(() => {
+  const logs = shownSides.value.flatMap((side) =>
+    report.value.basket.pairs[side].cells.flat().filter((cell) => cell?.lift > 0).map((cell) => Math.abs(Math.log2(cell.lift)))
+  )
+  return Math.min(Math.max(1, ...logs), 2)
+})
+
+function liftFill(lift) {
+  // Never bought together (0) is the far red end.
+  const t = Math.log2(lift) / liftSpan.value
+  return t >= 0 ? rampColor(RAMPS.above, t) : rampColor(RAMPS.below, -t)
+}
+
+const pairFill = computed(() =>
+  pairMetricKey.value === 'lift' ? liftFill : sequentialFill(basketView.value.ramp, pairMax.value)
+)
+const pairScale = computed(() => {
+  if (pairMetricKey.value === 'lift') {
+    const end = (power) => `${Number((2 ** power).toFixed(2))} 倍`
+    return { start: end(-liftSpan.value), end: end(liftSpan.value), colors: [...RAMPS.below].reverse().concat(RAMPS.above.slice(1)) }
+  }
+  return { start: '0%', end: pairMetric.value.cell(pairMax.value), colors: basketView.value.ramp }
+})
+
+function formatLift(lift) {
+  return lift == null ? '—' : `${lift.toFixed(1)} 倍`
+}
+
+function pairTooltip(r, c) {
+  const cell = pairMatrix.value.cells[r][c]
+  const [bought, also] = [pairMatrix.value.labels[r], pairMatrix.value.labels[c]]
+  return {
+    title: `${yearPrefix(basketView.value)}買了${bought}的 ${formatCount(cell.base)} 筆訂單`,
+    lines: [
+      `${formatPercent(cell.share)}（${formatCount(cell.count)} 筆）也買了${also}`,
+      `提升度 ${formatLift(cell.lift)}`
+    ]
+  }
+}
+
+const penetrationRows = computed(() => barRows(report.value.basket.products, (entry) => entry.share))
+
 const productLists = computed(() => {
   const list = (label, color, products) => ({
     label,
@@ -631,6 +1010,69 @@ const gradeTable = computed(() => groupTable('年級', report.value.grades))
 const valueTable = computed(() => shareTable('訂單金額（NT$）', report.value.values, '筆'))
 const unitTable = computed(() => shareTable('件數', report.value.units, '筆'))
 const sizeTable = computed(() => shareTable('尺寸', report.value.sizes, '件'))
+
+const penetrationTable = computed(() => shareTable('商品類別', report.value.basket.products, '筆'))
+
+const promotionUsageTable = computed(() => {
+  const cell = (entry) => (entry ? `${formatPercent(entry.share)}（${formatCount(entry.orders)} 筆）` : '—')
+  const years = (row) => [row.current, row.previous].slice(0, seriesLabels.value.length)
+  const { current: now, previous: past } = report.value.discounts
+  const totals = (label, format, key) => [label, ...[now, past].slice(0, seriesLabels.value.length).map((d) => format(d[key]))]
+  return {
+    columns: ['優惠', ...seriesLabels.value],
+    rows: [
+      ...report.value.promotions.filter((row) => row.key !== 'none').map((row) => [row.label, ...years(row).map(cell)]),
+      totals('折扣率', formatPercent, 'rate'),
+      totals('折抵金額', formatCurrency, 'discount')
+    ]
+  }
+})
+
+const promotionValueTable = computed(() => {
+  const columns = ['訂單類型']
+  seriesLabels.value.forEach((year) => columns.push(`${year}訂單`, `${year}客單價`, `${year}每單件數`))
+  return {
+    columns,
+    rows: report.value.promotions
+      .filter((row) => row.key !== 'gift')
+      .map((row) => [
+        row.label,
+        ...[row.current, row.previous]
+          .slice(0, seriesLabels.value.length)
+          .flatMap((entry) => [formatCount(entry.orders), formatCurrency(entry.aov), formatDecimal(entry.unitsPerOrder)])
+      ])
+  }
+})
+
+const mixTable = computed(() => ({
+  columns: ['客群', ...report.value.mix.categories, '售出件數'],
+  rows: mixGroups.value.flatMap((row) =>
+    [row.current, row.previous].slice(0, seriesLabels.value.length).map((mix, i) => [
+      hasPrevious.value ? `${row.label}（${seriesLabels.value[i]}）` : row.label,
+      ...mix.segments.map((segment) => `${formatPercent(segment.share)}（${formatCount(segment.count)}）`),
+      formatCount(mix.units)
+    ])
+  )
+}))
+
+const weekHourTable = computed(() => ({
+  columns: ['時段', ...WEEKDAY_LABELS],
+  rows: HOUR_LABELS.map((hour, c) => [
+    `${hour}:00–${hour}:59`,
+    ...report.value.weekHours[rhythmView.value.side].map((row) => `${formatPercent(row[c].share)}（${formatCount(row[c].count)}）`)
+  ])
+}))
+
+const pairTable = computed(() => {
+  const { labels, cells } = pairMatrix.value
+  return {
+    columns: ['買了＼也買了', ...labels],
+    rows: cells.map((row, r) => [
+      labels[r],
+      ...row.map((cell) => (cell ? `${formatPercent(cell.share)}（${formatLift(cell.lift)}）` : '—'))
+    ])
+  }
+})
 
 const productTable = computed(() => {
   const now = new Map(report.value.products.current.map((product) => [product.label, product]))

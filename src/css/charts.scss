@@ -2,7 +2,9 @@
    scoped). The SVG itself is styled with attributes; see components/analytics/chart.js. */
 
 .line-chart,
-.column-chart {
+.column-chart,
+.heat-grid,
+.stacked-bars {
   position: relative;
 }
 
@@ -13,11 +15,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-.chart-svg:focus {
+.chart-svg:focus,
+.heat-grid:focus,
+.stacked-bars:focus {
   outline: none;
 }
 
-.chart-svg:focus-visible {
+.chart-svg:focus-visible,
+.heat-grid:focus-visible,
+.stacked-bars:focus-visible {
   outline: 3px solid rgba(0, 102, 204, 0.28);
   outline-offset: 4px;
   border-radius: 8px;
@@ -66,4 +72,16 @@
   width: 12px;
   height: 2px;
   border-radius: 1px;
+}
+
+.tooltip-key.rect {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.tooltip-line {
+  margin: 2px 0 0;
+  color: #1d1d1f;
+  white-space: nowrap;
 }

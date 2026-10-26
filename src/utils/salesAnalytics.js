@@ -1,4 +1,4 @@
-import { schools } from 'shared/catalog'
+import { products as catalogProducts, schools } from 'shared/catalog'
 import { SHOP_OPEN_AT } from 'shared/config'
 import { taiwanDate } from 'shared/format'
 import { getOrderClass, parseOrderDate } from 'src/utils/orders'
@@ -45,6 +45,24 @@ const UNIT_BUCKETS = [
 
 export const KPI_KEYS = ['revenue', 'orders', 'aov', 'units', 'unitsPerOrder', 'comboRate']
 
+export const WEEKDAY_LABELS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日']
+export const OTHER_CATEGORY = '其他'
+// Categories in the cross-purchase matrix, and in the product mix (the rest
+// of the mix folds into 其他).
+const BASKET_CATEGORIES = 8
+const MIX_CATEGORIES = 7
+// Product → category (both keychain designs are 鑰匙圈), categories in catalog order.
+const CATEGORY_OF = new Map(catalogProducts.map((product) => [product.name, product.category]))
+const CATALOG_CATEGORIES = [...new Set(catalogProducts.map((product) => product.category))]
+// Longest first, so a name is matched by the most specific category it contains.
+const CATEGORY_WORDS = [...CATALOG_CATEGORIES].sort((a, b) => b.length - a.length)
+
+// This year's category for a product, so other years compare by kind:
+// 黑色短踢 → 短踢, CKHS鑰匙圈 → 鑰匙圈. A product that matches none is its own.
+export function categoryOf(product) {
+  return CATEGORY_OF.get(product) || CATEGORY_WORDS.find((word) => product.includes(word)) || product
+}
+
 // This year's sale opens on SHOP_OPEN_AT; every order in the orders collection belongs to it.
 export const OPEN_DATE = taiwanDate(SHOP_OPEN_AT)
 export const CURRENT_YEAR = Number(OPEN_DATE.slice(0, 4))
@@ -89,18 +107,32 @@ function toSale(order, campaign) {
   const offset = Math.min(Math.max(time - campaign.start, 0), campaign.end - campaign.start - 1)
   const items = (order.items || []).map((item) => {
     const quantity = Number(item.quantity) || 0
-    return { ...splitItemName(item.name), quantity, amount: quantity * (Number(item.price) || 0) }
+    const { product, size } = splitItemName(item.name)
+    return { product, size, category: categoryOf(product), quantity, amount: quantity * (Number(item.price) || 0) }
   })
+
+  const local = new Date(time + TAIWAN_OFFSET_MS)
+  const combos = order.prPackageUsed
+    ? []
+    : (order.appliedCombos || []).map((combo) => String(combo.name ?? '').trim() || '其他組合')
 
   return {
     offset,
     day: Math.floor(offset / DAY_MS) + 1,
-    hour: new Date(time + TAIWAN_OFFSET_MS).getUTCHours(),
+    hour: local.getUTCHours(),
+    // 0 is Monday.
+    weekday: (local.getUTCDay() + 6) % 7,
     identity: normalizeSchool(order.school) || UNKNOWN_IDENTITY,
     grade: order.grade ?? gradeFromClass(getOrderClass(order)),
     total: Number(order.finalTotal) || 0,
+    // List price before any discount.
+    gross: Number(order.originalTotal) || items.reduce((sum, item) => sum + item.amount, 0),
     units: items.reduce((sum, item) => sum + item.quantity, 0),
-    usedCombo: !order.prPackageUsed && (order.appliedCombos || []).length > 0,
+    pr: Boolean(order.prPackageUsed),
+    combos,
+    usedCombo: combos.length > 0,
+    // Null when the order doesn't record it (imported years).
+    gift: order.giftDiscount == null ? null : Number(order.giftDiscount) > 0,
     items
   }
 }
@@ -219,6 +251,171 @@ function sizeRows(nowSales, pastSales) {
     .map((size) => ({ label: size, current: entry(now, size), previous: entry(past, size) }))
 }
 
+// Share of orders in each weekday (rows) and hour (columns).
+function weekHourShares(sales) {
+  const counts = WEEKDAY_LABELS.map(() => Array(24).fill(0))
+  sales.forEach((sale) => {
+    counts[sale.weekday][sale.hour] += 1
+  })
+  return counts.map((row) => row.map((count) => ({ count, share: sales.length ? count / sales.length : 0 })))
+}
+
+// Orders using a combo deal (any, none, each by name) and the gift, with their
+// share of all orders. The gift is null for a year whose orders don't record it.
+function promotionRows(nowSales, pastSales) {
+  const usage = new Map()
+  ;[nowSales, pastSales].forEach((sales, year) => {
+    sales.forEach((sale) => {
+      new Set(sale.combos).forEach((name) => {
+        const counts = usage.get(name) || [0, 0]
+        counts[year] += 1
+        usage.set(name, counts)
+      })
+    })
+  })
+  const names = [...usage.keys()].sort((a, b) => usage.get(b)[0] - usage.get(a)[0] || usage.get(b)[1] - usage.get(a)[1])
+
+  const groups = [
+    { key: 'combo', label: '使用組合優惠', test: (sale) => sale.usedCombo },
+    { key: 'none', label: '未使用組合優惠', test: (sale) => !sale.usedCombo },
+    ...names.map((name) => ({ key: `combo:${name}`, label: name, test: (sale) => sale.combos.includes(name) })),
+    { key: 'gift', label: '滿額贈品', test: (sale) => sale.gift, needsGift: true }
+  ]
+  const entry = (sales, group) => {
+    if (group.needsGift && !sales.some((sale) => sale.gift != null)) return null
+    const matched = sales.filter(group.test)
+    return { ...summarize(matched), share: sales.length ? matched.length / sales.length : 0 }
+  }
+  return groups.map((group) => ({
+    key: group.key,
+    label: group.label,
+    current: entry(nowSales, group),
+    previous: entry(pastSales, group)
+  }))
+}
+
+// Discounts against list prices: the amount given and its share of the list price.
+function discountSummary(sales) {
+  const gross = sales.reduce((sum, sale) => sum + sale.gross, 0)
+  const discount = gross - sales.reduce((sum, sale) => sum + sale.total, 0)
+  return { gross, discount, rate: gross ? discount / gross : null }
+}
+
+// Orders that include each category, and of those, how many include each other category.
+function basketStats(sales) {
+  const counts = new Map()
+  const pairs = new Map()
+  sales.forEach((sale) => {
+    const bought = [...new Set(sale.items.filter((item) => item.quantity > 0).map((item) => item.category))]
+    bought.forEach((a) => {
+      counts.set(a, (counts.get(a) || 0) + 1)
+      bought.forEach((b) => {
+        if (a !== b) pairs.set(`${a}\n${b}`, (pairs.get(`${a}\n${b}`) || 0) + 1)
+      })
+    })
+  })
+  return { orders: sales.length, counts, pairs }
+}
+
+// By product category, so years with different products compare. Penetration:
+// the share of orders that include each category. Cross-purchase: for the
+// most-bought categories, the share of orders with one (row) that also include
+// another (column), and the lift, how much likelier that is than in orders overall.
+function basketReport(nowSales, pastSales) {
+  const now = basketStats(nowSales)
+  const past = basketStats(pastSales)
+  const ranked = (stats) => [...stats.counts.keys()].sort((a, b) => stats.counts.get(b) - stats.counts.get(a))
+  const labels = [...new Set([...ranked(now), ...ranked(past)])]
+
+  const penetration = (stats, label) => {
+    const count = stats.counts.get(label) || 0
+    return { count, share: stats.orders ? count / stats.orders : 0 }
+  }
+  // Each year's own most-bought categories.
+  const matrix = (stats) => {
+    const top = ranked(stats).slice(0, BASKET_CATEGORIES)
+    return {
+      labels: top,
+      cells: top.map((a) => top.map((b) => {
+        if (a === b) return null
+        const base = stats.counts.get(a)
+        const count = stats.pairs.get(`${a}\n${b}`) || 0
+        const share = count / base
+        return { count, base, share, lift: share / penetration(stats, b).share }
+      }))
+    }
+  }
+
+  return {
+    products: labels.map((label) => ({ label, current: penetration(now, label), previous: penetration(past, label) })),
+    pairs: { current: matrix(now), previous: matrix(past) }
+  }
+}
+
+// Each group's units by product category, as shares. Categories follow the
+// catalog so their colors stay put; past years' other products come after,
+// and whatever is past MIX_CATEGORIES folds into 其他.
+function mixReport(nowSales, pastSales) {
+  const units = new Map()
+  ;[...nowSales, ...pastSales].forEach((sale) => {
+    sale.items.forEach((item) => {
+      units.set(item.category, (units.get(item.category) || 0) + item.quantity)
+    })
+  })
+  const sold = [...units.keys()].filter((category) => units.get(category) > 0)
+  const ordered = [
+    ...CATALOG_CATEGORIES.filter((category) => sold.includes(category)),
+    ...sold.filter((category) => !CATALOG_CATEGORIES.includes(category)).sort((a, b) => units.get(b) - units.get(a))
+  ]
+  const kept = ordered.slice(0, MIX_CATEGORIES)
+  const categories = ordered.length > kept.length ? [...kept, OTHER_CATEGORY] : kept
+  const slot = (item) => (kept.includes(item.category) ? item.category : OTHER_CATEGORY)
+
+  const mix = (sales) => {
+    const counts = Object.fromEntries(categories.map((category) => [category, 0]))
+    sales.forEach((sale) => {
+      sale.items.forEach((item) => {
+        counts[slot(item)] += item.quantity
+      })
+    })
+    const total = categories.reduce((sum, category) => sum + counts[category], 0)
+    return {
+      units: total,
+      segments: categories.map((category) => ({
+        label: category,
+        count: counts[category],
+        share: total ? counts[category] / total : 0
+      }))
+    }
+  }
+  const rows = (now, past, keyOf, keys, labelOf) => {
+    const nowGroups = groupBy(now, keyOf)
+    const pastGroups = groupBy(past, keyOf)
+    return keys
+      .filter((key) => nowGroups.has(key) || pastGroups.has(key))
+      .map((key) => ({
+        key,
+        label: labelOf(key),
+        current: mix(nowGroups.get(key) || []),
+        previous: mix(pastGroups.get(key) || [])
+      }))
+  }
+  const isStudent = (sale) => sale.identity === '建國中學'
+
+  return {
+    categories,
+    identities: rows(nowSales, pastSales, (sale) => sale.identity, IDENTITIES, (key) => key)
+      .sort((a, b) => b.current.units - a.current.units || b.previous.units - a.previous.units),
+    grades: rows(
+      nowSales.filter(isStudent),
+      pastSales.filter(isStudent),
+      (sale) => sale.grade || 0,
+      [1, 2, 3, 0],
+      (grade) => GRADE_LABELS[grade - 1] || '無法判斷'
+    )
+  }
+}
+
 // Revenue, orders and average order value per day since the opening, plus
 // cumulative revenue. Days not reached yet are null so the line stops at today.
 function daySeries(campaign, sales, days) {
@@ -275,6 +472,9 @@ export function buildReport({ current, previous, basis }) {
   const pastSummary = summarize(past)
   const fullSummary = summarize(pastAll)
   const isStudent = (sale) => sale.identity === '建國中學'
+  // The marketing charts leave out PR packages (公關品): they're given away, not bought.
+  const nowBought = now.filter((sale) => !sale.pr)
+  const pastBought = past.filter((sale) => !sale.pr)
 
   return {
     hasPrevious: !!previous,
@@ -301,7 +501,12 @@ export function buildReport({ current, previous, basis }) {
     values: bucketRows(now, past, VALUE_BUCKETS, (sale) => sale.total),
     units: bucketRows(now, past, UNIT_BUCKETS, (sale) => sale.units),
     products: { current: productRows(now), previous: productRows(past) },
-    sizes: sizeRows(now, past)
+    sizes: sizeRows(now, past),
+    weekHours: { current: weekHourShares(nowBought), previous: weekHourShares(pastBought) },
+    promotions: promotionRows(nowBought, pastBought),
+    discounts: { current: discountSummary(nowBought), previous: discountSummary(pastBought) },
+    basket: basketReport(nowBought, pastBought),
+    mix: mixReport(nowBought, pastBought)
   }
 }
 

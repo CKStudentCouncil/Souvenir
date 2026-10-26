@@ -129,6 +129,8 @@ export function toArchivedOrder(order) {
     })),
     originalTotal: amount(order.originalTotal),
     totalDiscount: amount(order.totalDiscount),
+    // Kept for the promotion charts; imports don't have it (null).
+    giftDiscount: order.giftDiscount == null ? null : amount(order.giftDiscount),
     finalTotal: amount(order.finalTotal),
     // PR orders list 公關品訂單 as their combo; imports leave it out.
     appliedCombos: order.prPackageUsed

@@ -454,6 +454,50 @@
   gap: 20px;
 }
 
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Headline numbers above a chart, e.g. the discount rate. */
+.card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 0 0 18px;
+}
+
+.card-stats div {
+  display: grid;
+  gap: 2px;
+}
+
+.card-stats dt {
+  color: #6e6e73;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.card-stats dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.stat-compare {
+  color: #6e6e73;
+  font-size: .78rem;
+}
+
 .product-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
