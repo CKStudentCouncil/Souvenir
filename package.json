@@ -8,13 +8,15 @@
   "type": "module",
   "scripts": {
     "dev": "quasar dev",
-    "build": "quasar build"
+    "build": "quasar build",
+    "test": "node --test tests/orderQr.test.js"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
     "file-saver": "^2.0.5",
     "firebase": "^10.8.0",
     "html2pdf.js": "^0.14.0",
+    "jsqr": "^1.4.0",
     "pinia": "^2.1.7",
     "qrcode": "^1.5.4",
     "quasar": "^2.16.0",

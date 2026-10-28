@@ -89,6 +89,13 @@ const routes = [
         meta: { requiresAdmin: true }
       },
       {
+        // in-page camera scanner for pickup QR codes (no phone scanner app)
+        path: 'scan',
+        name: 'admin-scan',
+        component: () => import('pages/ScanPage.vue'),
+        meta: { requiresAdmin: true }
+      },
+      {
         path: 'account',
         name: 'admin-account',
         component: () => import('pages/AccountPage.vue'),

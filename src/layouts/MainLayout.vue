@@ -52,6 +52,14 @@
         </router-link>
 
         <router-link
+          v-if="auth.isAdmin"
+          to="/admin/scan"
+          @click="menuOpen = false"
+        >
+          掃描 QR Code
+        </router-link>
+
+        <router-link
           v-if="auth.isSuperAdmin"
           to="/admin/analytics"
           @click="menuOpen = false"

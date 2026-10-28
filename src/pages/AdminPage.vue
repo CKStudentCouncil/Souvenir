@@ -14,6 +14,7 @@
     <div class="page-heading">
       <p class="eyebrow">後台管理</p>
       <h1>訂單統計</h1>
+      <router-link :to="{ name: 'admin-scan' }" class="btn scan-link">掃描 QR Code</router-link>
     </div>
 
     <div

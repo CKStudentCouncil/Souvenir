@@ -11,9 +11,19 @@
   </div>
 
   <div v-else class="detail-page">
-    <button type="button" class="back-link" @click="goBack">
-      ← 返回{{ isAdminView ? '訂單列表' : '我的訂單' }}
-    </button>
+    <div class="top-row">
+      <button type="button" class="back-link" @click="goBack">
+        ← 返回{{ isAdminView ? '訂單列表' : '我的訂單' }}
+      </button>
+      <button
+        v-if="isAdminView"
+        type="button"
+        class="btn-primary"
+        @click="router.push({ name: 'admin-scan' })"
+      >
+        掃描下一筆
+      </button>
+    </div>
 
     <section v-if="isAdminView" class="admin-toolbar">
       <div class="toggle-group">
