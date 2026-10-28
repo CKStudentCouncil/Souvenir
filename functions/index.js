@@ -9,6 +9,7 @@ import { schools } from './shared/catalog.js'
 import { ADMIN_ROLES, APP_CHECK_SITE_KEY, SITE_URL, STAFF_ROLES, isSaleEnded, isShopOpen } from './shared/config.js'
 import { notificationRecipients } from './shared/format.js'
 import { generateEmailHTML, generateOrderNotificationHTML } from './lib/emailTemplates.js'
+import { generateSurveyInvitationHTML } from './lib/surveyEmailTemplate.js'
 import { MAIL_SECRETS, createTransporter, fromHeader, senderEmail } from './lib/mailer.js'
 import { buildOrder, saveOrderWithNewId } from './lib/orders.js'
 
@@ -257,6 +258,41 @@ async function collectRecipients(school) {
     .filter((email) => email !== sender)
 }
 
+// Sends one email to every recipient, BCC'd in rate-limited batches. A failed
+// batch is counted and skipped so the rest still go out.
+async function sendBulkEmail(recipients, { subject, html }) {
+  const transporter = createTransporter()
+  let sentCount = 0
+  let failedCount = 0
+  let lastSendAt = 0
+
+  for (const batch of chunk(recipients, MAX_BCC_PER_BATCH)) {
+    const waitMs = lastSendAt + MIN_MS_BETWEEN_SENDS - Date.now()
+    if (waitMs > 0) await sleep(waitMs)
+    lastSendAt = Date.now()
+
+    try {
+      // The To header shows the sender, but the envelope only delivers to
+      // the batch: the sender domain has no MX record, so a copy addressed
+      // to it sits in SES retries for 14 hours and then bounces.
+      await transporter.sendMail({
+        from: fromHeader(),
+        to: senderEmail(),
+        bcc: batch,
+        envelope: { from: senderEmail(), to: batch },
+        subject,
+        html
+      })
+      sentCount += batch.length
+    } catch (error) {
+      console.error('Failed to send a bulk email batch:', error)
+      failedCount += batch.length
+    }
+  }
+
+  return { sentCount, failedCount }
+}
+
 // Bulk payment / pickup / custom notification to buyers, sent from the admin
 // page. Admins only: the message goes out under the council's name to every
 // buyer of the chosen school(s).
@@ -269,37 +305,32 @@ export const sendOrderNotification = inTaiwan({ secrets: MAIL_SECRETS, timeoutSe
 
     console.log(`Sending ${notification.type} notification to ${recipients.length} recipients`)
 
-    const transporter = createTransporter()
-    const html = generateOrderNotificationHTML(notification)
-    let sentCount = 0
-    let failedCount = 0
-    let lastSendAt = 0
-
-    for (const batch of chunk(recipients, MAX_BCC_PER_BATCH)) {
-      const waitMs = lastSendAt + MIN_MS_BETWEEN_SENDS - Date.now()
-      if (waitMs > 0) await sleep(waitMs)
-      lastSendAt = Date.now()
-
-      try {
-        // The To header shows the sender, but the envelope only delivers to
-        // the batch: the sender domain has no MX record, so a copy addressed
-        // to it sits in SES retries for 14 hours and then bounces.
-        await transporter.sendMail({
-          from: fromHeader(),
-          to: senderEmail(),
-          bcc: batch,
-          envelope: { from: senderEmail(), to: batch },
-          subject: notification.subject || NOTIFY_SUBJECTS[notification.type],
-          html
-        })
-        sentCount += batch.length
-      } catch (error) {
-        console.error('Failed to send a notification batch:', error)
-        failedCount += batch.length
-      }
-    }
+    const { sentCount, failedCount } = await sendBulkEmail(recipients, {
+      subject: notification.subject || NOTIFY_SUBJECTS[notification.type],
+      html: generateOrderNotificationHTML(notification)
+    })
 
     console.log(`Notification sent: ${sentCount} ok, ${failedCount} failed`)
+
+    return { sentCount, failedCount }
+  })
+
+// Survey invitation to every buyer, sent from the survey results page.
+// Admins only, like sendOrderNotification (managers can view that page too).
+export const sendSurveyInvitation = inTaiwan({ secrets: MAIL_SECRETS, timeoutSeconds: 300 })
+  .https.onCall(async (data, context) => {
+    await assertRole(context, ADMIN_ROLES)
+
+    const recipients = await collectRecipients('all')
+
+    console.log(`Sending survey invitation to ${recipients.length} recipients`)
+
+    const { sentCount, failedCount } = await sendBulkEmail(recipients, {
+      subject: '【建中校慶紀念品】意見反饋問卷',
+      html: generateSurveyInvitationHTML()
+    })
+
+    console.log(`Survey invitation sent: ${sentCount} ok, ${failedCount} failed`)
 
     return { sentCount, failedCount }
   })

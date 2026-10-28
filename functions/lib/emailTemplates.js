@@ -2,7 +2,7 @@ import { SITE_URL } from '../shared/config.js';
 import { escapeHtml } from '../shared/format.js';
 import { orderPriceLines } from '../shared/pricing.js';
 
-const CONTACT_EMAIL = 'ckhssc@gl.ck.tp.edu.tw';
+export const CONTACT_EMAIL = 'ckhssc@gl.ck.tp.edu.tw';
 
 function formatCurrency(amount) {
   const num = Number(amount) || 0;

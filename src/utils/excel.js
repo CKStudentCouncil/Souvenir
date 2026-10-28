@@ -1,7 +1,7 @@
 import { saveAs } from 'file-saver'
 import * as XLSX from 'xlsx'
 import { taiwanDate } from 'shared/format'
-import { formatOrderDate, getOrderClass } from 'src/utils/orders'
+import { ORDER_STATUS_LABELS, formatOrderDate, getOrderClass } from 'src/utils/orders'
 
 function lineTotal(item) {
   return (Number(item.price) || 0) * (Number(item.quantity) || 0)
@@ -166,17 +166,19 @@ function schoolSheets(orders) {
   })
 }
 
+// `status` ('delivered' | 'paid') names the sheets and file after that tab.
 // `filename` replaces the default name.
-export function exportOrdersToExcel(orders, { onlyDelivered = false, school = 'all', filename = '' } = {}) {
+export function exportOrdersToExcel(orders, { status = '', school = 'all', filename = '' } = {}) {
   const workbook = XLSX.utils.book_new()
-  const sheetPrefix = onlyDelivered ? '已交貨' : '全部'
+  const statusLabel = ORDER_STATUS_LABELS[status] || ''
+  const sheetPrefix = statusLabel || '全部'
 
-  XLSX.utils.book_append_sheet(workbook, summarySheet(orders, onlyDelivered), `${sheetPrefix}商品統計`)
+  XLSX.utils.book_append_sheet(workbook, summarySheet(orders, status === 'delivered'), `${sheetPrefix}商品統計`)
   XLSX.utils.book_append_sheet(workbook, ordersSheet(orders), `${sheetPrefix}訂單明細`)
   schoolSheets(orders).forEach(([name, sheet]) => XLSX.utils.book_append_sheet(workbook, sheet, name))
 
   const schoolPrefix = school !== 'all' ? `${school}_` : ''
-  const name = filename || `${schoolPrefix}${onlyDelivered ? '已交貨' : ''}訂單統計_${taiwanDate()}.xlsx`
+  const name = filename || `${schoolPrefix}${statusLabel}訂單統計_${taiwanDate()}.xlsx`
   const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
   saveAs(new Blob([buffer], { type: 'application/octet-stream' }), name)
 }

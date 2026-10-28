@@ -61,6 +61,13 @@
       >
         已交貨 (<span class="num">{{ deliveredOrders.length }}</span>)
       </button>
+      <button
+        type="button"
+        :class="{ active: activeTab === 'paid' }"
+        @click="activeTab = 'paid'"
+      >
+        已付款 (<span class="num">{{ paidOrders.length }}</span>)
+      </button>
     </div>
 
     <div class="panel notify-panel">
@@ -220,14 +227,14 @@
       class="panel export-panel"
     >
       <div>
-        <h2>{{ activeTab === 'delivered' ? '已交貨統計與匯出' : '匯出與總覽' }}</h2>
+        <h2>{{ tabLabel ? `${tabLabel}統計與匯出` : '匯出與總覽' }}</h2>
         <div class="stats-row">
           <div class="stat">
-            <div>{{ activeTab === 'delivered' ? '已交貨數' : '訂單數' }}</div>
+            <div>{{ tabLabel ? `${tabLabel}數` : '訂單數' }}</div>
             <div class="num">{{ currentOrders.length }}</div>
           </div>
           <div class="stat">
-            <div>{{ activeTab === 'delivered' ? '已交貨營收' : '總營收' }}</div>
+            <div>{{ tabLabel ? `${tabLabel}營收` : '總營收' }}</div>
             <div class="num">NT$ {{ currentStats.totalRevenue }}</div>
           </div>
           <div class="stat">
@@ -406,7 +413,7 @@
     <div
       class="panel"
     >
-      <h2>{{ activeTab === 'delivered' ? '已交貨商品統計' : '商品總數量' }}</h2>
+      <h2>{{ tabLabel ? `${tabLabel}商品統計` : '商品總數量' }}</h2>
       <ul
         v-if="Object.keys(currentStats.productCounts).length"
         class="product-stats"
@@ -425,7 +432,7 @@
     <div
       class="orders-section"
     >
-      <h2>{{ activeTab === 'delivered' ? '已交貨訂單' : '所有訂單' }}</h2>
+      <h2>{{ tabLabel ? `${tabLabel}訂單` : '所有訂單' }}</h2>
       <div
         v-for="order in currentOrders"
         :key="order.id"
@@ -553,7 +560,7 @@ import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { useAdminOrders } from 'src/composables/useAdminOrders'
 import { useOrderPurge } from 'src/composables/useOrderPurge'
-import { formatOrderDate, getOrderClass } from 'src/utils/orders'
+import { ORDER_STATUS_LABELS, formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildClassReceiptsHtml, printHtml } from 'src/utils/receipts'
 import { CURRENT_YEAR } from 'src/utils/salesAnalytics'
 
@@ -573,6 +580,7 @@ const {
   schoolOrders,
   filteredOrders,
   deliveredOrders,
+  paidOrders,
   currentOrders,
   currentStats,
   deliveryStats,
@@ -583,6 +591,9 @@ const {
 } = useAdminOrders()
 
 onMounted(fetchOrders)
+
+// '已交貨' / '已付款' on those tabs, empty on the all-orders tab.
+const tabLabel = computed(() => ORDER_STATUS_LABELS[activeTab.value] || '')
 
 function viewOrderDetail(orderId) {
   router.push({ name: 'admin-order-detail', params: { id: orderId } })

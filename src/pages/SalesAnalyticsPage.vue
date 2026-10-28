@@ -289,6 +289,13 @@
               :empty="!report.grades.length"
             >
               <BarList :rows="gradeRows[metric.key]" :colors="colors" :series-labels="seriesLabels" :format="metric.format" />
+              <p v-if="report.ungradedOrderIds.length && !exporting" class="chart-note">
+                {{ current.year }} 年無法判斷年級的訂單（{{ report.ungradedOrderIds.length }} 筆）：
+                <template v-for="(id, i) in report.ungradedOrderIds" :key="id">
+                  <template v-if="i">、</template>
+                  <router-link :to="{ name: 'admin-order-detail', params: { id } }" class="order-id">{{ id }}</router-link>
+                </template>
+              </p>
             </ChartCard>
           </template>
         </div>

@@ -4,39 +4,43 @@
       ← 返回訂單列表
     </button>
 
-    <div class="page-heading">
-      <p class="eyebrow">後台管理 · 現場取貨</p>
-      <h1>掃描訂單 QR Code</h1>
-      <p class="lead">對準訂購者的 QR Code，讀到後會自動開啟訂單。</p>
-    </div>
-
-    <div class="viewfinder">
-      <video
-        ref="video"
-        muted
-        playsinline
-        autoplay
-        aria-label="相機畫面"
-      />
-      <div v-if="state === 'scanning'" class="frame" aria-hidden="true" />
-      <p v-if="state === 'starting'" class="overlay">正在開啟相機…</p>
-      <div v-else-if="state === 'error'" class="overlay">
-        <p role="alert">{{ errorMessage }}</p>
-        <button type="button" class="btn" @click="start()">重新開啟相機</button>
-      </div>
-    </div>
-
-    <p class="scan-notice" role="status" aria-live="polite">{{ notice }}</p>
-
-    <div v-if="state === 'scanning'" class="camera-row">
-      <p class="camera-hint">畫面模糊時，把手機拿遠一點（約 20–30 公分）讓鏡頭對焦；仍讀不到時請訂購者調高螢幕亮度。</p>
-      <button v-if="cameras.length > 1" type="button" class="btn-outline" @click="switchCamera">
+    <div class="title-row">
+      <h1>掃描 QR Code</h1>
+      <button
+        v-if="state === 'scanning' && cameras.length > 1"
+        type="button"
+        class="btn-outline"
+        @click="switchCamera"
+      >
+        <q-icon name="cameraswitch" size="18px" />
         切換鏡頭
       </button>
     </div>
-    <p v-if="state === 'scanning' && cameraInfo" class="camera-info">{{ cameraInfo }}</p>
 
-    <form class="manual" @submit.prevent="openManual">
+    <div class="viewfinder" :class="`is-${tone}`">
+      <div class="camera">
+        <video
+          ref="video"
+          muted
+          playsinline
+          autoplay
+          aria-label="相機畫面"
+        />
+        <div v-show="state === 'scanning'" class="frame" aria-hidden="true">
+          <span class="corner top-left" />
+          <span class="corner top-right" />
+          <span class="corner bottom-left" />
+          <span class="corner bottom-right" />
+        </div>
+        <div v-if="state === 'error'" class="overlay">
+          <p role="alert">{{ errorMessage }}</p>
+          <button type="button" class="btn btn-light" @click="start()">重新開啟相機</button>
+        </div>
+      </div>
+      <p class="frame-status" role="status" aria-live="polite">{{ statusText }}</p>
+    </div>
+
+    <form class="manual" novalidate @submit.prevent="openManual">
       <label for="manual-order-id">無法掃描時，輸入訂單編號</label>
       <div class="manual-row">
         <input
@@ -45,18 +49,26 @@
           autocomplete="off"
           autocapitalize="characters"
           spellcheck="false"
-          placeholder="例如 CKS202611050001-4A9C7E21B8D3"
+          enterkeyhint="go"
+          placeholder="CKS202611050001-4A9C7E21B8D3"
           :aria-invalid="!!manualError"
+          :aria-describedby="manualError ? 'manual-error' : undefined"
+          @input="manualError = ''"
         >
         <button type="submit" class="btn">開啟訂單</button>
       </div>
-      <p v-if="manualError" class="manual-error" role="alert">{{ manualError }}</p>
+      <p v-if="manualError" id="manual-error" class="manual-error" role="alert">{{ manualError }}</p>
     </form>
+
+    <details v-if="state === 'scanning' && cameraInfo" class="camera-details">
+      <summary>相機資訊</summary>
+      <p>{{ cameraInfo }}</p>
+    </details>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { SITE_URL } from 'shared/config'
 import { cameraErrorMessage, listCameras, startQrScanner } from 'src/utils/qrScanner'
@@ -66,6 +78,10 @@ const router = useRouter()
 
 // The camera picked with 切換鏡頭, reused on this device's next visits
 const CAMERA_KEY = 'cksc.souvenirScanCamera'
+
+// How long scanning runs without a read before the focus tip replaces the
+// aiming prompt; a code that reads at once never shows it
+const HELP_DELAY_MS = 6000
 
 function savedCamera() {
   try {
@@ -91,24 +107,39 @@ const video = ref(null)
 // starting | scanning | paused (page hidden) | error
 const state = ref('starting')
 const errorMessage = ref('')
-const notice = ref('')
+// what the frame shows: idle | invalid (not an order code) | found
+const tone = ref('idle')
+const helpShown = ref(false)
 const manualId = ref('')
 const manualError = ref('')
 const cameras = ref([])
 const cameraInfo = ref('')
 
+const statusText = computed(() => {
+  if (state.value === 'error') return '也可以在下方輸入訂單編號'
+  if (state.value !== 'scanning') return '正在開啟相機…'
+  if (tone.value === 'found') return '已讀取，正在開啟訂單…'
+  if (tone.value === 'invalid') return '這不是本網站的訂單 QR Code'
+  return helpShown.value
+    ? '讀不到？拿遠一點（約 20–30 公分）讓鏡頭對焦，或請訂購者調亮螢幕'
+    : '對準 QR Code，讀到會自動開啟訂單'
+})
+
 let stopScanner = null
 let currentCamera = ''
 let infoTimer = 0
+let helpTimer = 0
 let startSequence = 0
 let lastInvalid = ''
-let noticeTimer = 0
+let invalidTimer = 0
+let opening = false
 
 async function start(deviceId = savedCamera()) {
   const sequence = ++startSequence
   stopScanner?.()
   stopScanner = null
   clearInterval(infoTimer)
+  clearTimeout(helpTimer)
   state.value = 'starting'
 
   try {
@@ -131,6 +162,7 @@ async function start(deviceId = savedCamera()) {
     cameraInfo.value = scanner.info()
     // the size is known once frames arrive, and the decoder can change
     infoTimer = setInterval(() => { cameraInfo.value = scanner.info() }, 1000)
+    if (!helpShown.value) helpTimer = setTimeout(() => { helpShown.value = true }, HELP_DELAY_MS)
     listCameras().then((list) => {
       if (sequence === startSequence) cameras.value = list
     }).catch(() => {})
@@ -147,6 +179,7 @@ function stop() {
   stopScanner?.()
   stopScanner = null
   clearInterval(infoTimer)
+  clearTimeout(helpTimer)
 }
 
 function switchCamera() {
@@ -158,30 +191,45 @@ function switchCamera() {
   start(next.deviceId)
 }
 
-function showNotice(text) {
-  notice.value = text
-  clearTimeout(noticeTimer)
-  noticeTimer = setTimeout(() => {
-    notice.value = ''
+function showInvalid() {
+  tone.value = 'invalid'
+  clearTimeout(invalidTimer)
+  invalidTimer = setTimeout(() => {
+    if (tone.value === 'invalid') tone.value = 'idle'
     lastInvalid = ''
   }, 3000)
 }
 
-function openOrder(orderId) {
-  stop()
-  router.push({ name: 'admin-order-detail', params: { id: orderId } })
+// The camera keeps running until the page unmounts, so the code just read
+// stays in view, framed green, while the order page loads
+async function openOrder(orderId) {
+  if (opening) return
+  opening = true
+  let failure
+  try {
+    failure = await router.push({ name: 'admin-order-detail', params: { id: orderId } })
+  } catch (error) {
+    failure = error
+  }
+  if (failure) {
+    opening = false
+    tone.value = 'idle'
+  }
 }
 
 function handleCode(text) {
+  if (opening) return
   const orderId = parseOrderQr(text, origins)
   if (!orderId) {
     // the same wrong code stays in view for many frames; say it once
     if (text !== lastInvalid) {
       lastInvalid = text
-      showNotice('這不是本網站的訂單 QR Code')
+      showInvalid()
     }
     return
   }
+  clearTimeout(invalidTimer)
+  tone.value = 'found'
   navigator.vibrate?.(60)
   openOrder(orderId)
 }
@@ -189,7 +237,7 @@ function handleCode(text) {
 function openManual() {
   const orderId = manualId.value.normalize('NFKC').trim().toUpperCase()
   if (!ORDER_ID_PATTERN.test(orderId)) {
-    manualError.value = '訂單編號格式不正確'
+    manualError.value = '格式不符。訂單編號是英文字母加 12 位數字，例如 CKS202611050001-4A9C7E21B8D3。'
     return
   }
   manualError.value = ''
@@ -215,7 +263,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibilityChange)
-  clearTimeout(noticeTimer)
+  clearTimeout(invalidTimer)
   stop()
 })
 </script>

@@ -37,9 +37,12 @@ export function useAdminOrders() {
   // School filter + customer search (the list, statistics and Excel).
   const filteredOrders = computed(() => schoolOrders.value.filter(matchesSearch))
   const deliveredOrders = computed(() => filteredOrders.value.filter((order) => order.delivered))
-  const currentOrders = computed(() =>
-    activeTab.value === 'delivered' ? deliveredOrders.value : filteredOrders.value
-  )
+  const paidOrders = computed(() => filteredOrders.value.filter((order) => order.paid))
+  const currentOrders = computed(() => {
+    if (activeTab.value === 'delivered') return deliveredOrders.value
+    if (activeTab.value === 'paid') return paidOrders.value
+    return filteredOrders.value
+  })
   const currentStats = computed(() => calculateStatistics(currentOrders.value))
   const deliveryStats = computed(() => calculateDeliveryStats(currentOrders.value))
 
@@ -83,7 +86,7 @@ export function useAdminOrders() {
 
   function exportToExcel() {
     exportOrdersToExcel(currentOrders.value, {
-      onlyDelivered: activeTab.value === 'delivered',
+      status: activeTab.value,
       school: selectedSchool.value
     })
     toast.show('Excel 已匯出')
@@ -98,6 +101,7 @@ export function useAdminOrders() {
     schoolOrders,
     filteredOrders,
     deliveredOrders,
+    paidOrders,
     currentOrders,
     currentStats,
     deliveryStats,

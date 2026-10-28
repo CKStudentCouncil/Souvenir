@@ -295,6 +295,18 @@
   border: 1px solid #e5e5e7;
 }
 
+.btn:disabled {
+  background: #d2d2d7;
+  color: #8e8e93;
+  cursor: not-allowed;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .header-row--tight {
   margin-bottom: 12px;
 }

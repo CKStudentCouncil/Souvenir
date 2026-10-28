@@ -117,6 +117,8 @@ function toSale(order, campaign) {
     : (order.appliedCombos || []).map((combo) => String(combo.name ?? '').trim() || '其他組合')
 
   return {
+    // Firestore ID of this year's orders; imported years have none.
+    id: order.id ?? null,
     offset,
     day: Math.floor(offset / DAY_MS) + 1,
     hour: local.getUTCHours(),
@@ -498,6 +500,8 @@ export function buildReport({ current, previous, basis }) {
       [1, 2, 3, 0],
       (grade) => GRADE_LABELS[grade - 1] || '無法判斷'
     ),
+    // This year's 建國中學 orders counted as 無法判斷, so they can be looked up.
+    ungradedOrderIds: now.filter((sale) => isStudent(sale) && !sale.grade).map((sale) => sale.id),
     values: bucketRows(now, past, VALUE_BUCKETS, (sale) => sale.total),
     units: bucketRows(now, past, UNIT_BUCKETS, (sale) => sale.units),
     products: { current: productRows(now), previous: productRows(past) },

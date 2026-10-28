@@ -56,7 +56,7 @@ src/
 └── router/                # Route definitions and navigation guards
 
 functions/                 # Firebase Cloud Functions
-├── index.js               # createOrder, sendOrderQRCode, sendOrderNotification
+├── index.js               # createOrder, sendOrderQRCode, sendOrderNotification, sendSurveyInvitation
 ├── lib/                   # Order validation, email templates, SES mailer
 └── shared/                # Catalog, pricing and settings used by BOTH the web app and the functions
                            #   (imported in the web app as `shared/...`)
@@ -227,7 +227,7 @@ Before `SHOP_OPEN_AT` in `functions/shared/config.js`, visitors are redirected t
 | Role | Can |
 |---|---|
 | `manager` 友校幹部 | View survey results, see the shop before it opens |
-| `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts, email payment/pickup notifications to buyers |
+| `admin` 建班幹部 | Everything above, plus view/edit/delete all orders, export Excel, print receipts, email payment/pickup notifications and survey invitations to buyers |
 | `super_admin` 系統管理員 | Everything above, plus manage staff accounts, view the financial report and delete all orders after the sale |
 
 ### Financial report (財務報表)

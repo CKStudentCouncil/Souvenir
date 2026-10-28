@@ -519,6 +519,24 @@
   border-radius: 3px;
 }
 
+.chart-note {
+  margin: 14px 0 0;
+  color: #6e6e73;
+  font-size: .8rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.order-id {
+  color: #06c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .page-footnote {
   margin: 0;
   color: #86868b;

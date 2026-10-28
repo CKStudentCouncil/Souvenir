@@ -8,6 +8,7 @@ All functions run in `asia-east1` on Node.js 22.
 | `claimOrders` | Callable (staff login) | Moves a guest's orders to the account they signed in as (proven with the guest's ID token), and gives staff their orders from before `ownerUid` existed |
 | `sendOrderQRCode` | New document in `orders` | Emails the order confirmation with a pickup QR code (links to `/admin/orders/<id>`) |
 | `sendOrderNotification` | Callable (admin page, admins only) | Emails a payment / pickup / custom notice to every buyer, or to one school |
+| `sendSurveyInvitation` | Callable (survey results page, admins only) | Emails every buyer an invitation to fill in the feedback survey (`/survey`) |
 
 ## Layout
 
@@ -15,6 +16,7 @@ All functions run in `asia-east1` on Node.js 22.
 index.js                 # the functions above
 lib/orders.js            # order validation, pricing and order-ID generation
 lib/emailTemplates.js    # confirmation and notification emails (shared layout)
+lib/surveyEmailTemplate.js  # survey invitation email (its own page)
 lib/mailer.js            # AWS SES transport and sender address
 shared/                  # catalog, pricing, settings and small helpers; also imported by the website
 ```

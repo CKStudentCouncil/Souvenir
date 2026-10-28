@@ -5,7 +5,18 @@
   <div v-else class="survey-admin-page">
     <div class="header-row">
       <h1>問卷結果</h1>
-      <button type="button" class="btn-outline" @click="$router.push('/admin')">返回後台</button>
+      <div class="header-actions">
+        <button
+          v-if="auth.isAdmin"
+          type="button"
+          class="btn"
+          :disabled="sendingInvitation"
+          @click="confirmSendInvitation"
+        >
+          {{ sendingInvitation ? '寄送中...' : '寄送問卷給訂購者' }}
+        </button>
+        <button type="button" class="btn-outline" @click="$router.push('/admin')">返回後台</button>
+      </div>
     </div>
 
     <nav v-if="responses.length" class="quick-nav">
@@ -243,11 +254,17 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { collection, getDocs } from 'firebase/firestore'
-import { db } from 'src/services/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from 'src/services/firebase'
 import { taiwanDate } from 'shared/format'
+import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { SCALE_SECTIONS } from 'src/data/surveyQuestions.js'
 
+// Sending to every buyer can take minutes; match the function's 300 s timeout.
+const sendSurveyInvitation = httpsCallable(functions, 'sendSurveyInvitation', { timeout: 310000 })
+
+const auth = useAuthStore()
 const toast = useToastStore()
 
 const scaleSections = SCALE_SECTIONS
@@ -465,6 +482,33 @@ const suggestionAnswers = computed(() => responses.value.map((r) => r.suggestion
 
 function pct(count, total) {
   return total ? Math.round((count / total) * 100) : 0
+}
+
+// ---- Survey invitation email (admins only) ----
+
+const sendingInvitation = ref(false)
+
+async function confirmSendInvitation() {
+  if (!window.confirm('確定要寄送問卷邀請給所有訂購者嗎？此動作無法復原。')) return
+
+  sendingInvitation.value = true
+  try {
+    const { data } = await sendSurveyInvitation()
+    if (!data.sentCount && !data.failedCount) {
+      toast.show('目前沒有可寄送的訂購者')
+    } else {
+      toast.show(
+        data.failedCount
+          ? `已寄送給 ${data.sentCount} 位訂購者，${data.failedCount} 位寄送失敗`
+          : `已成功寄送給 ${data.sentCount} 位訂購者`
+      )
+    }
+  } catch (error) {
+    console.error('Send survey invitation error:', error)
+    toast.show('寄送失敗，請稍後再試')
+  } finally {
+    sendingInvitation.value = false
+  }
 }
 </script>
 

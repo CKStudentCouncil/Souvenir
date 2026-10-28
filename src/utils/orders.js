@@ -18,6 +18,9 @@ export function getOrderClass(order) {
   return order?.class || order?.classNumber || ''
 }
 
+// Labels of the admin list tabs that show only orders with that status.
+export const ORDER_STATUS_LABELS = { delivered: '已交貨', paid: '已付款' }
+
 export function countItems(items = []) {
   return items.reduce((total, item) => total + Number(item.quantity || 0), 0)
 }

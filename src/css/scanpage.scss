@@ -1,77 +1,152 @@
+// A pickup-counter tool: the camera is the page, and the frame inside it
+// reports every read, so staff never look away from the buyer's code.
+
 .scan-page {
   max-width: 520px;
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: 16px 16px 64px;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC',
     'Microsoft JhengHei', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
-  color: #1d1d1f;
+  color: var(--ink);
 }
 
+// Padded to a 44px touch target, pulled back so the arrow lines up
 .back-link {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 0;
+  min-height: 44px;
+  margin-left: -8px;
+  padding: 0 8px;
   border: 0;
+  border-radius: 10px;
   background: none;
-  color: #6e6e73;
+  color: var(--muted);
   font-size: .85rem;
   font-family: inherit;
   cursor: pointer;
 }
 
-.back-link:hover { color: #1d1d1f; }
+.back-link:hover { color: var(--ink); }
 
-.page-heading {
-  margin-bottom: 20px;
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 12px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  color: #6e6e73;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-}
-
-.page-heading h1 {
+.title-row h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  line-height: 1.2;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.25;
   letter-spacing: -.01em;
 }
 
-.lead {
-  margin: 10px 0 0;
-  color: #6e6e73;
-  font-size: .95rem;
-}
-
+// Capped by the viewport height so the manual entry stays in reach on short
+// screens and in landscape
 .viewfinder {
-  position: relative;
-  aspect-ratio: 1;
+  width: 100%;
+  max-width: max(240px, calc(100vh - 270px));
+  max-width: max(240px, calc(100svh - 270px));
+  margin: 0 auto;
   overflow: hidden;
   border-radius: 18px;
   background: #000;
 }
 
-.viewfinder video {
+// Square because the decoder reads the centre square of the video: what
+// staff see is exactly what is read
+.camera {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.camera video {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-// The scanner reads the centre square; the frame shows staff where it is
+// An aiming guide only: codes anywhere in the square are read, so nothing
+// outside it is dimmed. The shadow keeps the corners visible on white paper
 .frame {
   position: absolute;
   inset: 15%;
-  border: 2px solid rgba(255, 255, 255, .9);
-  border-radius: 14px;
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .38);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .6));
   pointer-events: none;
+  transition: transform .18s ease-out;
 }
+
+.corner {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border: 0 solid #fff;
+  transition: border-color .18s;
+}
+
+.top-left {
+  top: 0;
+  left: 0;
+  border-top-width: 4px;
+  border-left-width: 4px;
+  border-top-left-radius: 14px;
+}
+
+.top-right {
+  top: 0;
+  right: 0;
+  border-top-width: 4px;
+  border-right-width: 4px;
+  border-top-right-radius: 14px;
+}
+
+.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-bottom-left-radius: 14px;
+}
+
+.bottom-right {
+  right: 0;
+  bottom: 0;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-right-radius: 14px;
+}
+
+.is-invalid .corner { border-color: #ff453a; }
+
+.is-found .corner { border-color: #30d158; }
+
+// the corners close in on the code that was read
+.is-found .frame { transform: scale(.94); }
+
+// Under the image rather than on it, so a long tip can wrap without
+// covering the code, and its contrast doesn't depend on what the camera sees
+.frame-status {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 16px;
+  background: #1c1c1e;
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  transition: background-color .18s;
+}
+
+.is-invalid .frame-status { background: var(--danger); }
+
+.is-found .frame-status { background: var(--success); }
 
 .overlay {
   position: absolute;
@@ -83,8 +158,8 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  background: #f5f5f7;
-  color: #6e6e73;
+  background: #1c1c1e;
+  color: #fff;
   font-size: .95rem;
   text-align: center;
 }
@@ -93,39 +168,12 @@
   margin: 0;
 }
 
-.scan-notice {
-  min-height: 1.6em;
-  margin: 12px 0 0;
-  color: #a12622;
-  font-size: .9rem;
-}
-
-.camera-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.camera-hint {
-  flex: 1;
-  margin: 0;
-  color: #6e6e73;
-  font-size: .85rem;
-}
-
-.camera-info {
-  margin: 8px 0 0;
-  color: #b0b0b5;
-  font-size: .72rem;
-  word-break: break-word;
-}
-
 .manual {
-  margin-top: 28px;
-  padding: 20px;
-  border: 1px solid #e5e5e7;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .manual label {
@@ -140,34 +188,52 @@
   gap: 10px;
 }
 
+// #8e8e93 is 3.3:1 on white, enough for the field's edge to read as a field
 .manual-row input {
   flex: 1;
   min-width: 0;
-  height: 42px;
+  height: 44px;
   padding: 0 14px;
-  border: 1px solid #e5e5e7;
+  border: 1px solid #8e8e93;
   border-radius: 12px;
-  background: #fff;
-  color: #1d1d1f;
+  background: var(--surface);
+  color: var(--ink);
   font-family: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
   font-size: 16px;
-  outline: none;
 }
 
-.manual-row input:focus {
-  border-color: #1d1d1f;
-}
+.manual-row input::placeholder { color: var(--muted); }
+
+.manual-row input:focus { border-color: var(--ink); }
+
+.manual-row input[aria-invalid='true'] { border-color: var(--danger); }
 
 .manual-error {
   margin: 8px 0 0;
-  color: #a12622;
+  color: var(--danger);
   font-size: .85rem;
+}
+
+.camera-details {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.camera-details summary {
+  padding: 12px 0;
+  cursor: pointer;
+}
+
+.camera-details p {
+  margin: 0;
+  word-break: break-word;
 }
 
 .btn,
 .btn-outline {
   flex: none;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 20px;
   border-radius: 999px;
   font-weight: 600;
@@ -178,18 +244,32 @@
 
 .btn {
   border: none;
-  background: #1d1d1f;
+  background: var(--ink);
   color: #fff;
 }
 
-.btn-outline {
-  border: 1px solid #e5e5e7;
+.btn:hover { background: #000; }
+
+.btn-light {
   background: #fff;
-  color: #1d1d1f;
+  color: var(--ink);
 }
 
+.btn-light:hover { background: #e8e8ed; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.btn-outline:hover { border-color: #8e8e93; }
+
 @media (max-width: 420px) {
-  .camera-row,
   .manual-row {
     flex-direction: column;
     align-items: stretch;
@@ -199,4 +279,24 @@
   .manual-row input {
     flex: none;
   }
+}
+
+// The colour and the status text still change; only the movement goes
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .corner,
+  .frame-status {
+    transition: none;
+  }
+
+  .is-found .frame { transform: none; }
+}
+
+@media (prefers-contrast: more) {
+  .back-link,
+  .camera-details {
+    color: var(--ink);
+  }
+
+  .manual-row input { border-color: var(--ink); }
 }
