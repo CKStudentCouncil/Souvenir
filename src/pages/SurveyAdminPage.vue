@@ -10,14 +10,33 @@
           v-if="auth.isAdmin"
           type="button"
           class="btn"
-          :disabled="sendingInvitation"
+          :disabled="sendingInvitation || (invitationJob && !canClearNotification(invitationJob))"
           @click="confirmSendInvitation"
         >
-          {{ sendingInvitation ? '寄送中...' : '寄送問卷給訂購者' }}
+          {{ sendingInvitation ? '處理中…' : '寄送問卷給訂購者' }}
+        </button>
+        <button
+          v-if="auth.isAdmin && needsNotificationEnqueue(invitationJob)"
+          type="button"
+          class="btn"
+          :disabled="sendingInvitation"
+          @click="runNotificationJob(invitationJob)"
+        >
+          繼續加入寄送佇列
+        </button>
+        <button
+          v-if="auth.isAdmin && canClearNotification(invitationJob)"
+          type="button"
+          class="btn-outline"
+          @click="setInvitationJob(null)"
+        >
+          清除寄送紀錄
         </button>
         <button type="button" class="btn-outline" @click="$router.push('/admin')">返回後台</button>
       </div>
     </div>
+    <p v-if="auth.isAdmin && invitationJob" class="invitation-progress" role="status">{{ invitationProgress }}</p>
+    <p v-if="auth.isAdmin && invitationError" class="invitation-progress" role="alert">{{ invitationError }}</p>
 
     <nav v-if="responses.length" class="quick-nav">
       <button
@@ -254,15 +273,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { collection, getDocs } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
-import { db, functions } from 'src/services/firebase'
+import { db } from 'src/services/firebase'
 import { taiwanDate } from 'shared/format'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { SCALE_SECTIONS } from 'src/data/surveyQuestions.js'
-
-// Sending to every buyer can take minutes; match the function's 300 s timeout.
-const sendSurveyInvitation = httpsCallable(functions, 'sendSurveyInvitation', { timeout: 310000 })
+import { useNotificationJob } from 'src/composables/useNotificationJob'
+import { canClearNotification, needsNotificationEnqueue } from 'src/utils/notificationProgress'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -486,29 +503,36 @@ function pct(count, total) {
 
 // ---- Survey invitation email (admins only) ----
 
-const sendingInvitation = ref(false)
+// Queued like the notices on /admin (functions/lib/notifications.js), as a
+// job of its own.
+const {
+  sending: sendingInvitation,
+  pendingJob: invitationJob,
+  notificationError: invitationError,
+  notificationProgress: invitationProgress,
+  setPendingJob: setInvitationJob,
+  prepareNotification,
+  runNotificationJob
+} = useNotificationJob('survey')
 
 async function confirmSendInvitation() {
-  if (!window.confirm('確定要寄送問卷邀請給所有訂購者嗎？此動作無法復原。')) return
-
-  sendingInvitation.value = true
+  // The server saves the recipient list as a job; nothing is sent yet.
+  let job
   try {
-    const { data } = await sendSurveyInvitation()
-    if (!data.sentCount && !data.failedCount) {
-      toast.show('目前沒有可寄送的訂購者')
-    } else {
-      toast.show(
-        data.failedCount
-          ? `已寄送給 ${data.sentCount} 位訂購者，${data.failedCount} 位寄送失敗`
-          : `已成功寄送給 ${data.sentCount} 位訂購者`
-      )
-    }
+    job = await prepareNotification({ type: 'survey', school: 'all' })
   } catch (error) {
-    console.error('Send survey invitation error:', error)
-    toast.show('寄送失敗，請稍後再試')
-  } finally {
-    sendingInvitation.value = false
+    console.error('Prepare survey invitation error:', error)
+    toast.show(error?.message ? `寄送失敗：${error.message}` : '寄送失敗，請稍後再試')
+    return
   }
+
+  if (!job.total) {
+    toast.show('目前沒有可寄送的訂購者')
+    return
+  }
+  if (!window.confirm(`確定要寄送問卷邀請給 ${job.total} 位訂購者嗎？此動作無法復原。`)) return
+
+  await runNotificationJob(job)
 }
 </script>
 
