@@ -592,7 +592,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { schools } from 'shared/catalog'
 import { notificationRecipients } from 'shared/format'
@@ -701,11 +701,16 @@ const NOTIFY_PAYMENT_OPTIONS = [
   { value: 'paid', label: '已付款' }
 ]
 
+// Payment notices go to unpaid buyers unless changed; other notices to all.
+function defaultNotifyPayment(type) {
+  return type === 'payment' ? 'unpaid' : 'all'
+}
+
 function emptyNotifyForm(school = 'all') {
   return {
     type: 'payment',
     school,
-    payment: 'all',
+    payment: defaultNotifyPayment('payment'),
     subject: '',
     paymentTime: '',
     pickupTime: '',
@@ -727,6 +732,9 @@ const {
   runNotificationJob
 } = useNotificationJob()
 const notifyForm = ref(emptyNotifyForm())
+watch(() => notifyForm.value.type, (type) => {
+  notifyForm.value.payment = defaultNotifyPayment(type)
+})
 // Same rule the Cloud Function uses to pick recipients.
 const notifyRecipientCount = computed(
   () => notificationRecipients(orders.value, notifyForm.value.school, notifyForm.value.payment).length
