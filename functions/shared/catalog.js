@@ -124,13 +124,13 @@ export function findPurchasableItem(id) {
 // School -> prefix used in order IDs (e.g. CKS202611050001-4A9C7E21B8D3).
 export const SCHOOL_CODES = {
   建國中學: 'CKS',
+  建中家長會: 'CKP',
+  建中老師: 'CKT',
   北一女中: 'TFG',
   中山女高: 'ZS',
   景美女中: 'JM',
   成功高中: 'CG',
   師大附中: 'HSNU',
-  建中家長會: 'CKP',
-  建中老師: 'CKT',
   其他學校或社會人士: 'O'
 }
 
