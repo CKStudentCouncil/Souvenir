@@ -206,7 +206,7 @@ h1 {
 }
 
 .benefit-note strong { display: block; margin-bottom: 3px; color: #1d1d1f; }
-.benefit-note span { display: block; }
+.benefit-note > span { display: block; }
 .benefit-note.earned { background: #eef9f0; color: #246a38; }
 .benefit-note.earned strong { color: #246a38; }
 
