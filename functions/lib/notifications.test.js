@@ -28,3 +28,25 @@ test('notices require the fields their email shows', () => {
   assert.equal(survey.school, 'all')
   assert.equal(survey.subject, '【建中校慶紀念品】意見反饋問卷')
 })
+
+test('the payment filter picks buyers by each order\'s paid flag', async () => {
+  const { notificationRecipients } = await import('../shared/format.js')
+  const orders = [
+    { customerEmail: 'Paid@x.com', school: 'A', paid: true },
+    { customerEmail: 'unpaid@x.com', school: 'A', paid: false },
+    { customerEmail: 'legacy@x.com', school: 'A' },
+    { customerEmail: 'both@x.com', school: 'A', paid: true },
+    { customerEmail: 'both@x.com', school: 'A', paid: false },
+    { customerEmail: 'other@x.com', school: 'B', paid: false }
+  ]
+  assert.deepEqual(notificationRecipients(orders, 'A', 'paid'), ['paid@x.com', 'both@x.com'])
+  assert.deepEqual(notificationRecipients(orders, 'A', 'unpaid'), ['unpaid@x.com', 'legacy@x.com', 'both@x.com'])
+  assert.equal(notificationRecipients(orders, 'all').length, 5)
+  assert.equal(notificationRecipients(orders, 'all', 'unpaid').length, 4)
+})
+
+test('a missing or unknown payment filter means every buyer', () => {
+  assert.equal(parseNotification({ type: 'survey' }).payment, 'all')
+  assert.equal(parseNotification({ type: 'survey', payment: 'bogus' }).payment, 'all')
+  assert.equal(parseNotification({ type: 'custom', message: 'hi', payment: 'unpaid' }).payment, 'unpaid')
+})

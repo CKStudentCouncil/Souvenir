@@ -161,6 +161,23 @@
           </select>
         </div>
 
+        <div class="filter-block">
+          <span class="field-label">付款狀態</span>
+          <div class="type-options" role="group" aria-label="付款狀態">
+            <button
+              v-for="option in NOTIFY_PAYMENT_OPTIONS"
+              :key="option.value"
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.payment === option.value }"
+              :aria-pressed="notifyForm.payment === option.value"
+              @click="notifyForm.payment = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
         <label v-if="notifyForm.type === 'custom'" class="field">
           <span>主旨</span>
           <input
@@ -219,7 +236,7 @@
             <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
           </template>
           <p class="preview-count">
-            將發送給{{ notifyTargetSchoolLabel }}
+            將發送給{{ notifyTargetLabel }}
             <span class="num">{{ notifyRecipientCount }}</span> 位訂購者
           </p>
           <p v-if="pendingJob && !canClearNotification(pendingJob)" class="preview-count" role="status">
@@ -678,10 +695,17 @@ function downloadAllClassReceipts() {
 
 // ---- Bulk email notifications ----
 
+const NOTIFY_PAYMENT_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'unpaid', label: '未付款' },
+  { value: 'paid', label: '已付款' }
+]
+
 function emptyNotifyForm(school = 'all') {
   return {
     type: 'payment',
     school,
+    payment: 'all',
     subject: '',
     paymentTime: '',
     pickupTime: '',
@@ -705,7 +729,7 @@ const {
 const notifyForm = ref(emptyNotifyForm())
 // Same rule the Cloud Function uses to pick recipients.
 const notifyRecipientCount = computed(
-  () => notificationRecipients(orders.value, notifyForm.value.school).length
+  () => notificationRecipients(orders.value, notifyForm.value.school, notifyForm.value.payment).length
 )
 
 const notifyTypeLabel = computed(() => {
@@ -718,6 +742,12 @@ const notifyTypeLabel = computed(() => {
 const notifyTargetSchoolLabel = computed(() =>
   notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
 )
+
+// e.g. 全部學校未付款的
+const notifyTargetLabel = computed(() => {
+  const payment = { unpaid: '未付款的', paid: '已付款的' }[notifyForm.value.payment] || ''
+  return `${notifyTargetSchoolLabel.value}${payment}`
+})
 
 const canSendNotify = computed(() => {
   const f = notifyForm.value
@@ -733,6 +763,7 @@ function notifyPayload() {
   return {
     type: f.type,
     school: f.school,
+    payment: f.payment,
     subject: f.subject.trim(),
     paymentTime: f.paymentTime.trim(),
     pickupTime: f.pickupTime.trim(),
@@ -768,10 +799,10 @@ async function confirmSendNotify() {
   }
 
   if (!job.total) {
-    toast.show(`${notifyTargetSchoolLabel.value}目前沒有可寄送的訂購者`)
+    toast.show(`${notifyTargetLabel.value}目前沒有可寄送的訂購者`)
     return
   }
-  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${job.total} 位訂購者嗎？此動作無法復原。`)) {
+  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetLabel.value} ${job.total} 位訂購者嗎？此動作無法復原。`)) {
     return
   }
 

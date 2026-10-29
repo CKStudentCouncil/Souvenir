@@ -1,7 +1,7 @@
 import { FieldPath, FieldValue } from 'firebase-admin/firestore'
 import { schools } from '../shared/catalog.js'
 import { ADMIN_ROLES } from '../shared/config.js'
-import { notificationRecipients } from '../shared/format.js'
+import { NOTIFY_PAYMENT_FILTERS, notificationRecipients } from '../shared/format.js'
 import { db, HttpsError, assertRole, inTaiwan } from './common.js'
 import { enqueueNotificationBatch, MAX_BCC_PER_BATCH, NOTIFY_TO } from './mailQueue.js'
 import { notificationProgress } from './mailQueueCore.js'
@@ -69,20 +69,23 @@ export function parseNotification(data) {
   return {
     type,
     school: parseSchool(data?.school),
+    // Pages loaded before the filter existed send none: every buyer.
+    payment: NOTIFY_PAYMENT_FILTERS.includes(data?.payment) ? data.payment : 'all',
     // The subject box is only shown for custom messages.
     subject: resolveSubject(type, field(data?.subject, 150)),
     fields
   }
 }
 
-// Unique customer emails for a school ('all' = every school), same rule as
-// the count shown on the admin page. The council mailbox is already the To.
-async function collectRecipients(school) {
+// Unique customer emails for a school ('all' = every school) and payment
+// filter, same rule as the count shown on the admin page. The council mailbox
+// is already the To.
+async function collectRecipients(school, payment) {
   let query = db.collection('orders')
   if (school !== 'all') query = query.where('school', '==', school)
 
-  const snapshot = await query.select('customerEmail', 'school').get()
-  const recipients = notificationRecipients(snapshot.docs.map((doc) => doc.data()), school)
+  const snapshot = await query.select('customerEmail', 'school', 'paid').get()
+  const recipients = notificationRecipients(snapshot.docs.map((doc) => doc.data()), school, payment)
     .filter((email) => email !== NOTIFY_TO)
 
   if (recipients.length > MAX_RECIPIENTS) {
@@ -116,7 +119,7 @@ export const prepareOrderNotification = inTaiwan().https.onCall(async (data, con
   await assertRole(context, ADMIN_ROLES)
 
   const notification = parseNotification(data)
-  const recipients = await collectRecipients(notification.school)
+  const recipients = await collectRecipients(notification.school, notification.payment)
   if (!recipients.length) return { status: 'empty', jobId: null, sentCount: 0, total: 0 }
 
   const ref = db.collection('notificationJobs').doc()
