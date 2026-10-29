@@ -77,6 +77,28 @@
           編輯並發送
         </button>
       </div>
+      <!-- the last bulk email; delivery continues on the server after this page closes -->
+      <template v-if="pendingJob">
+        <p class="notify-progress" role="status">{{ notificationProgress }}</p>
+        <div class="notify-job-actions">
+          <button type="button" class="btn-outline" :disabled="sendingNotify" @click="pollNotificationStatus">
+            {{ sendingNotify ? '處理中…' : '檢查寄送進度' }}
+          </button>
+          <button
+            v-if="needsNotificationEnqueue(pendingJob)"
+            type="button"
+            class="btn"
+            :disabled="sendingNotify"
+            @click="runNotificationJob(pendingJob)"
+          >
+            繼續加入寄送佇列
+          </button>
+          <button v-if="canClearNotification(pendingJob)" type="button" class="btn-outline" @click="setPendingJob(null)">
+            清除本機紀錄
+          </button>
+        </div>
+      </template>
+      <p v-if="notificationError" class="notify-progress" role="alert">{{ notificationError }}</p>
     </div>
 
     <div
@@ -139,6 +161,23 @@
           </select>
         </div>
 
+        <div class="filter-block">
+          <span class="field-label">付款狀態</span>
+          <div class="type-options" role="group" aria-label="付款狀態">
+            <button
+              v-for="option in NOTIFY_PAYMENT_OPTIONS"
+              :key="option.value"
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.payment === option.value }"
+              :aria-pressed="notifyForm.payment === option.value"
+              @click="notifyForm.payment = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
         <label v-if="notifyForm.type === 'custom'" class="field">
           <span>主旨</span>
           <input
@@ -197,8 +236,11 @@
             <p v-if="notifyForm.message">補充說明：{{ notifyForm.message }}</p>
           </template>
           <p class="preview-count">
-            將發送給{{ notifyTargetSchoolLabel }}
+            將發送給{{ notifyTargetLabel }}
             <span class="num">{{ notifyRecipientCount }}</span> 位訂購者
+          </p>
+          <p v-if="pendingJob && !canClearNotification(pendingJob)" class="preview-count" role="status">
+            上一次的通知仍在處理中，完成後才能再寄送：{{ notificationProgress }}
           </p>
         </div>
 
@@ -206,7 +248,7 @@
           <button
             type="button"
             class="btn"
-            :disabled="!canSendNotify || sendingNotify"
+            :disabled="!canSendNotify || sendingNotify || (pendingJob && !canClearNotification(pendingJob))"
             @click="confirmSendNotify"
           >
             {{ sendingNotify ? '發送中...' : '確認發送' }}
@@ -550,22 +592,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { httpsCallable } from 'firebase/functions'
-import { functions } from 'src/services/firebase'
 import { schools } from 'shared/catalog'
 import { notificationRecipients } from 'shared/format'
 import { useAuthStore } from 'src/stores/auth'
 import { useToastStore } from 'src/stores/toast'
 import { useAdminOrders } from 'src/composables/useAdminOrders'
 import { useOrderPurge } from 'src/composables/useOrderPurge'
+import { useNotificationJob } from 'src/composables/useNotificationJob'
+import { canClearNotification, needsNotificationEnqueue } from 'src/utils/notificationProgress'
 import { ORDER_STATUS_LABELS, formatOrderDate, getOrderClass } from 'src/utils/orders'
 import { buildClassReceiptsHtml, printHtml } from 'src/utils/receipts'
 import { CURRENT_YEAR } from 'src/utils/salesAnalytics'
-
-// Sending to every buyer can take minutes; match the function's 300 s timeout.
-const sendOrderNotification = httpsCallable(functions, 'sendOrderNotification', { timeout: 310000 })
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -656,10 +695,22 @@ function downloadAllClassReceipts() {
 
 // ---- Bulk email notifications ----
 
+const NOTIFY_PAYMENT_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'unpaid', label: '未付款' },
+  { value: 'paid', label: '已付款' }
+]
+
+// Payment notices go to unpaid buyers unless changed; other notices to all.
+function defaultNotifyPayment(type) {
+  return type === 'payment' ? 'unpaid' : 'all'
+}
+
 function emptyNotifyForm(school = 'all') {
   return {
     type: 'payment',
     school,
+    payment: defaultNotifyPayment('payment'),
     subject: '',
     paymentTime: '',
     pickupTime: '',
@@ -669,11 +720,24 @@ function emptyNotifyForm(school = 'all') {
 }
 
 const showNotifyModal = ref(false)
-const sendingNotify = ref(false)
+// Queued like the ticket system: functions/lib/notifications.js
+const {
+  sending: sendingNotify,
+  pendingJob,
+  notificationError,
+  notificationProgress,
+  pollNotificationStatus,
+  setPendingJob,
+  prepareNotification,
+  runNotificationJob
+} = useNotificationJob()
 const notifyForm = ref(emptyNotifyForm())
+watch(() => notifyForm.value.type, (type) => {
+  notifyForm.value.payment = defaultNotifyPayment(type)
+})
 // Same rule the Cloud Function uses to pick recipients.
 const notifyRecipientCount = computed(
-  () => notificationRecipients(orders.value, notifyForm.value.school).length
+  () => notificationRecipients(orders.value, notifyForm.value.school, notifyForm.value.payment).length
 )
 
 const notifyTypeLabel = computed(() => {
@@ -686,6 +750,12 @@ const notifyTypeLabel = computed(() => {
 const notifyTargetSchoolLabel = computed(() =>
   notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
 )
+
+// e.g. 全部學校未付款的
+const notifyTargetLabel = computed(() => {
+  const payment = { unpaid: '未付款的', paid: '已付款的' }[notifyForm.value.payment] || ''
+  return `${notifyTargetSchoolLabel.value}${payment}`
+})
 
 const canSendNotify = computed(() => {
   const f = notifyForm.value
@@ -701,6 +771,7 @@ function notifyPayload() {
   return {
     type: f.type,
     school: f.school,
+    payment: f.payment,
     subject: f.subject.trim(),
     paymentTime: f.paymentTime.trim(),
     pickupTime: f.pickupTime.trim(),
@@ -724,25 +795,29 @@ async function confirmSendNotify() {
     toast.show(notifyForm.value.type === 'custom' ? '請填寫訊息內容' : '請填寫必要的時間與地點')
     return
   }
-  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetSchoolLabel.value} ${notifyRecipientCount.value} 位訂購者嗎？此動作無法復原。`)) {
+
+  // The server saves the recipient list as a job; nothing is sent yet.
+  let job
+  try {
+    job = await prepareNotification(notifyPayload())
+  } catch (error) {
+    console.error('Prepare notification error:', error)
+    toast.show(error?.message ? `發送失敗：${error.message}` : '發送失敗，請稍後再試')
     return
   }
 
-  sendingNotify.value = true
-  try {
-    const { data } = await sendOrderNotification(notifyPayload())
-    toast.show(
-      data.failedCount
-        ? `已寄送給 ${data.sentCount} 位訂購者，${data.failedCount} 位寄送失敗`
-        : `已成功寄送給 ${data.sentCount} 位訂購者`
-    )
+  if (!job.total) {
+    toast.show(`${notifyTargetLabel.value}目前沒有可寄送的訂購者`)
+    return
+  }
+  if (!window.confirm(`確定要寄送${notifyTypeLabel.value}給${notifyTargetLabel.value} ${job.total} 位訂購者嗎？此動作無法復原。`)) {
+    return
+  }
+
+  await runNotificationJob(job)
+  if (!notificationError.value) {
     showNotifyModal.value = false
     notifyForm.value = emptyNotifyForm(selectedSchool.value)
-  } catch (error) {
-    console.error('Send notification error:', error)
-    toast.show('發送失敗，請稍後再試')
-  } finally {
-    sendingNotify.value = false
   }
 }
 </script>

@@ -771,3 +771,17 @@
 .filter-block input[type='text']::placeholder {
   color: #b0b0b5;
 }
+
+/* 群發通知的寄送進度 */
+.notify-progress {
+  width: 100%;
+  margin: 0;
+  color: #6e6e73;
+  font-size: .9rem;
+}
+
+.notify-job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

@@ -1,45 +1,18 @@
-import * as functions from 'firebase-functions'
 import QRCode from 'qrcode'
 
-import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
 
-import { schools } from './shared/catalog.js'
 import { ADMIN_ROLES, APP_CHECK_SITE_KEY, SITE_URL, STAFF_ROLES, isSaleEnded, isShopOpen } from './shared/config.js'
-import { notificationRecipients } from './shared/format.js'
-import { generateEmailHTML, generateOrderNotificationHTML } from './lib/emailTemplates.js'
-import { generateSurveyInvitationHTML } from './lib/surveyEmailTemplate.js'
-import { MAIL_SECRETS, createTransporter, fromHeader, senderEmail } from './lib/mailer.js'
+import { generateEmailHTML } from './lib/emailTemplates.js'
+import { MAIL_SECRETS, createTransporter, fromHeader } from './lib/mailer.js'
 import { buildOrder, saveOrderWithNewId } from './lib/orders.js'
+import { HttpsError, assertRole, db, getRole, inTaiwan } from './lib/common.js'
 
-initializeApp()
-
-const db = getFirestore()
-const { HttpsError } = functions.https
-
-// A new builder per function: FunctionBuilder.runWith() changes the builder
-// it is called on, so a shared one would leak secrets/timeouts between functions.
-function inTaiwan(options = {}) {
-  return functions.region('asia-east1').runWith(options)
-}
+export { prepareOrderNotification, sendOrderNotification, getOrderNotificationStatus } from './lib/notifications.js'
+export { processMailQueue } from './lib/mailQueue.js'
 
 function isAnonymous(auth) {
   return auth?.token?.firebase?.sign_in_provider === 'anonymous'
-}
-
-async function getRole(uid) {
-  const snap = await db.collection('users').doc(uid).get()
-  return snap.exists ? snap.data()?.role || null : null
-}
-
-async function assertRole(context, roles) {
-  if (!context.auth) {
-    throw new HttpsError('unauthenticated', '請先登入')
-  }
-  if (!roles.includes(await getRole(context.auth.uid))) {
-    throw new HttpsError('permission-denied', '無管理員權限')
-  }
 }
 
 // Called by the checkout page. Guests are signed in anonymously, so every
@@ -175,162 +148,3 @@ export const resendOrderConfirmation = inTaiwan({ secrets: MAIL_SECRETS }).https
   await createTransporter().sendMail({ from: fromHeader(), to: order.customerEmail, subject: `建中校慶紀念品訂單確認 - 訂單編號：${orderId}`, html: generateEmailHTML(orderId, order), attachments: [{ filename: 'order-qrcode.png', content: qrCode, contentType: 'image/png', cid: 'qrcode', contentDisposition: 'inline' }] })
   return { sentTo: order.customerEmail }
 })
-
-const NOTIFY_TYPES = ['payment', 'pickup', 'both', 'custom']
-
-const NOTIFY_SUBJECTS = {
-  payment: '【建中校慶紀念品】繳費通知',
-  pickup: '【建中校慶紀念品】領貨通知',
-  both: '【建中校慶紀念品】繳費暨領貨通知',
-  custom: '【建中校慶紀念品】訂購通知'
-}
-
-// Recipients are sent as BCC in batches. SES counts each sendMail() call as
-// one message against its rate limit (commonly 14/second).
-const MAX_BCC_PER_BATCH = 49
-const MIN_MS_BETWEEN_SENDS = Math.ceil(1000 / 14)
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function chunk(array, size) {
-  const result = []
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size))
-  }
-  return result
-}
-
-function field(value, maxLength) {
-  return String(value || '').trim().slice(0, maxLength)
-}
-
-function parseSchool(value) {
-  const school = field(value, 50) || 'all'
-  if (school !== 'all' && !schools.includes(school)) {
-    throw new HttpsError('invalid-argument', '學校選項有誤')
-  }
-  return school
-}
-
-function parseNotification(data) {
-  const notification = {
-    type: NOTIFY_TYPES.includes(data?.type) ? data.type : 'payment',
-    school: parseSchool(data?.school),
-    subject: field(data?.subject, 150),
-    paymentTime: field(data?.paymentTime, 100),
-    pickupTime: field(data?.pickupTime, 100),
-    location: field(data?.location, 100),
-    message: field(data?.message, 5000)
-  }
-  const { type, paymentTime, pickupTime, location, message } = notification
-
-  // The subject box is only shown for custom messages.
-  if (type !== 'custom') notification.subject = ''
-
-  if (type === 'custom' && !message) {
-    throw new HttpsError('invalid-argument', '請提供訊息內容')
-  }
-  if (type !== 'custom' && !location) {
-    throw new HttpsError('invalid-argument', '請提供地點')
-  }
-  if ((type === 'payment' || type === 'both') && !paymentTime) {
-    throw new HttpsError('invalid-argument', '請提供繳費時間')
-  }
-  if ((type === 'pickup' || type === 'both') && !pickupTime) {
-    throw new HttpsError('invalid-argument', '請提供領貨時間')
-  }
-
-  return notification
-}
-
-// Unique customer emails for a school ('all' = every school), same rule as
-// the count shown on the admin page.
-async function collectRecipients(school) {
-  let query = db.collection('orders')
-  if (school !== 'all') query = query.where('school', '==', school)
-
-  const snapshot = await query.select('customerEmail', 'school').get()
-  const sender = senderEmail().toLowerCase()
-
-  return notificationRecipients(snapshot.docs.map((doc) => doc.data()), school)
-    .filter((email) => email !== sender)
-}
-
-// Sends one email to every recipient, BCC'd in rate-limited batches. A failed
-// batch is counted and skipped so the rest still go out.
-async function sendBulkEmail(recipients, { subject, html }) {
-  const transporter = createTransporter()
-  let sentCount = 0
-  let failedCount = 0
-  let lastSendAt = 0
-
-  for (const batch of chunk(recipients, MAX_BCC_PER_BATCH)) {
-    const waitMs = lastSendAt + MIN_MS_BETWEEN_SENDS - Date.now()
-    if (waitMs > 0) await sleep(waitMs)
-    lastSendAt = Date.now()
-
-    try {
-      // The To header shows the sender, but the envelope only delivers to
-      // the batch: the sender domain has no MX record, so a copy addressed
-      // to it sits in SES retries for 14 hours and then bounces.
-      await transporter.sendMail({
-        from: fromHeader(),
-        to: senderEmail(),
-        bcc: batch,
-        envelope: { from: senderEmail(), to: batch },
-        subject,
-        html
-      })
-      sentCount += batch.length
-    } catch (error) {
-      console.error('Failed to send a bulk email batch:', error)
-      failedCount += batch.length
-    }
-  }
-
-  return { sentCount, failedCount }
-}
-
-// Bulk payment / pickup / custom notification to buyers, sent from the admin
-// page. Admins only: the message goes out under the council's name to every
-// buyer of the chosen school(s).
-export const sendOrderNotification = inTaiwan({ secrets: MAIL_SECRETS, timeoutSeconds: 300 })
-  .https.onCall(async (data, context) => {
-    await assertRole(context, ADMIN_ROLES)
-
-    const notification = parseNotification(data)
-    const recipients = await collectRecipients(notification.school)
-
-    console.log(`Sending ${notification.type} notification to ${recipients.length} recipients`)
-
-    const { sentCount, failedCount } = await sendBulkEmail(recipients, {
-      subject: notification.subject || NOTIFY_SUBJECTS[notification.type],
-      html: generateOrderNotificationHTML(notification)
-    })
-
-    console.log(`Notification sent: ${sentCount} ok, ${failedCount} failed`)
-
-    return { sentCount, failedCount }
-  })
-
-// Survey invitation to every buyer, sent from the survey results page.
-// Admins only, like sendOrderNotification (managers can view that page too).
-export const sendSurveyInvitation = inTaiwan({ secrets: MAIL_SECRETS, timeoutSeconds: 300 })
-  .https.onCall(async (data, context) => {
-    await assertRole(context, ADMIN_ROLES)
-
-    const recipients = await collectRecipients('all')
-
-    console.log(`Sending survey invitation to ${recipients.length} recipients`)
-
-    const { sentCount, failedCount } = await sendBulkEmail(recipients, {
-      subject: '【建中校慶紀念品】意見反饋問卷',
-      html: generateSurveyInvitationHTML()
-    })
-
-    console.log(`Survey invitation sent: ${sentCount} ok, ${failedCount} failed`)
-
-    return { sentCount, failedCount }
-  })

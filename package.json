@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "quasar dev",
     "build": "quasar build",
-    "test": "node --test tests/orderQr.test.js"
+    "test": "node --test tests/orderQr.test.js tests/notificationProgress.test.js"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
