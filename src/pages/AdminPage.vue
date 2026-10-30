@@ -178,6 +178,23 @@
           </div>
         </div>
 
+        <div class="filter-block">
+          <span class="field-label">領貨狀態</span>
+          <div class="type-options" role="group" aria-label="領貨狀態">
+            <button
+              v-for="option in NOTIFY_DELIVERY_OPTIONS"
+              :key="option.value"
+              type="button"
+              class="type-option"
+              :class="{ active: notifyForm.delivery === option.value }"
+              :aria-pressed="notifyForm.delivery === option.value"
+              @click="notifyForm.delivery = option.value"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
         <label v-if="notifyForm.type === 'custom'" class="field">
           <span>主旨</span>
           <input
@@ -701,16 +718,26 @@ const NOTIFY_PAYMENT_OPTIONS = [
   { value: 'paid', label: '已付款' }
 ]
 
-// Payment notices go to unpaid buyers unless changed; other notices to all.
-function defaultNotifyPayment(type) {
-  return type === 'payment' ? 'unpaid' : 'all'
+const NOTIFY_DELIVERY_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'undelivered', label: '未領貨' },
+  { value: 'delivered', label: '已領貨' }
+]
+
+// Unless changed: payment notices go to unpaid buyers, pickup notices to
+// buyers who have not collected their order, custom messages to everyone.
+function defaultNotifyFilters(type) {
+  return {
+    payment: type === 'payment' ? 'unpaid' : 'all',
+    delivery: type === 'pickup' || type === 'both' ? 'undelivered' : 'all'
+  }
 }
 
 function emptyNotifyForm(school = 'all') {
   return {
     type: 'payment',
     school,
-    payment: defaultNotifyPayment('payment'),
+    ...defaultNotifyFilters('payment'),
     subject: '',
     paymentTime: '',
     pickupTime: '',
@@ -733,11 +760,11 @@ const {
 } = useNotificationJob()
 const notifyForm = ref(emptyNotifyForm())
 watch(() => notifyForm.value.type, (type) => {
-  notifyForm.value.payment = defaultNotifyPayment(type)
+  Object.assign(notifyForm.value, defaultNotifyFilters(type))
 })
 // Same rule the Cloud Function uses to pick recipients.
 const notifyRecipientCount = computed(
-  () => notificationRecipients(orders.value, notifyForm.value.school, notifyForm.value.payment).length
+  () => notificationRecipients(orders.value, notifyForm.value).length
 )
 
 const notifyTypeLabel = computed(() => {
@@ -751,10 +778,13 @@ const notifyTargetSchoolLabel = computed(() =>
   notifyForm.value.school === 'all' ? '全部學校' : notifyForm.value.school
 )
 
-// e.g. 全部學校未付款的
+// e.g. 全部學校未付款、未領貨的
 const notifyTargetLabel = computed(() => {
-  const payment = { unpaid: '未付款的', paid: '已付款的' }[notifyForm.value.payment] || ''
-  return `${notifyTargetSchoolLabel.value}${payment}`
+  const status = [
+    { unpaid: '未付款', paid: '已付款' }[notifyForm.value.payment],
+    { undelivered: '未領貨', delivered: '已領貨' }[notifyForm.value.delivery]
+  ].filter(Boolean)
+  return `${notifyTargetSchoolLabel.value}${status.length ? `${status.join('、')}的` : ''}`
 })
 
 const canSendNotify = computed(() => {
@@ -772,6 +802,7 @@ function notifyPayload() {
     type: f.type,
     school: f.school,
     payment: f.payment,
+    delivery: f.delivery,
     subject: f.subject.trim(),
     paymentTime: f.paymentTime.trim(),
     pickupTime: f.pickupTime.trim(),

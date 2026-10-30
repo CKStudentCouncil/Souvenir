@@ -1,7 +1,7 @@
 import { FieldPath, FieldValue } from 'firebase-admin/firestore'
 import { schools } from '../shared/catalog.js'
 import { ADMIN_ROLES } from '../shared/config.js'
-import { NOTIFY_PAYMENT_FILTERS, notificationRecipients } from '../shared/format.js'
+import { NOTIFY_DELIVERY_FILTERS, NOTIFY_PAYMENT_FILTERS, notificationRecipients } from '../shared/format.js'
 import { db, HttpsError, assertRole, inTaiwan } from './common.js'
 import { enqueueNotificationBatch, MAX_BCC_PER_BATCH, NOTIFY_TO } from './mailQueue.js'
 import { notificationProgress } from './mailQueueCore.js'
@@ -69,23 +69,24 @@ export function parseNotification(data) {
   return {
     type,
     school: parseSchool(data?.school),
-    // Pages loaded before the filter existed send none: every buyer.
+    // Pages loaded before a filter existed send none: every buyer.
     payment: NOTIFY_PAYMENT_FILTERS.includes(data?.payment) ? data.payment : 'all',
+    delivery: NOTIFY_DELIVERY_FILTERS.includes(data?.delivery) ? data.delivery : 'all',
     // The subject box is only shown for custom messages.
     subject: resolveSubject(type, field(data?.subject, 150)),
     fields
   }
 }
 
-// Unique customer emails for a school ('all' = every school) and payment
-// filter, same rule as the count shown on the admin page. The council mailbox
-// is already the To.
-async function collectRecipients(school, payment) {
+// Unique customer emails for a school ('all' = every school) and payment /
+// pickup filters, same rule as the count shown on the admin page. The council
+// mailbox is already the To.
+async function collectRecipients({ school, payment, delivery }) {
   let query = db.collection('orders')
   if (school !== 'all') query = query.where('school', '==', school)
 
-  const snapshot = await query.select('customerEmail', 'school', 'paid').get()
-  const recipients = notificationRecipients(snapshot.docs.map((doc) => doc.data()), school, payment)
+  const snapshot = await query.select('customerEmail', 'school', 'paid', 'delivered').get()
+  const recipients = notificationRecipients(snapshot.docs.map((doc) => doc.data()), { school, payment, delivery })
     .filter((email) => email !== NOTIFY_TO)
 
   if (recipients.length > MAX_RECIPIENTS) {
@@ -119,7 +120,7 @@ export const prepareOrderNotification = inTaiwan().https.onCall(async (data, con
   await assertRole(context, ADMIN_ROLES)
 
   const notification = parseNotification(data)
-  const recipients = await collectRecipients(notification.school, notification.payment)
+  const recipients = await collectRecipients(notification)
   if (!recipients.length) return { status: 'empty', jobId: null, sentCount: 0, total: 0 }
 
   const ref = db.collection('notificationJobs').doc()
