@@ -39,14 +39,33 @@ test('the payment filter picks buyers by each order\'s paid flag', async () => {
     { customerEmail: 'both@x.com', school: 'A', paid: false },
     { customerEmail: 'other@x.com', school: 'B', paid: false }
   ]
-  assert.deepEqual(notificationRecipients(orders, 'A', 'paid'), ['paid@x.com', 'both@x.com'])
-  assert.deepEqual(notificationRecipients(orders, 'A', 'unpaid'), ['unpaid@x.com', 'legacy@x.com', 'both@x.com'])
-  assert.equal(notificationRecipients(orders, 'all').length, 5)
-  assert.equal(notificationRecipients(orders, 'all', 'unpaid').length, 4)
+  assert.deepEqual(notificationRecipients(orders, { school: 'A', payment: 'paid' }), ['paid@x.com', 'both@x.com'])
+  assert.deepEqual(notificationRecipients(orders, { school: 'A', payment: 'unpaid' }), ['unpaid@x.com', 'legacy@x.com', 'both@x.com'])
+  assert.equal(notificationRecipients(orders).length, 5)
+  assert.equal(notificationRecipients(orders, { payment: 'unpaid' }).length, 4)
 })
 
 test('a missing or unknown payment filter means every buyer', () => {
   assert.equal(parseNotification({ type: 'survey' }).payment, 'all')
   assert.equal(parseNotification({ type: 'survey', payment: 'bogus' }).payment, 'all')
   assert.equal(parseNotification({ type: 'custom', message: 'hi', payment: 'unpaid' }).payment, 'unpaid')
+})
+
+test('the pickup filter picks buyers by each order\'s delivered flag, together with payment', async () => {
+  const { notificationRecipients } = await import('../shared/format.js')
+  const orders = [
+    { customerEmail: 'done@x.com', paid: true, delivered: true },
+    { customerEmail: 'paid-waiting@x.com', paid: true, delivered: false },
+    { customerEmail: 'legacy@x.com' },
+    { customerEmail: 'unpaid-collected@x.com', paid: false, delivered: true }
+  ]
+  assert.deepEqual(notificationRecipients(orders, { delivery: 'undelivered' }), ['paid-waiting@x.com', 'legacy@x.com'])
+  assert.deepEqual(notificationRecipients(orders, { delivery: 'delivered' }), ['done@x.com', 'unpaid-collected@x.com'])
+  assert.deepEqual(notificationRecipients(orders, { payment: 'paid', delivery: 'undelivered' }), ['paid-waiting@x.com'])
+})
+
+test('a missing or unknown pickup filter means every buyer', () => {
+  assert.equal(parseNotification({ type: 'survey' }).delivery, 'all')
+  assert.equal(parseNotification({ type: 'survey', delivery: 'bogus' }).delivery, 'all')
+  assert.equal(parseNotification({ type: 'pickup', location: 'A', pickupTime: '1', delivery: 'undelivered' }).delivery, 'undelivered')
 })
